@@ -317,12 +317,38 @@ if (process.env.NODE_ENV === 'production' || process.env.HEROKU) {
     console.log('🔍 Health check server initialized for production environment');
 }
 
-// Load our connection message function
+// Initialize connection management
 let connectionMessageSender = null;
+let reconnectTimer = null;
+const maxReconnectDelay = 300000; // 5 minutes
 
-// For safety, try to find and load the connection message function
+// Handle connection loss and reconnection
+let retryCount = 0;
+async function handleConnectionLoss() {
+    retryCount++;
+    if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+    }
+
+    const delay = Math.min(Math.pow(2, retryCount) * 1000, maxReconnectDelay);
+    console.log('\x1b[33m%s\x1b[0m', `🔄 Connection lost, attempting reconnect in ${delay/1000}s...`);
+
+    reconnectTimer = setTimeout(async () => {
+        try {
+            if (global.conn?.ws?.readyState !== 1) { // If not OPEN
+                await global.conn?.connect();
+                retryCount = 0; // Reset retry count on success
+            }
+        } catch (err) {
+            console.error('\x1b[31m%s\x1b[0m', '❌ Reconnection failed:', err.message);
+            handleConnectionLoss(); // Try again
+        }
+    }, delay);
+}
+
+
+// Load connection message handler
 try {
-    // When running as a module, try to require the connection message module
     const { sendConnectionMessage } = require('./plugins/info-connection');
     connectionMessageSender = sendConnectionMessage;
     console.log('✅ Connection patch loaded successfully');
@@ -425,6 +451,9 @@ process.on('unhandledRejection', (reason, promise) => {
     console.error('Unhandled Rejection at:', promise, 'reason:', reason);
     // Don't exit, let the process continue
 });
+
+// Add event listener for connection close
+global.conn?.on('close', handleConnectionLoss);
 
 // Log the patch loading
 console.log('🔧 Connection success patch and health check loaded');

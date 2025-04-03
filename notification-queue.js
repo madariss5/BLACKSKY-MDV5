@@ -210,13 +210,57 @@ function setupNotificationQueue(conn) {
   return true;
 }
 
+let retryCount = 0;
+const maxRetries = 10;
+let connectionCheckInterval = null;
+
+const initNotificationQueue = async () => {
+  if (!global.conn?.user) {
+    retryCount++;
+    const delay = Math.min(Math.pow(2, retryCount) * 1000, 300000); // Max 5 minute delay
+
+    if (retryCount <= maxRetries) {
+      // Only log every 30 seconds to reduce spam
+      if (retryCount % 6 === 0) {
+        console.log('\x1b[33m%s\x1b[0m', `⌛ Connection attempt ${retryCount}/${maxRetries}, next check in ${delay/1000}s`);
+      }
+
+      // Clear existing interval if any
+      if (connectionCheckInterval) {
+        clearInterval(connectionCheckInterval);
+      }
+
+      // Set up new interval
+      connectionCheckInterval = setTimeout(async () => {
+        try {
+          // Check if connection exists
+          if (global.conn?.user) {
+            console.log('\x1b[32m%s\x1b[0m', '✅ WhatsApp connection established');
+            retryCount = 0;
+            setupNotificationQueue(global.conn);
+          } else {
+            initNotificationQueue(); // Try again
+          }
+        } catch (err) {
+          console.error('\x1b[31m%s\x1b[0m', '❌ Connection check failed:', err.message);
+          initNotificationQueue(); // Try again
+        }
+      }, delay);
+      return;
+    }
+    console.error('\x1b[31m%s\x1b[0m', `❌ Max retries reached (${maxRetries}) for WhatsApp connection.`);
+  }
+};
+
+
 // Make functions available globally
 global.notificationQueue = {
   sendNotificationWithRetry,
   processNotificationQueue,
   clearNotificationQueue,
   getNotificationStats,
-  setupNotificationQueue
+  setupNotificationQueue,
+  initNotificationQueue
 };
 
 // Export functions for direct require
@@ -225,5 +269,6 @@ module.exports = {
   processNotificationQueue,
   clearNotificationQueue,
   getNotificationStats,
-  setupNotificationQueue
+  setupNotificationQueue,
+  initNotificationQueue
 };
