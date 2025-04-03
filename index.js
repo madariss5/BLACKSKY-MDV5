@@ -6,6 +6,23 @@ const os = require('os');
 const express = require('express');
 const app = express();
 
+// Import notification queue system
+const { 
+  sendNotificationWithRetry,
+  processNotificationQueue, 
+  clearNotificationQueue,
+  getNotificationStats,
+  setupNotificationQueue
+} = require('./notification-queue');
+
+// Make notification queue available globally
+global.notificationQueue = {
+  sendNotificationWithRetry,
+  processNotificationQueue,
+  clearNotificationQueue,
+  getNotificationStats
+};
+
 // Express.js 
 const ports = [4000, 3000, 5000, 8000];
 let availablePortIndex = 0;
@@ -476,6 +493,12 @@ async function startServer() {
     // Start the server
     const server = app.listen(port, () => {
       console.log('\x1b[32m%s\x1b[0m', `🚀 Server running on port ${port}`);
+      
+      // Initialize notification queue system if connection exists
+      if (global.conn) {
+        setupNotificationQueue(global.conn);
+        console.log('\x1b[36m%s\x1b[0m', '📨 Notification queue system initialized');
+      }
     });
     
     server.on('error', (err) => {
