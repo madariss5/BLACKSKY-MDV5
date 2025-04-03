@@ -1,6 +1,19 @@
-// Detect if running in Termux
+// Detect if running in Termux and handle Sharp compatibility
 const os = require('os');
 const isTermux = os.platform() === 'android' || process.env.TERMUX === 'true';
+
+// Use Sharp compatibility layer in Termux
+if (isTermux) {
+  console.log('📱 Running in Termux environment, using Jimp-based Sharp compatibility layer');
+  global.sharp = require('./sharp-compat.js');
+} else {
+  try {
+    global.sharp = require('sharp');
+  } catch (err) {
+    console.error('Failed to load Sharp, falling back to compatibility layer:', err);
+    global.sharp = require('./sharp-compat.js');
+  }
+}
 
 // Set environment variable for Termux
 if (isTermux) {
