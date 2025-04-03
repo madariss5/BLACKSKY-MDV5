@@ -3,6 +3,11 @@
  * This code adds robust connection handling with retries and better error recovery
  */
 
+// Initialize global connection object if not exists
+if (!global.conn) {
+    global.conn = {};
+}
+
 const express = require('express');
 const app = express();
 const os = require('os');
@@ -309,54 +314,61 @@ const MAX_RETRIES = 10;
 const BASE_DELAY = 1000; // 1 second
 const MAX_DELAY = 300000; // 5 minutes
 
-async function handleConnectionLoss(conn) {
-    if (!conn) return;
-
-    const jid = conn.user?.jid || 'unknown';
-    reconnectAttempts.set(jid, (reconnectAttempts.get(jid) || 0) + 1);
-    const attempts = reconnectAttempts.get(jid);
-
-    if (attempts > MAX_RETRIES) {
-        console.log(`[CONNECTION] Max retries (${MAX_RETRIES}) reached for ${jid}. Resetting connection...`);
-        reconnectAttempts.delete(jid);
-        // Force a clean reconnection
-        if (conn.ws) {
-            conn.ws.close();
-        }
-        // Wait before attempting full restart
-        await new Promise(resolve => setTimeout(resolve, 5000));
+async function handleConnectionLoss(connection) {
+    if (!connection) {
+        console.log('[CONNECTION] No connection object provided');
         return;
     }
 
-    // Exponential backoff with jitter
-    const delay = Math.min(BASE_DELAY * Math.pow(2, attempts - 1) + Math.random() * 1000, MAX_DELAY);
+    try {
+        const jid = connection.user?.jid || 'unknown';
+        reconnectAttempts.set(jid, (reconnectAttempts.get(jid) || 0) + 1);
+        const attempts = reconnectAttempts.get(jid);
 
-    console.log(`[CONNECTION] Connection lost for ${jid}. Attempt ${attempts}/${MAX_RETRIES} in ${Math.floor(delay/1000)}s`);
-
-    setTimeout(async () => {
-        try {
-            // Clear any existing event listeners
-            if (conn.ev) {
-                conn.ev.removeAllListeners('connection.update');
-                conn.ev.removeAllListeners('creds.update');
+        if (attempts > MAX_RETRIES) {
+            console.log(`[CONNECTION] Max retries (${MAX_RETRIES}) reached for ${jid}. Resetting connection...`);
+            reconnectAttempts.delete(jid);
+            if (connection.ws) {
+                connection.ws.close();
             }
-
-            // Attempt to restore connection
-            await conn.connect();
-
-            console.log(`[CONNECTION] Successfully reconnected ${jid}`);
-            reconnectAttempts.delete(jid); // Reset counter on success
-        } catch (err) {
-            console.error(`[CONNECTION] Failed to reconnect ${jid}:`, err);
-            // Try again with exponential backoff
-            handleConnectionLoss(conn);
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            return;
         }
-    }, delay);
+
+        const delay = Math.min(BASE_DELAY * Math.pow(2, attempts - 1) + Math.random() * 1000, MAX_DELAY);
+        console.log(`[CONNECTION] Connection lost for ${jid}. Attempt ${attempts}/${MAX_RETRIES} in ${Math.floor(delay/1000)}s`);
+
+        setTimeout(async () => {
+            try {
+                if (connection.ev) {
+                    connection.ev.removeAllListeners('connection.update');
+                    connection.ev.removeAllListeners('creds.update');
+                }
+                await connection.connect();
+                console.log(`[CONNECTION] Successfully reconnected ${jid}`);
+                reconnectAttempts.delete(jid);
+            } catch (err) {
+                console.error(`[CONNECTION] Failed to reconnect ${jid}:`, err);
+                handleConnectionLoss(connection);
+            }
+        }, delay);
+    } catch (err) {
+        console.error('[CONNECTION] Error in handleConnectionLoss:', err);
+    }
 }
 
-// Initialize connection management
-let connectionMessageSender = null;
-let reconnectTimer = null;
+// Make functions available globally
+global.connectionManager = {
+    handleConnectionLoss,
+    resetAttempts: () => reconnectAttempts.clear(),
+    getAttempts: (jid) => reconnectAttempts.get(jid) || 0
+};
+
+// Export the connection handler
+module.exports = {
+    handleConnectionLoss,
+    setupHealthCheckServer
+};
 
 // Load connection message handler
 try {
@@ -374,25 +386,14 @@ if (process.env.NODE_ENV === 'production' || process.env.HEROKU) {
     console.log('🔍 Health check server initialized for production environment');
 }
 
-// Add connection manager to global scope
-global.connectionManager = {
-    handleConnectionLoss,
-    resetAttempts: () => reconnectAttempts.clear(),
-    getAttempts: (jid) => reconnectAttempts.get(jid) || 0
-};
-
-// Export the connection handler
-module.exports = {
-    handleConnectionLoss,
-    setupHealthCheckServer
-};
+// Log the patch loading
+console.log('🔧 Connection success patch and health check loaded');
 
 // For backwards compatibility
 if (!connectionMessageSender && typeof global.sendConnectionSuccess === 'function') {
     console.log('Using legacy connection message function');
     connectionMessageSender = global.sendConnectionSuccess;
 }
-
 
 // For safety, wrap in a check
 if (typeof connectionMessageSender === 'function') {
@@ -528,7 +529,8 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // Add event listener for connection close
-global.conn?.on('close', (err) => handleConnectionLoss(global.conn, err));
-
-// Log the patch loading
-console.log('🔧 Connection success patch and health check loaded');
+if (global.conn && typeof global.conn.on === 'function') {
+    global.conn.on('close', () => handleConnectionLoss(global.conn));
+} else {
+    console.log('[CONNECTION] Waiting for WhatsApp connection to be established...');
+}
