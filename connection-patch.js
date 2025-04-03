@@ -22,8 +22,31 @@ const sharp = require('sharp');
 
 // Initialize health check server and Heroku compatibility layer
 function setupHealthCheckServer() {
-    const PORT = process.env.PORT || 5000;
-    
+    // Try ports sequentially until one works
+  const ports = [process.env.PORT || 3000, 8080, 5000, 3001];
+  let server;
+
+  const tryPort = (index) => {
+    if (index >= ports.length) {
+      console.error('No available ports found');
+      return;
+    }
+
+    server = app.listen(ports[index], '0.0.0.0', () => {
+      console.log('\x1b[32m%s\x1b[0m', `⚡ Health check server running on port ${ports[index]}`);
+    }).on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.log(`Port ${ports[index]} in use, trying next port...`);
+        tryPort(index + 1);
+      } else {
+        console.error('Server error:', err);
+      }
+    });
+  };
+
+  tryPort(0);
+
+
     // Basic info route
     app.get('/', (req, res) => {
         res.send(`
@@ -92,7 +115,7 @@ function setupHealthCheckServer() {
                     Status: <span class="online">ONLINE</span><br>
                     WhatsApp Connection: ${global.conn?.user ? "Connected" : "Waiting for connection"}
                 </div>
-                
+
                 <div class="stats">
                     <div class="stat-card">
                         <h3>System Info</h3>
@@ -107,7 +130,7 @@ function setupHealthCheckServer() {
                         <p>Environment: ${process.env.NODE_ENV || "development"}</p>
                     </div>
                 </div>
-                
+
                 <footer>
                     BLACKSKY-MD Bot &copy; 2025
                 </footer>
@@ -116,7 +139,7 @@ function setupHealthCheckServer() {
         </html>
         `);
     });
-    
+
     // Health check endpoint
     app.get('/health', (req, res) => {
         res.status(200).json({
@@ -130,7 +153,7 @@ function setupHealthCheckServer() {
             }
         });
     });
-    
+
     // Logo endpoint for fetching the BLACKSKY-MD logo
     app.get('/logo', async (req, res) => {
         try {
@@ -142,7 +165,7 @@ function setupHealthCheckServer() {
                 'blacksky-logo.svg',
                 'blacksky-logo-simple.svg'
             ];
-            
+
             let logoFile = null;
             for (const file of logoFiles) {
                 const filePath = path.join(process.cwd(), file);
@@ -151,28 +174,28 @@ function setupHealthCheckServer() {
                     break;
                 }
             }
-            
+
             if (!logoFile) {
                 res.status(404).send('Logo not found');
                 return;
             }
-            
+
             // Convert SVG to PNG for better compatibility
             try {
                 console.log('[CONNECTION] Using logo:', path.basename(logoFile));
                 console.log('Converting SVG file:', logoFile);
-                
+
                 const pngBuffer = await sharp(logoFile)
                     .resize(300)
                     .png()
                     .toBuffer();
-                
+
                 res.setHeader('Content-Type', 'image/png');
                 res.send(pngBuffer);
                 console.log('[CONNECTION] Successfully converted logo SVG to PNG');
             } catch (err) {
                 console.error('Error converting SVG to PNG:', err);
-                
+
                 // Fallback to sending the raw SVG
                 res.setHeader('Content-Type', 'image/svg+xml');
                 res.send(fs.readFileSync(logoFile));
@@ -182,7 +205,7 @@ function setupHealthCheckServer() {
             res.status(500).send('Error loading logo');
         }
     });
-    
+
     // Session status endpoint
     app.get('/status', (req, res) => {
         const sessionStatus = {
@@ -197,10 +220,10 @@ function setupHealthCheckServer() {
             environment: process.env.NODE_ENV || 'development',
             version: '2.5.0 Premium'
         };
-        
+
         res.json(sessionStatus);
     });
-    
+
     // Metric monitoring endpoint for external monitoring tools
     app.get('/metrics', (req, res) => {
         const metrics = {
@@ -214,7 +237,7 @@ function setupHealthCheckServer() {
             'system_free_memory_bytes': os.freemem(),
             'system_load_average': os.loadavg()[0]
         };
-        
+
         // Format as Prometheus metrics
         let output = '';
         for (const [key, value] of Object.entries(metrics)) {
@@ -222,15 +245,15 @@ function setupHealthCheckServer() {
             output += `# TYPE ${key} gauge\n`;
             output += `${key} ${value}\n`;
         }
-        
+
         res.setHeader('Content-Type', 'text/plain');
         res.send(output);
     });
-    
+
     // Session info endpoint
     app.get('/session', (req, res) => {
         const sessionDir = path.join(process.cwd(), 'sessions');
-        
+
         try {
             if (!fs.existsSync(sessionDir)) {
                 return res.json({
@@ -238,7 +261,7 @@ function setupHealthCheckServer() {
                     message: 'No sessions directory found'
                 });
             }
-            
+
             const sessionId = process.env.SESSION_ID || 'BLACKSKY-MD';
             const sessionFiles = fs.readdirSync(sessionDir)
                 .filter(file => file.startsWith(sessionId))
@@ -248,7 +271,7 @@ function setupHealthCheckServer() {
                     size: fs.statSync(path.join(sessionDir, file)).size,
                     modified: fs.statSync(path.join(sessionDir, file)).mtime,
                 }));
-            
+
             res.json({
                 status: 'success',
                 sessionId,
@@ -262,7 +285,7 @@ function setupHealthCheckServer() {
             });
         }
     });
-    
+
     // Heroku-specific information endpoint
     app.get('/heroku', (req, res) => {
         const herokuInfo = {
@@ -273,13 +296,8 @@ function setupHealthCheckServer() {
             slugId: process.env.HEROKU_SLUG_ID || 'Unknown',
             dynoSize: process.env.HEROKU_DYNO_SIZE || 'eco'
         };
-        
+
         res.json(herokuInfo);
-    });
-    
-    // Start server
-    app.listen(PORT, () => {
-        console.log(`⚡ Health check server running on port ${PORT}`);
     });
 }
 
@@ -289,7 +307,7 @@ function formatUptime(seconds) {
     const hours = Math.floor((seconds % (3600 * 24)) / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
-    
+
     return `${days}d ${hours}h ${minutes}m ${secs}s`;
 }
 
@@ -327,11 +345,11 @@ if (typeof connectionMessageSender === 'function') {
         try {
             // Send connection success message
             connectionMessageSender(global.conn);
-            
+
             // Also send to owner if owner is configured
             if (global.owner && global.owner.length > 0) {
                 let ownerJid = global.owner[0][0] + '@s.whatsapp.net';
-                
+
                 // Send to owner's chat directly
                 if (ownerJid && ownerJid !== 'undefined@s.whatsapp.net') {
                     connectionMessageSender(global.conn, ownerJid);
@@ -351,12 +369,12 @@ if (typeof connectionMessageSender === 'function') {
  */
 async function performGracefulShutdown() {
     console.log('🔄 Received shutdown signal, performing graceful shutdown...');
-    
+
     try {
         // Save session if it exists
         if (global.conn?.user) {
             console.log('💾 Saving WhatsApp session before shutdown...');
-            
+
             // Try to log out properly
             try {
                 await global.conn.logout();
@@ -365,7 +383,7 @@ async function performGracefulShutdown() {
                 console.error('Error during logout:', logoutError.message);
             }
         }
-        
+
         // Save database if it exists
         if (global.db) {
             console.log('💾 Saving database before shutdown...');
@@ -376,10 +394,10 @@ async function performGracefulShutdown() {
                 console.error('Error saving database:', dbError.message);
             }
         }
-        
+
         // Perform any other cleanup tasks here
         // ...
-        
+
         console.log('👍 Graceful shutdown completed');
     } catch (e) {
         console.error('❌ Error during graceful shutdown:', e);

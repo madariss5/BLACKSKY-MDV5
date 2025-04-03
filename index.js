@@ -495,7 +495,7 @@ async function startServer() {
       console.log('\x1b[32m%s\x1b[0m', `🚀 Server running on port ${port}`);
 
       // Initialize notification queue system with retry logic
-      function initNotificationQueue() {
+      const initNotificationQueue = async () => {
         if (!global.conn?.user) {
           console.log('\x1b[33m%s\x1b[0m', '⌛ Waiting for WhatsApp connection before initializing notifications...');
           setTimeout(initNotificationQueue, 5000);
@@ -508,7 +508,7 @@ async function startServer() {
           console.log('\x1b[31m%s\x1b[0m', '❌ Failed to initialize notification queue, retrying in 5s...');
           setTimeout(initNotificationQueue, 5000);
         }
-      }
+      };
 
       initNotificationQueue();
     });
