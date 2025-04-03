@@ -604,8 +604,14 @@ const tmpDir = './tmp';
 
 process.on('unhandledRejection', (reason) => {
   console.error('\x1b[31m%s\x1b[0m', `Unhandled promise rejection: ${reason}`);
-  console.error('\x1b[31m%s\x1b[0m', 'Unhandled promise rejection. Script will restart...');
-  start('main.js');
+  console.error('\x1b[31m%s\x1b[0m', 'Attempting to recover...');
+  // More graceful error handling for production
+  if (global.conn?.user) {
+    console.log('WhatsApp connection still alive, continuing...');
+  } else {
+    console.log('Restarting bot...');
+    start('main.js');
+  }
 });
 
 process.on('exit', (code) => {
