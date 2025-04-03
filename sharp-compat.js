@@ -1,142 +1,315 @@
 /**
  * Sharp compatibility layer using Jimp
  * For Termux environments where Sharp is difficult to install
+ *
+ * This polyfill implements the most commonly used Sharp functions
+ * to ensure compatibility with Termux environments
  */
 const Jimp = require('jimp');
 const fs = require('fs');
 const path = require('path');
+const { promisify } = require('util');
+const writeFileAsync = promisify(fs.writeFile);
+const readFileAsync = promisify(fs.readFile);
 
-// Simple Sharp API compatible wrapper for Jimp
+// Ensure Jimp is installed
+try {
+  require.resolve('jimp');
+} catch (e) {
+  console.log('Installing Jimp for Sharp compatibility...');
+  require('child_process').execSync('npm install jimp');
+}
+
 class SharpCompat {
   constructor(input) {
-    this.input = input;
-    this.jimpInstance = null;
-    this.options = {
-      width: null,
-      height: null,
-      format: 'png',
-      quality: 80
+    this._input = input;
+    this._operations = [];
+    this._image = null;
+    this._format = 'png';
+    this._quality = 80;
+    this._options = {
+      resize: null,
+      flip: false,
+      flop: false,
+      rotate: 0,
+      blur: 0,
+      sharpen: 0,
+      greyscale: false,
+      grayscale: false,
+      negate: false,
+      extract: null,
+      trim: false,
+      tint: null
     };
+    
+    if (input) {
+      this._loadPromise = this._loadImage(input);
+    }
   }
 
-  // Load the image
-  async _load() {
-    if (this.jimpInstance) return this.jimpInstance;
-    
-    if (Buffer.isBuffer(this.input)) {
-      this.jimpInstance = await Jimp.read(this.input);
-    } else if (typeof this.input === 'string') {
-      this.jimpInstance = await Jimp.read(this.input);
-    } else {
-      throw new Error('Unsupported input type');
+  async _loadImage(input) {
+    try {
+      if (Buffer.isBuffer(input)) {
+        this._image = await Jimp.read(input);
+      } else if (typeof input === 'string') {
+        this._image = await Jimp.read(input);
+      } else {
+        throw new Error('Unsupported input type');
+      }
+      
+      return this;
+    } catch (err) {
+      console.error('Error loading image in Sharp compatibility layer:', err);
+      throw err;
+    }
+  }
+
+  // Ensure image is loaded
+  async _ensureImage() {
+    if (!this._image && this._loadPromise) {
+      await this._loadPromise;
     }
     
-    return this.jimpInstance;
+    if (!this._image) {
+      throw new Error('No image loaded');
+    }
+    
+    return this._image;
   }
 
-  // Resize the image
-  resize(width, height = null) {
-    this.options.width = width;
-    this.options.height = height;
-    return this;
-  }
-
-  // Set output format
-  png() {
-    this.options.format = 'png';
-    return this;
-  }
-  
-  jpeg() {
-    this.options.format = 'jpeg';
-    return this;
-  }
-  
-  webp() {
-    this.options.format = 'png'; // Fallback to PNG as Jimp doesn't support WebP
-    console.warn('WebP not supported in SharpCompat, falling back to PNG');
-    return this;
-  }
-
-  // Set quality
-  quality(value) {
-    this.options.quality = value;
-    return this;
-  }
-
-  // Get output buffer
-  async toBuffer() {
-    const image = await this._load();
+  // Apply all pending operations to the image
+  async _applyOperations() {
+    const image = await this._ensureImage();
     
     // Apply resize if needed
-    if (this.options.width) {
-      if (this.options.height) {
-        image.resize(this.options.width, this.options.height);
+    if (this._options.resize) {
+      const { width, height, fit } = this._options.resize;
+      
+      if (fit === 'contain') {
+        // Contain: Scale the image to the maximum size that fits within the width/height
+        image.contain(width || Jimp.AUTO, height || Jimp.AUTO);
+      } else if (fit === 'cover') {
+        // Cover: Scale the image to cover both width/height
+        image.cover(width || Jimp.AUTO, height || Jimp.AUTO);
       } else {
-        image.resize(this.options.width, Jimp.AUTO);
+        // Default: Scale the image to width/height maintaining aspect ratio
+        image.resize(width || Jimp.AUTO, height || Jimp.AUTO);
       }
     }
     
-    // Convert to requested format
-    let mimeType;
-    switch(this.options.format) {
-      case 'png':
-        mimeType = Jimp.MIME_PNG;
-        break;
-      case 'jpeg':
-      case 'jpg':
-        mimeType = Jimp.MIME_JPEG;
-        break;
-      default:
-        mimeType = Jimp.MIME_PNG;
+    // Apply other operations
+    if (this._options.greyscale || this._options.grayscale) {
+      image.greyscale();
     }
     
-    // Return buffer
+    if (this._options.flip) {
+      image.flip(true, false);
+    }
+    
+    if (this._options.flop) {
+      image.flip(false, true);
+    }
+    
+    if (this._options.rotate) {
+      image.rotate(this._options.rotate);
+    }
+    
+    if (this._options.blur && this._options.blur > 0) {
+      image.blur(this._options.blur);
+    }
+    
+    if (this._options.sharpen && this._options.sharpen > 0) {
+      image.convolute([
+        [-1, -1, -1],
+        [-1, this._options.sharpen + 8, -1],
+        [-1, -1, -1]
+      ]);
+    }
+    
+    if (this._options.negate) {
+      image.invert();
+    }
+    
+    if (this._options.extract) {
+      const { left, top, width, height } = this._options.extract;
+      image.crop(left, top, width, height);
+    }
+    
+    if (this._options.tint) {
+      image.color([
+        { apply: 'mix', params: [this._options.tint, 50] }
+      ]);
+    }
+    
+    return image;
+  }
+  
+  // Resize methods
+  resize(width, height, options = {}) {
+    this._options.resize = { width, height, fit: options.fit || 'cover' };
+    return this;
+  }
+  
+  extend(options) {
+    console.warn('extend() is not fully supported in Sharp compatibility layer');
+    return this;
+  }
+  
+  extract(options) {
+    this._options.extract = options;
+    return this;
+  }
+  
+  trim(threshold) {
+    console.warn('trim() is not fully supported in Sharp compatibility layer');
+    this._options.trim = true;
+    return this;
+  }
+  
+  // Flip operations
+  flip() {
+    this._options.flip = true;
+    return this;
+  }
+  
+  flop() {
+    this._options.flop = true;
+    return this;
+  }
+  
+  // Rotation
+  rotate(angle) {
+    this._options.rotate = angle;
+    return this;
+  }
+  
+  // Color manipulations
+  greyscale(greyscale = true) {
+    this._options.greyscale = greyscale;
+    return this;
+  }
+  
+  grayscale(grayscale = true) {
+    this._options.grayscale = grayscale;
+    return this;
+  }
+  
+  negate(negate = true) {
+    this._options.negate = negate;
+    return this;
+  }
+  
+  // Effects
+  blur(sigma) {
+    this._options.blur = sigma || 1;
+    return this;
+  }
+  
+  sharpen(sigma = 1) {
+    this._options.sharpen = sigma;
+    return this;
+  }
+  
+  tint(rgb) {
+    this._options.tint = rgb;
+    return this;
+  }
+  
+  // Format conversion methods
+  toFormat(format, options = {}) {
+    this._format = format;
+    if (options.quality) {
+      this._quality = options.quality;
+    }
+    return this;
+  }
+  
+  jpeg(options = {}) {
+    return this.toFormat('jpeg', options);
+  }
+  
+  png(options = {}) {
+    return this.toFormat('png', options);
+  }
+  
+  webp(options = {}) {
+    return this.toFormat('webp', options);
+  }
+  
+  // Output methods
+  async toBuffer() {
+    const image = await this._applyOperations();
     return new Promise((resolve, reject) => {
-      image.quality(this.options.quality);
-      image.getBuffer(mimeType, (err, buffer) => {
-        if (err) reject(err);
-        else resolve(buffer);
+      image.getBuffer(Jimp.AUTO, (err, buffer) => {
+        if (err) return reject(err);
+        resolve(buffer);
       });
     });
   }
-
-  // Save to file
+  
   async toFile(outputPath) {
-    const image = await this._load();
-    
-    // Apply resize if needed
-    if (this.options.width) {
-      if (this.options.height) {
-        image.resize(this.options.width, this.options.height);
-      } else {
-        image.resize(this.options.width, Jimp.AUTO);
-      }
+    try {
+      const image = await this._applyOperations();
+      
+      let mime;
+      const ext = path.extname(outputPath).toLowerCase().substring(1);
+      
+      // Set quality
+      image.quality(this._quality);
+      
+      // Save the file
+      await image.writeAsync(outputPath);
+      
+      // Return metadata object similar to Sharp
+      return {
+        format: ext || this._format,
+        width: image.getWidth(),
+        height: image.getHeight(),
+        channels: 4,
+        premultiplied: false,
+        size: fs.statSync(outputPath).size
+      };
+    } catch (err) {
+      console.error('Error in toFile:', err);
+      throw err;
     }
-    
-    // Save with requested quality
-    image.quality(this.options.quality);
-    return new Promise((resolve, reject) => {
-      image.writeAsync(outputPath)
-        .then(() => resolve(outputPath))
-        .catch(reject);
-    });
+  }
+  
+  // Metadata
+  async metadata() {
+    const image = await this._ensureImage();
+    return {
+      format: this._format,
+      width: image.getWidth(),
+      height: image.getHeight(),
+      channels: 4,
+      premultiplied: false
+    };
   }
 }
 
 // Export a function that mimics Sharp's API
-module.exports = function(input) {
+function sharpCompat(input) {
   return new SharpCompat(input);
-};
+}
 
-// Also provide compatibility for some common Sharp functions
-module.exports.cache = function(options) {
+// Provide compatibility for some common Sharp functions
+sharpCompat.cache = function(options) {
   console.log('Sharp cache settings ignored in compatibility layer');
-  return module.exports;
+  return sharpCompat;
 };
 
-module.exports.format = {
+sharpCompat.format = {
   jpeg: 'jpeg',
   png: 'png',
-  webp: 'webp'
+  webp: 'webp',
+  raw: 'raw'
 };
+
+sharpCompat.versions = {
+  vips: '0.0.0 (compatibility mode)',
+};
+
+sharpCompat.simd = false;
+
+module.exports = sharpCompat;
