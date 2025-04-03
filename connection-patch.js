@@ -528,9 +528,15 @@ process.on('unhandledRejection', (reason, promise) => {
     // Don't exit, let the process continue
 });
 
-// Add event listener for connection close
-if (global.conn && typeof global.conn.on === 'function') {
-    global.conn.on('close', () => handleConnectionLoss(global.conn));
+// Add event listener for connection close using ev
+if (global.conn?.ev) {
+    global.conn.ev.on('connection.update', (update) => {
+        const { connection, lastDisconnect } = update;
+        if (connection === 'close') {
+            handleConnectionLoss(global.conn);
+        }
+    });
+    console.log('[CONNECTION] Event listeners initialized successfully');
 } else {
     console.log('[CONNECTION] Waiting for WhatsApp connection to be established...');
 }
