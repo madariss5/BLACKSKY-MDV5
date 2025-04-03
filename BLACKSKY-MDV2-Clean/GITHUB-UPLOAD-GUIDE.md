@@ -1,101 +1,79 @@
-# GitHub Upload Guide for BLACKSKY-MD
+# BLACKSKY-MDV2 GitHub Upload Guide
 
-Due to the large size of this repository (over 3000 files including many large binary assets), uploading to GitHub directly from Replit is challenging. This guide provides steps to complete the upload from your local machine.
+This guide will help you upload the BLACKSKY-MDV2 WhatsApp bot to your GitHub repository at `https://github.com/madariss5/BLACKSKY-MDV2`.
 
-## Step 1: Download the Repository from Replit
+## Prerequisites
 
-1. From your Replit dashboard, select this project
-2. Click on the three dots menu (⋮) in the top-right corner
-3. Select "Download as ZIP"
-4. Save the ZIP file to your local machine and extract it
+1. A GitHub account
+2. Git installed on your computer or access to the GitHub web interface
+3. GitHub Personal Access Token (classic) with repo permissions
 
-## Step 2: Prepare the Repository for GitHub
+## Method 1: Manual Upload (Recommended)
 
-1. Open a terminal/command prompt on your local machine
-2. Navigate to the extracted folder:
-   ```
-   cd path/to/extracted/folder
-   ```
+Since the bot contains many files and the repository size might be large, a manual upload is recommended.
 
-3. Initialize a new Git repository (if not already initialized):
-   ```
-   git init
-   ```
+### Step 1: Download the Clean Archive
+Download the `BLACKSKY-MDV2-Clean.tar.gz` file from this Replit.
 
-4. Make sure your `.gitignore` file includes the following entries to exclude sensitive files:
-   ```
-   # Environment variables
-   .env
-   
-   # Session files
-   sessions/
-   *.session.json
-   creds.json
-   
-   # Database files
-   database.json
-   
-   # Config file with sensitive information
-   config.js
-   
-   # Large media files
-   attached_assets/*.gif
-   attached_assets/*.mp3
-   attached_assets/*.mp4
-   gifs/*.gif
-   src/*.mp3
-   src/*.mp4
-   ```
+### Step 2: Extract the Archive
+Extract the contents of the archive to a folder on your computer.
 
-5. Ensure you have a `config.example.js` file (already included) that users can use as a template
+### Step 3: Create a New Repository (if not already created)
+1. Go to GitHub and log in to your account
+2. Click on the "+" icon in the top right corner and select "New repository"
+3. Name your repository "BLACKSKY-MDV2"
+4. Choose public or private visibility as per your preference
+5. Do not initialize with README, .gitignore, or license
+6. Click "Create repository"
 
-## Step 3: Push to GitHub
+### Step 4: Upload Files via GitHub Web Interface
+1. Navigate to your new repository
+2. Click on the "uploading an existing file" link
+3. Drag and drop the extracted files or use the file chooser
+4. Add a commit message like "Initial commit"
+5. Click "Commit changes"
 
-1. Create a new repository on GitHub named "BLACKSKY-MDV2" at https://github.com/madariss5/BLACKSKY-MDV2
+Repeat this process as needed for additional files or folders.
 
-2. Link your local repository to GitHub:
-   ```
-   git remote add origin https://github.com/madariss5/BLACKSKY-MDV2.git
-   ```
+### Step 5: Add Your GIFs (Optional)
+Later, you can manually add your GIF files to the `gifs` folder as needed.
 
-3. Stage your files:
-   ```
-   git add .
-   ```
+## Method 2: Using Git Command Line
 
-4. Commit the changes:
-   ```
-   git commit -m "Initial commit of BLACKSKY-MD WhatsApp Bot"
-   ```
+If you prefer using Git, follow these steps:
 
-5. Push to GitHub:
-   ```
-   git push -u origin main
-   ```
+### Step 1: Clone the Repository
+```bash
+git clone https://github.com/madariss5/BLACKSKY-MDV2.git
+cd BLACKSKY-MDV2
+```
 
-## Step 4: Verify Your Repository
+### Step 2: Extract the Archive Contents
+Extract the `BLACKSKY-MDV2-Clean.tar.gz` to this directory.
 
-1. Visit https://github.com/madariss5/BLACKSKY-MDV2 to confirm your files were uploaded correctly
-2. Make sure sensitive information (API keys, personal phone numbers, etc.) is not exposed
-3. Verify the README.md file points to the correct repository URLs
+### Step 3: Add, Commit, and Push
+```bash
+git add .
+git commit -m "Initial commit"
+git push origin main
+```
 
-## Notes on Large Files
+Note: For large repositories, you might need to use Git LFS (Large File Storage) or increase the Git buffer size:
+```bash
+git config --global http.postBuffer 524288000
+```
 
-If you're still having trouble pushing due to large files, consider using Git LFS (Large File Storage):
+## Token-Based Authentication
 
-1. Install Git LFS: https://git-lfs.github.com/
-2. Initialize Git LFS:
-   ```
-   git lfs install
-   ```
-3. Track large files:
-   ```
-   git lfs track "*.gif" "*.mp3" "*.mp4"
-   ```
-4. Add, commit, and push as normal
+GitHub no longer accepts password authentication for Git operations. Use a Personal Access Token instead:
 
-## Need Additional Help?
+1. Go to GitHub → Settings → Developer Settings → Personal Access Tokens → Tokens (classic)
+2. Generate a new token with "repo" permissions
+3. Use this token instead of your password when prompted during Git operations
 
-- GitHub has a size limit of 100MB per file and recommends repositories under 5GB
-- For larger repositories, consider using GitHub releases for asset storage
-- You can also host media files separately (e.g., on a CDN) and reference them in your code
+## Final Notes
+
+- The `.gitignore` file is configured to exclude certain files like GIFs and sensitive configuration
+- Remember to create a proper `config.js` file based on the provided `config.example.js` template
+- After uploading, verify that all necessary files are present and no sensitive data is exposed
+- Add your GIF files manually to the appropriate directories after the initial upload
