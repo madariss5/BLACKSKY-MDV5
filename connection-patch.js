@@ -16,7 +16,9 @@ const path = require('path');
 const { promisify } = require('util');
 const { exec } = require('child_process');
 const execAsync = promisify(exec);
-const sharp = require('sharp');
+const Jimp = require('jimp'); // Importing Jimp
+const { jidDecode } = require('@adiwajshing/baileys');
+
 
 // Initialize health check server and Heroku compatibility layer
 function setupHealthCheckServer() {
@@ -176,15 +178,13 @@ function setupHealthCheckServer() {
                 return;
             }
 
-            // Convert SVG to PNG for better compatibility
+            // Convert SVG to PNG using Jimp for better compatibility
             try {
                 console.log('[CONNECTION] Using logo:', path.basename(logoFile));
                 console.log('Converting SVG file:', logoFile);
 
-                const pngBuffer = await sharp(logoFile)
-                    .resize(300)
-                    .png()
-                    .toBuffer();
+                const image = await Jimp.read(logoFile);
+                const pngBuffer = await image.resize(300, Jimp.AUTO).getBufferAsync(Jimp.MIME_PNG);
 
                 res.setHeader('Content-Type', 'image/png');
                 res.send(pngBuffer);
@@ -528,6 +528,7 @@ process.on('unhandledRejection', (reason, promise) => {
     // Don't exit, let the process continue
 });
 
+
 // Add event listener for connection close using ev
 const initializeConnectionEvents = () => {
     if (!global.conn) {
@@ -548,7 +549,11 @@ const initializeConnectionEvents = () => {
         global.conn.ev.on('connection.update', (update) => {
             const { connection, lastDisconnect } = update;
             if (connection === 'close') {
-                handleConnectionLoss(global.conn);
+                const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== 401;
+                if (shouldReconnect) {
+                    console.log('[CONNECTION] Attempting to reconnect...');
+                    setTimeout(initializeConnectionEvents, 3000);
+                }
             } else if (connection === 'open') {
                 console.log('[CONNECTION] WhatsApp connection established');
             }
@@ -561,4 +566,5 @@ const initializeConnectionEvents = () => {
     }
 };
 
+// Initialize events
 initializeConnectionEvents();
