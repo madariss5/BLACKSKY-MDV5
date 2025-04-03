@@ -1,5 +1,0 @@
-// Find lines 1249-1251 in languages.js and replace with this:
-    'suit_tie': 'Unentschieden!\nDu: %player%\nBot: %bot%',
-    'suit_win': 'Du gewinnst!',
-    
-    // Time-related
