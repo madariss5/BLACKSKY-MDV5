@@ -1,15 +1,8 @@
 /**
  * Enhanced Connection Handler Patch
- * This code adds a connection success handler that sends a premium notification
- * with the BLACKSKY-MD logo when the bot successfully connects.
- * 
- * It also sets up a health check HTTP server for Heroku deployments
- * to prevent auto-restarts from failing due to health check failures.
- * 
- * Additional Heroku-specific optimizations and fixes are included.
+ * This code adds robust connection handling with retries and better error recovery
  */
 
-// Import required modules
 const express = require('express');
 const app = express();
 const os = require('os');
@@ -23,30 +16,28 @@ const sharp = require('sharp');
 // Initialize health check server and Heroku compatibility layer
 function setupHealthCheckServer() {
     // Try ports sequentially until one works
-  const ports = [process.env.PORT || 3000, 8080, 5000, 3001];
-  let server;
+    const ports = [process.env.PORT || 3000, 8080, 5000, 3001];
+    let server;
 
-  const tryPort = (index) => {
-    if (index >= ports.length) {
-      console.error('No available ports found');
-      return;
-    }
+    const tryPort = (index) => {
+        if (index >= ports.length) {
+            console.error('No available ports found');
+            return;
+        }
 
-    server = app.listen(ports[index], '0.0.0.0', () => {
-      console.log('\x1b[32m%s\x1b[0m', `⚡ Health check server running on port ${ports[index]}`);
-    }).on('error', (err) => {
-      if (err.code === 'EADDRINUSE') {
-        console.log(`Port ${ports[index]} in use, trying next port...`);
-        tryPort(index + 1);
-      } else {
-        console.error('Server error:', err);
-      }
-    });
-  };
+        server = app.listen(ports[index], '0.0.0.0', () => {
+            console.log('\x1b[32m%s\x1b[0m', `⚡ Health check server running on port ${ports[index]}`);
+        }).on('error', (err) => {
+            if (err.code === 'EADDRINUSE') {
+                console.log(`Port ${ports[index]} in use, trying next port...`);
+                tryPort(index + 1);
+            } else {
+                console.error('Server error:', err);
+            }
+        });
+    };
 
-  tryPort(0);
-
-
+    tryPort(0);
     // Basic info route
     app.get('/', (req, res) => {
         res.send(`
@@ -311,41 +302,61 @@ function formatUptime(seconds) {
     return `${days}d ${hours}h ${minutes}m ${secs}s`;
 }
 
-// Initialize health check server if running on Heroku or production environment
-if (process.env.NODE_ENV === 'production' || process.env.HEROKU) {
-    setupHealthCheckServer();
-    console.log('🔍 Health check server initialized for production environment');
+
+// Enhanced connection management
+const reconnectAttempts = new Map();
+const MAX_RETRIES = 10;
+const BASE_DELAY = 1000; // 1 second
+const MAX_DELAY = 300000; // 5 minutes
+
+async function handleConnectionLoss(conn) {
+    if (!conn) return;
+
+    const jid = conn.user?.jid || 'unknown';
+    reconnectAttempts.set(jid, (reconnectAttempts.get(jid) || 0) + 1);
+    const attempts = reconnectAttempts.get(jid);
+
+    if (attempts > MAX_RETRIES) {
+        console.log(`[CONNECTION] Max retries (${MAX_RETRIES}) reached for ${jid}. Resetting connection...`);
+        reconnectAttempts.delete(jid);
+        // Force a clean reconnection
+        if (conn.ws) {
+            conn.ws.close();
+        }
+        // Wait before attempting full restart
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        return;
+    }
+
+    // Exponential backoff with jitter
+    const delay = Math.min(BASE_DELAY * Math.pow(2, attempts - 1) + Math.random() * 1000, MAX_DELAY);
+
+    console.log(`[CONNECTION] Connection lost for ${jid}. Attempt ${attempts}/${MAX_RETRIES} in ${Math.floor(delay/1000)}s`);
+
+    setTimeout(async () => {
+        try {
+            // Clear any existing event listeners
+            if (conn.ev) {
+                conn.ev.removeAllListeners('connection.update');
+                conn.ev.removeAllListeners('creds.update');
+            }
+
+            // Attempt to restore connection
+            await conn.connect();
+
+            console.log(`[CONNECTION] Successfully reconnected ${jid}`);
+            reconnectAttempts.delete(jid); // Reset counter on success
+        } catch (err) {
+            console.error(`[CONNECTION] Failed to reconnect ${jid}:`, err);
+            // Try again with exponential backoff
+            handleConnectionLoss(conn);
+        }
+    }, delay);
 }
 
 // Initialize connection management
 let connectionMessageSender = null;
 let reconnectTimer = null;
-const maxReconnectDelay = 300000; // 5 minutes
-
-// Handle connection loss and reconnection
-let retryCount = 0;
-async function handleConnectionLoss() {
-    retryCount++;
-    if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
-    }
-
-    const delay = Math.min(Math.pow(2, retryCount) * 1000, maxReconnectDelay);
-    console.log('\x1b[33m%s\x1b[0m', `🔄 Connection lost, attempting reconnect in ${delay/1000}s...`);
-
-    reconnectTimer = setTimeout(async () => {
-        try {
-            if (global.conn?.ws?.readyState !== 1) { // If not OPEN
-                await global.conn?.connect();
-                retryCount = 0; // Reset retry count on success
-            }
-        } catch (err) {
-            console.error('\x1b[31m%s\x1b[0m', '❌ Reconnection failed:', err.message);
-            handleConnectionLoss(); // Try again
-        }
-    }, delay);
-}
-
 
 // Load connection message handler
 try {
@@ -353,10 +364,28 @@ try {
     connectionMessageSender = sendConnectionMessage;
     console.log('✅ Connection patch loaded successfully');
 } catch (e) {
-    // If we can't load it directly, we'll look for it in globals
     console.log('Loading connection message from globals as fallback');
     connectionMessageSender = global.sendConnectionMessage;
 }
+
+// Initialize health check server if in production
+if (process.env.NODE_ENV === 'production' || process.env.HEROKU) {
+    setupHealthCheckServer();
+    console.log('🔍 Health check server initialized for production environment');
+}
+
+// Add connection manager to global scope
+global.connectionManager = {
+    handleConnectionLoss,
+    resetAttempts: () => reconnectAttempts.clear(),
+    getAttempts: (jid) => reconnectAttempts.get(jid) || 0
+};
+
+// Export the connection handler
+module.exports = {
+    handleConnectionLoss,
+    setupHealthCheckServer
+};
 
 // For backwards compatibility
 if (!connectionMessageSender && typeof global.sendConnectionSuccess === 'function') {
@@ -394,7 +423,7 @@ if (typeof connectionMessageSender === 'function') {
  * Perform graceful shutdown, saving data and closing connections
  */
 async function performGracefulShutdown() {
-    console.log('🔄 Received shutdown signal, performing graceful shutdown...');
+    console.log('🔄 Received shutdown signal, performing gracefulshutdown...');
 
     try {
         // Save session if it exists
@@ -453,7 +482,7 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // Add event listener for connection close
-global.conn?.on('close', handleConnectionLoss);
+global.conn?.on('close', (err) => handleConnectionLoss(global.conn, err));
 
 // Log the patch loading
 console.log('🔧 Connection success patch and health check loaded');
