@@ -1,0 +1,135 @@
+{
+  "name": "BLACKSKY-MD Premium",
+  "description": "Advanced Multilingual WhatsApp Bot - Premium 24/7 Edition",
+  "repository": "https://github.com/blackskytech/BLACKSKY-MD",
+  "logo": "https://raw.githubusercontent.com/blackskytech/BLACKSKY-MD/main/blacksky-premium-gradient.svg",
+  "website": "https://blacksky.tech",
+  "success_url": "/status",
+  "keywords": [
+        "whatsapp-bot-md",
+        "whatsapp-bot",
+        "whatsapp",
+        "js-whatsapp",
+        "whatsapp",
+        "cyberpunk-bot",
+        "premium-bot",
+        "whiskeysockets",
+        "blacksky-md",
+        "baileys"
+  ],
+  "env": {
+    "SESSION_ID": {
+      "description": "A unique session ID for your WhatsApp connection",
+      "value": "BLACKSKY-MD",
+      "required": true
+    },
+    "BOT_NAME": {
+      "description": "Name of your WhatsApp bot",
+      "value": "BLACKSKY-MD",
+      "required": true
+    },
+    "OWNER_NUMBER": {
+      "description": "Your WhatsApp number with country code (e.g. 491556315347)",
+      "value": "",
+      "required": true
+    },
+    "PREFIX": {
+      "description": "Prefix for bot commands",
+      "value": ".",
+      "required": false
+    },
+    "NODE_ENV": {
+      "description": "Environment setting",
+      "value": "production",
+      "required": true
+    },
+    "TZ": {
+      "description": "Timezone for scheduling and logs (e.g. Europe/Berlin, America/New_York)",
+      "value": "UTC",
+      "required": false
+    },
+    "LANGUAGE": {
+      "description": "Default language for bot responses (en = English, de = German)",
+      "value": "en",
+      "required": false
+    },
+    "ENABLE_HEALTH_CHECK": {
+      "description": "Enable health check endpoint to keep the app alive",
+      "value": "true",
+      "required": false
+    },
+    "ENABLE_SESSION_BACKUP": {
+      "description": "Enable automatic session backup to prevent session loss",
+      "value": "true",
+      "required": false
+    },
+    "BACKUP_INTERVAL": {
+      "description": "Interval in minutes between session backups",
+      "value": "30",
+      "required": false
+    },
+    "MAX_MEMORY_MB": {
+      "description": "Maximum memory allowed before auto-restart (in MB)",
+      "value": "1024",
+      "required": false
+    },
+    "ENABLE_MEMORY_OPTIMIZATION": {
+      "description": "Enable automatic memory optimization",
+      "value": "true",
+      "required": false
+    },
+    "PM2_RESTART_CRON": {
+      "description": "Cron schedule for daily restart (default: 4:00 AM)",
+      "value": "0 4 * * *",
+      "required": false
+    },
+    "HEROKU": {
+      "description": "Flag to enable Heroku-specific optimizations",
+      "value": "true",
+      "required": false
+    }
+  },
+  "addons": [
+    {
+      "plan": "heroku-postgresql:mini",
+      "as": "DATABASE"
+    }
+  ],
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    },
+    {
+      "url": "https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest"
+    },
+    {
+      "url": "https://github.com/clhuang/heroku-buildpack-webp-binaries.git"
+    }
+  ],
+  "formation": {
+    "worker": {
+      "quantity": 1,
+      "size": "eco"
+    },
+    "web": {
+      "quantity": 1,
+      "size": "eco"
+    }
+  },
+  "stack": "container",
+  "scripts": {
+    "postdeploy": "mkdir -p logs sessions sessions-backup tmp media"
+  },
+  "features": {
+    "runtime-dyno-metadata": {
+      "description": "Access to metadata about the current dyno",
+      "enabled": true
+    }
+  },
+  "cron": [
+    {
+      "command": "node backup-sessions.js",
+      "schedule": "*/30 * * * *"
+    }
+  ]
+}
