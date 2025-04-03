@@ -1,116 +1,116 @@
-# BLACKSKY-MD PREMIUM 
+# BLACKSKY-MD WhatsApp Bot
 
-<div align="center">
-  <img src="blacksky-premium-gradient.svg" alt="BLACKSKY-MD Premium Logo" width="500"/>
-</div>
+## 🚀 Advanced Multilingual WhatsApp Bot
 
-## 🌌 PREMIUM CYBERPUNK EDITION 🌌
+BLACKSKY-MD is a feature-rich, autonomous WhatsApp bot with support for hundreds of commands, games, RPG elements, language learning tools, AI integration, and more.
 
-**Latest Updates:**
-- Enhanced Reaction Commands System for faster response times
-- Advanced message queue optimization with priority processing
-- Reaction commands (like hug, kiss, slap) now respond more quickly
-- Multi-language support for reaction commands (English and German)
-- Fix upload file ke server cdn 
-- Menggunakan QR dan pairing code 
-- Penggunaan pairing ```node . --pairing```
-- Fitur 90% implementasi dari website api
-- Penambah output url expres.js agar bisa di jalankan di render dsb.
-- Informasi api [WhatsApp](https://whatsapp.com/channel/0029VaApYsQ5Ui2c2rKbpP0S)
-- Informasi Bot [Whatsapp](https://whatsapp.com/channel/0029VaiIG3UJpe8n3Y2MZ51z)
+![BLACKSKY-MD](blacksky-premium-gradient.svg)
 
-**Performance Optimizations:**
-- Ultra-fast response times for all commands and group interactions
-- Advanced message queue system with multi-tier priorities
-- Intelligent caching for faster command processing
-- Group-specific optimizations for high-traffic groups
-- See [Performance Optimization Guide](./PERFORMANCE_OPTIMIZATION_GUIDE.md) for details
+## ✨ Features
 
-**Reaction Command Features:**
-- Prioritized queue processing for all reaction commands
-- Advanced message deduplication with command-specific TTL values
-- Support for 41 different reaction commands in multiple languages
-- Intelligent command detection and prioritization system
-- See [Reaction Command Documentation](./REACTION_COMMAND_OPTIMIZATION.md) for details
-- See [How to Apply Enhancements](./HOW-TO-APPLY-REACTION-ENHANCEMENTS.md) for installation guide
-  ## Note!
-  **Important :**
-  
-- Untuk menggunakan bot ini, kamu diwajibkan mengisi ApiKey terlebih dahulu. Jika tidak mengisinya, bot tidak akan berfungsi dengan baik.
-- Tidak disarankan menginstal bot ini di termux atau panel yang tidak mempunyai kelengkapan express, ffmpeg, imagemagick, webp.
-  
-- Menggunakan 80% fitur dari [`RestApi`](https://api.betabotz.eu.org) sebagai media downloader dan berbagai fitur lain nya.
+- **Multi-Device Support**: Works with the latest WhatsApp Multi-Device API
+- **Hundreds of Commands**: Over 400+ plugin commands for every purpose
+- **Language Learning Tools**: Interactive commands to help with language acquisition
+- **AI Integration**: Powered by OpenAI and other AI platforms
+- **RPG & Game Systems**: Rich interactive games and collection features
+- **User-Friendly**: Simple setup with minimal technical knowledge required
+- **Battery Optimized**: Designed for 24/7 operation even on mobile devices
+- **Multilingual**: Supports multiple languages for both commands and responses
 
+## 📋 Prerequisites
 
-## ApiKey Harga
+- Node.js 16+
+- Git
+- Basic JavaScript knowledge (for customization)
 
-| No | Plan/Role    | Limit          | Expired         | Harga |
-|----|--------------|----------------|-----------------|-------|
-| 1  | Free         | 30 Request/day| -               | Gratis|
-| 2  | Cheap1       | 3000 Request   | 1 bulan         | 3000     |
-| 3  | Cheap2       | 4000 Request   | 1 bulan         | 4000     |
-| 4  | PREMIUM      | 5000 Request   | 1 bulan         | 5000     |
-| 5  | VIP          | 10000 Request  | 2 bulan         | 10000     |
-| 6  | VVIP         | 15000 Request  | 2 bulan         | 15000     |
-| 7  | SUPREME      | 30000 Request  | 3 bulan         | 30000     |
+## 🔧 Quick Installation
 
-- Jika ingin membeli ApiKey Cheap1, Cheap2, Premium, Vip, Vvip, Supreme silahkan register lalu pilih paket yang diinginkan dan tekan button Buy now [`Pilih`](https://api.betabotz.eu.org/price)
+### Method 1: Automated Installation (Recommended)
 
-**Website Api :**
-- BOTCAHX (Optional)[`Register`](https://api.botcahx.eu.org)
-- Lann (Wajib) [`Register`](https://api.betabotz.eu.org)
-- Setelah mendapatkan apikey silahkan paste di config.js pada bagian ```global.btc``` dan ```global.lann```
-- Setelah itu install bot kalian dan ketik pada bot .getip
-- Ambil ip dan pergi ke [`Profile Api`](https://api.betabotz.eu.org) untuk melakukan whitelist
-- Cari opsi settings -> management ip dan paste ip kalian disana supaya bot bisa menggunakan api
-
-## Script ini wajib dijalankan di nodejs 20+, jika mencari hosting panel nodejs 20 bisa beli di saya
-- Admin Lann [`Buy`](https://wa.me/p/23983051454715720/62895628117900)
-  
-## BetaBotz Md || Information & Discussion
-- Group Bot [`Join`](https://chat.whatsapp.com/H8XPKS8vmHm2spliGlKY41)
-## Support
-
-<a href="https://api.betabotz.eu.org/donasi" target="_blank"><img src="https://img.shields.io/badge/Buy_Me_A_Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" height="32px" alt="Sociabuzz"></a>
-
-
-### `Render`
-
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://dashboard.render.com/blueprint/new?repo=https%3A%2F%2Fgithub.com%2Fmadariss5%2FBLACKSKY-MDV2)
-## Base Ori
-Original base [`Link`](https://github.com/HelgaIlham/ZukaBet)
-
-## Run On Heroku
-
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/madariss5/BLACKSKY-MDV2)
-# Heroku Buildpack
-### Instal Buildpack
 ```bash
-* heroku/nodejs
-* https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest.git
-* https://github.com/clhuang/heroku-buildpack-webp-binaries.git
+# Clone the repository
+git clone https://github.com/madariss5/BLACKSKY-MDV2.git
+
+# Enter the directory
+cd BLACKSKY-MDV2
+
+# Install dependencies and start the bot
+npm install && npm start
 ```
 
-## UNTUK PENGGUNA WINDOWS/VPS/RDP
+### Method 2: Manual Installation
 
-* Unduh & Instal Git [`Klik Disini`](https://git-scm.com/downloads)
-* Unduh & Instal NodeJS [`Klik Disini`](https://nodejs.org/en/download)
-* Unduh & Instal FFmpeg [`Klik Disini`](https://ffmpeg.org/download.html) (**Jangan Lupa Tambahkan FFmpeg ke variabel lingkungan PATH**)
-* Unduh & Instal ImageMagick [`Klik Disini`](https://imagemagick.org/script/download.php)
+```bash
+# Clone the repository
+git clone https://github.com/madariss5/BLACKSKY-MDV2.git
 
-```javascript
-git clone https://github.com/madariss5/BLACKSKY-MDV2
+# Enter the directory
 cd BLACKSKY-MDV2
-npm i
+
+# Install dependencies
+npm install
+
+# Copy example config
+cp config.example.js config.js
+
+# Edit the config file with your information
+nano config.js
+
+# Start the bot
 npm start
 ```
-```javascript
-// to get pairing code //
 
-node index.js --pairing
+## 🗃️ Media Files
 
+**Note**: This repository excludes GIF and large media files to keep the size manageable. You'll need to manually add these files to the `gifs/` and `attached_assets/` directories after cloning.
+
+A complete media pack will be available in the repository releases section.
+
+## 📱 Running on Android (Termux)
+
+For detailed instructions on running this bot on your Android device using Termux, please refer to [TERMUX-GUIDE-UPDATED.md](TERMUX-GUIDE-UPDATED.md).
+
+## 🔑 Required API Keys
+
+This bot requires specific API keys to function properly. See [ESSENTIAL-API-KEYS.md](ESSENTIAL-API-KEYS.md) for the minimum required keys, or [API-KEYS-README.md](API-KEYS-README.md) for a comprehensive list of all supported APIs.
+
+## 🖥️ Hosting Options
+
+### Heroku
+See [HEROKU-DEPLOYMENT.md](HEROKU-DEPLOYMENT.md) for details on deploying to Heroku.
+
+### VPS/Dedicated Server
+The bot is optimized for 24/7 operation on VPS or dedicated servers with PM2.
+
+### Mobile (Termux)
+Special scripts are included for reliable operation on Android devices using Termux.
+
+## 📚 Documentation
+
+- [API Keys Guide](API-KEYS-README.md)
+- [Configuration Guide](CONFIGURATION-GUIDE.md)
+- [Termux Guide](TERMUX-GUIDE-UPDATED.md)
+- [Heroku Deployment](HEROKU-DEPLOYMENT.md)
+- [GitHub Upload Guide](GITHUB-UPLOAD-GUIDE.md)
+
+## 🔄 Updating
+
+To update the bot to the latest version:
+
+```bash
+git pull
+npm install
+npm start
 ```
 
+## 🤝 Contributing
 
-##### All Contributors
-[`All Contri`](https://contributor.betabotz.eu.org)
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📃 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## ⚠️ Disclaimer
+
+This project is not affiliated with WhatsApp Inc. Use at your own discretion and responsibility.
