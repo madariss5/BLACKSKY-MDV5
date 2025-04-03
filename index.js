@@ -6,7 +6,12 @@ const os = require('os');
 const express = require('express');
 const app = express();
 
-// Import notification queue system
+// Initialize connection first
+if (!global.conn) {
+  global.conn = {}; // Initialize empty connection object
+}
+
+// Import notification queue system after conn exists
 const { 
   sendNotificationWithRetry,
   processNotificationQueue, 
@@ -22,6 +27,14 @@ global.notificationQueue = {
   clearNotificationQueue,
   getNotificationStats
 };
+
+// Load connection patch after conn is initialized
+try {
+  require('./connection-patch');
+  console.log('✅ Connection patch loaded successfully');
+} catch (e) {
+  console.error('❌ Failed to load connection patch:', e.message);
+}
 
 // Express.js 
 const ports = [4000, 3000, 5000, 8000];
