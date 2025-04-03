@@ -6,12 +6,7 @@ const os = require('os');
 const express = require('express');
 const app = express();
 
-// Initialize connection first
-if (!global.conn) {
-  global.conn = {}; // Initialize empty connection object
-}
-
-// Import notification queue system after conn exists
+// Import notification queue system
 const { 
   sendNotificationWithRetry,
   processNotificationQueue, 
@@ -19,6 +14,16 @@ const {
   getNotificationStats,
   setupNotificationQueue
 } = require('./notification-queue');
+
+// Initialize connection with proper structure
+if (!global.conn) {
+  global.conn = {
+    user: null,
+    ev: null,
+    ws: null,
+    authState: null
+  };
+}
 
 // Make notification queue available globally
 global.notificationQueue = {
