@@ -1,238 +1,183 @@
-# Running WhatsApp Bot in Background on Termux
+# BLACKSKY-MD Termux Installation Guide (Updated)
 
-This updated guide will help you run the WhatsApp bot in the background on Termux, even after closing the Termux app. We have created improved scripts that handle various scenarios automatically.
+This guide provides detailed instructions for installing and running BLACKSKY-MD on Android devices using Termux.
 
 ## Prerequisites
 
-Make sure you have Termux installed from either:
-- [Google Play Store](https://play.google.com/store/apps/details?id=com.termux) or
-- [F-Droid](https://f-droid.org/packages/com.termux/) (Recommended for better background support)
+- Termux app installed from [F-Droid](https://f-droid.org/en/packages/com.termux/) (Google Play version may have issues)
+- At least 1GB of free storage
+- Android 7.0 or higher recommended
 
-## Quick Start Guide (Recommended)
+## Installation Steps
 
-For most users, this is the easiest way to get the bot running in the background:
+### 1. Setup Termux
 
-1. Make the new Termux script executable:
-   ```bash
-   chmod +x run-termux-bot.sh
-   ```
-
-2. Run the enhanced Termux script:
-   ```bash
-   ./run-termux-bot.sh
-   ```
-
-3. The script will:
-   - Install all necessary packages if they aren't already installed
-   - Acquire a wake lock to prevent Termux from killing the process
-   - Start the bot with PM2
-   - Configure auto-restart settings
-   - Set up auto-start after reboot (if Termux:Boot is installed)
-
-4. You can now close Termux, and the bot will continue running in the background.
-
-## Alternative Options
-
-### Full Setup With Multiple Scripts
-
-If you prefer a full setup with separate scripts for different operations:
-
-1. Run the setup script:
-   ```bash
-   chmod +x termux-setup.sh
-   ./termux-setup.sh
-   ```
-
-2. This will create:
-   - `start-bot.sh` - To start the bot
-   - `stop-bot.sh` - To stop the bot
-   - `restart-bot.sh` - To restart the bot
-
-3. Use these scripts as needed:
-   ```bash
-   ./start-bot.sh    # To start the bot
-   ./stop-bot.sh     # To stop the bot
-   ./restart-bot.sh  # To restart the bot
-   ```
-
-### Simple Start
-
-If you just want a simple script that handles the essentials:
+Open Termux and update packages:
 
 ```bash
-chmod +x run-bot-background.sh
-./run-bot-background.sh
+pkg update && pkg upgrade -y
 ```
 
-## Managing Your Running Bot
-
-### Check Status
-
-To check if your bot is running:
+Install required dependencies:
 
 ```bash
-pm2 status
+pkg install -y nodejs git ffmpeg libwebp imagemagick python build-essential
 ```
 
-### View Logs
-
-To see the bot's logs in real-time:
+Grant storage permission:
 
 ```bash
-pm2 logs WhatsAppBot
+termux-setup-storage
 ```
 
-### Interactive Monitoring
-
-For an interactive dashboard to monitor performance:
+### 2. Clone the Repository
 
 ```bash
-pm2 monit
+git clone https://github.com/madariss5/BLACKSKY-MDV2.git
+cd BLACKSKY-MDV2
 ```
 
-### Stop the Bot
-
-To stop the bot:
+### 3. Install Node.js Dependencies
 
 ```bash
-pm2 stop WhatsAppBot
+npm install
 ```
 
-Or use the provided script:
+### 4. Fix Sharp Module Issues
+
+We've included a special script to fix issues with the Sharp module on Termux:
 
 ```bash
-./stop-bot.sh
+chmod +x termux-fix-sharp.sh
+./termux-fix-sharp.sh
 ```
 
-### Restart the Bot
+This script will:
+- Install necessary system packages 
+- Create a Termux-compatible connection patch
+- Setup a Sharp compatibility layer using Jimp
+- Create a Termux-optimized startup script
 
-To restart the bot:
+### 5. Configure the Bot
+
+Copy the example configuration:
 
 ```bash
-pm2 restart WhatsAppBot
+cp config.example.js config.js
 ```
 
-Or use the provided script:
+Then edit the config file:
 
 ```bash
-./restart-bot.sh
+nano config.js
 ```
 
-## Troubleshooting
+Set your WhatsApp number as the owner, adjust the prefix, and other settings.
 
-### Bot Stops After Closing Termux
+### 6. Start the Bot
 
-If your bot stops when you close Termux:
+Use our specialized Termux script:
 
-1. Make sure the wake lock is acquired:
-   ```bash
-   termux-wake-lock
-   ```
+```bash
+./run-termux-fixed.sh
+```
 
-2. Ensure Termux is excluded from battery optimization in your Android settings:
-   - Go to **Settings > Apps > Termux > Battery**
-   - Select "No restrictions" or "Don't optimize"
+Scan the QR code with your WhatsApp when prompted to log in.
 
-3. Try the enhanced script which handles wake locks better:
-   ```bash
-   ./run-termux-bot.sh
-   ```
+## Advanced Troubleshooting
 
-### Memory Issues
+### Memory Errors
 
-If the bot crashes due to memory limitations:
+If you encounter "JavaScript heap out of memory" errors:
 
-1. Restart with memory limits:
-   ```bash
-   pm2 start index.js --name WhatsAppBot --max-memory-restart 250M
-   ```
+1. Edit the `run-termux-fixed.sh` file to reduce memory usage:
 
-2. Or edit ecosystem.config.js to add memory limits:
-   ```javascript
-   module.exports = {
-     apps: [{
-       name: "WhatsAppBot",
-       script: "index.js",
-       watch: false,
-       autorestart: true,
-       max_memory_restart: "250M",
-       restart_delay: 5000,
-       env: {
-         NODE_ENV: "production",
-       }
-     }]
-   }
-   ```
+```bash
+nano run-termux-fixed.sh
+```
 
-### PM2 Issues
+2. Change the memory limit to a lower value:
 
-If PM2 is not working correctly:
+```
+export NODE_OPTIONS="--max-old-space-size=800"
+```
 
-1. Reset PM2:
-   ```bash
-   pm2 kill
-   pm2 start ecosystem.config.js
-   pm2 save
-   ```
+### Connection Issues
 
-2. If that doesn't work, reinstall PM2:
-   ```bash
-   npm remove -g pm2
-   npm install -g pm2
-   ./run-termux-bot.sh
-   ```
+If you experience connection problems:
 
-## Auto-Start After Phone Reboot
+1. Ensure you have a stable internet connection
+2. Try restarting Termux completely
+3. Check if your WhatsApp number is banned or restricted
+4. Clear your WhatsApp session by removing the `sessions` folder:
 
-### Using Termux:Boot (Recommended)
+```bash
+rm -rf sessions
+mkdir sessions
+```
 
-1. Install Termux:Boot from F-Droid (not available on Play Store version)
+### Image Processing Errors
 
-2. Run our enhanced script which will set up Termux:Boot automatically:
-   ```bash
-   ./run-termux-bot.sh
-   ```
+If you encounter errors related to image processing:
 
-3. Or manually create a boot script:
-   ```bash
-   mkdir -p ~/.termux/boot
-   echo "#!/data/data/com.termux/files/usr/bin/bash" > ~/.termux/boot/start-bot
-   echo "cd $(pwd)" >> ~/.termux/boot/start-bot
-   echo "termux-wake-lock" >> ~/.termux/boot/start-bot
-   echo "pm2 resurrect" >> ~/.termux/boot/start-bot
-   chmod +x ~/.termux/boot/start-bot
-   ```
+1. Our `sharp-compat.js` should handle most cases automatically
+2. Ensure imagemagick and libwebp are installed:
 
-4. Always save your PM2 process list after any changes:
-   ```bash
-   pm2 save
-   ```
+```bash
+pkg install -y imagemagick libwebp
+```
 
-## Important Notes for Phone Battery Life
+3. For specific sticker creation issues, try:
 
-1. The bot will use some battery as it runs continuously in the background.
+```bash
+pkg install -y libpng libjpeg-turbo
+```
 
-2. To minimize battery usage:
-   - Keep your WhatsApp bot code efficient
-   - Avoid unnecessary plugins that consume resources
-   - Consider setting PM2 to restart periodically to clean up memory
+## Running in Background
 
-3. Your phone's battery optimization settings might kill the process on some devices:
-   - Make sure Termux is excluded from battery optimization
-   - Consider using a phone with minimal bloatware
-   - Custom ROMs sometimes perform better for background tasks
+To keep the bot running when you close Termux:
 
-4. Always exit Termux properly by pressing the back button or typing `exit` rather than force-closing it.
+1. Install Termux:API:
 
-5. Some Android versions may not allow continuous background processes - this varies by manufacturer and Android version.
+```bash
+pkg install termux-api
+```
 
-## Script Location Reference
+2. Use the `nohup` command:
 
-Here's a summary of all the scripts available to manage your bot:
+```bash
+nohup ./run-termux-fixed.sh > bot.log 2>&1 &
+```
 
-- `./run-termux-bot.sh` - Enhanced script for Termux with automatic setup (recommended)
-- `./run-bot-background.sh` - Simple script to run the bot in the background
-- `./termux-setup.sh` - Full setup script that creates separate start/stop/restart scripts
-- `./start-bot.sh` - Script to start the bot (created by termux-setup.sh)
-- `./stop-bot.sh` - Script to stop the bot
-- `./restart-bot.sh` - Script to restart the bot
+This will start the bot in the background and save logs to `bot.log`.
+
+## Checking Bot Status
+
+To see if the bot is running in the background:
+
+```bash
+ps aux | grep node
+```
+
+## Stopping the Bot
+
+To stop the bot running in the background:
+
+```bash
+pkill -f "node --expose-gc index.js"
+```
+
+## Support and Updating
+
+For updates:
+
+```bash
+git pull
+npm install
+```
+
+If you encounter any issues, refer to our FAQ or join our support group for assistance.
+
+---
+
+**Note:** This guide is specifically optimized for the BLACKSKY-MD bot running on Termux. The special fixes and optimizations included here address common issues faced by Termux users with the Sharp module and other components.

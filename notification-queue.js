@@ -1,219 +1,215 @@
 /**
- * BLACKSKY-MD Premium Notification Queue System
- * This module implements a persistent notification queue that helps handle the
- * "Could not send notification - missing connection or user" error on Heroku.
- * 
- * Features:
- * - Persistent queue that survives restarts and dyno cycling
- * - Automatic retry with exponential backoff
- * - Graceful handling of connection losses
- * - Memory-efficient storage
+ * BLACKSKY-MD Premium - WhatsApp Notification Queue System
+ * This module provides a robust notification queue for ensuring messages
+ * get sent even during connection issues or Heroku dyno cycling
  */
 
-const fs = require('fs');
-const path = require('path');
+// Map to store pending notifications
+const pendingNotifications = new Map();
 
-// Create a persistent notification queue
-class NotificationQueue {
-  constructor() {
-    this.queue = new Map();
-    this.queueFile = path.join(process.cwd(), 'notification-queue.json');
-    this.loadQueue();
-    
-    // Set up periodic processing
-    setInterval(() => this.processQueue(), 30000);
-    
-    // Set up periodic saving
-    setInterval(() => this.saveQueue(), 60000);
-    
-    console.log('📋 Notification queue system initialized');
-  }
+// Stats for monitoring
+const stats = {
+  queued: 0,
+  sent: 0,
+  failed: 0,
+  retries: 0
+};
+
+/**
+ * Send a WhatsApp message with automatic retry on connection failure
+ * @param {Object} conn - The WhatsApp connection object
+ * @param {String} jid - JID of recipient
+ * @param {Object|String} content - Message content
+ * @param {Object} options - Message options
+ * @returns {Promise<Object>} - Message info if sent
+ */
+async function sendNotificationWithRetry(conn, jid, content, options = {}) {
+  // Generate unique message ID
+  const msgId = `${jid}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
   
-  loadQueue() {
+  // Initial attempt counter
+  let attempts = 0;
+  const maxAttempts = options.maxRetries || 5;
+  const initialDelay = options.initialDelay || 5000; // 5 seconds
+  const maxDelay = options.maxDelay || 300000; // 5 minutes
+  
+  // Process to attempt sending the message
+  const attemptSend = async () => {
     try {
-      if (fs.existsSync(this.queueFile)) {
-        const data = JSON.parse(fs.readFileSync(this.queueFile, 'utf8'));
-        
-        // Convert the plain object back to a Map
-        for (const [id, item] of Object.entries(data)) {
-          this.queue.set(id, item);
+      // Check if connection is ready
+      if (!conn.user) {
+        // Connection not ready, queue for later processing
+        if (!pendingNotifications.has(msgId) && attempts < maxAttempts) {
+          pendingNotifications.set(msgId, { 
+            jid, 
+            content, 
+            options, 
+            attempts,
+            createdAt: Date.now()
+          });
+          
+          console.log(`[NOTIFICATION] Queued message for later: ${msgId} (Attempt: ${attempts + 1}/${maxAttempts})`);
+          stats.queued++;
+          
+          // Schedule retry with exponential backoff
+          const delay = Math.min(initialDelay * Math.pow(2, attempts), maxDelay);
+          
+          setTimeout(() => {
+            // Get the latest notification data
+            const notification = pendingNotifications.get(msgId);
+            if (notification) {
+              notification.attempts++;
+              attempts = notification.attempts;
+              attemptSend(); // Try again
+              stats.retries++;
+            }
+          }, delay);
+        } else if (attempts >= maxAttempts) {
+          console.error(`[NOTIFICATION] Max attempts reached for message ${msgId}, giving up`);
+          pendingNotifications.delete(msgId);
+          stats.failed++;
         }
-        
-        console.log(`📥 Loaded ${this.queue.size} pending notifications`);
-      }
-    } catch (err) {
-      console.error('Error loading notification queue:', err);
-    }
-  }
-  
-  saveQueue() {
-    try {
-      if (this.queue.size > 0) {
-        // Convert Map to a plain object for JSON serialization
-        const queueObj = Object.fromEntries(this.queue);
-        fs.writeFileSync(this.queueFile, JSON.stringify(queueObj, null, 2));
-        console.log(`📤 Saved ${this.queue.size} pending notifications`);
-      } else if (fs.existsSync(this.queueFile)) {
-        fs.unlinkSync(this.queueFile);
-      }
-    } catch (err) {
-      console.error('Error saving notification queue:', err);
-    }
-  }
-  
-  add(jid, content, options = {}) {
-    const id = `${jid}_${Date.now()}`;
-    this.queue.set(id, {
-      jid,
-      content,
-      options,
-      attempts: 0,
-      lastAttempt: null,
-      created: Date.now()
-    });
-    console.log(`📋 Added notification to queue: ${id}`);
-    return id;
-  }
-  
-  async processQueue() {
-    if (!global.conn?.user) {
-      // If connection isn't ready, don't try to process the queue
-      return;
-    }
-    
-    if (this.queue.size === 0) {
-      return; // No notifications to process
-    }
-    
-    console.log(`🔄 Processing notification queue (${this.queue.size} items)`);
-    
-    for (const [id, item] of this.queue.entries()) {
-      // Skip items that were recently attempted (implement exponential backoff)
-      const backoffTime = Math.min(Math.pow(2, item.attempts) * 10000, 3600000);
-      if (item.lastAttempt && Date.now() - item.lastAttempt < backoffTime) {
-        continue;
+        return null;
       }
       
-      try {
-        console.log(`📤 Attempting to send notification: ${id}`);
-        await global.conn.sendMessage(item.jid, item.content, item.options);
-        console.log(`✅ Successfully sent notification: ${id}`);
-        this.queue.delete(id);
-      } catch (err) {
-        console.error(`❌ Failed to send notification: ${err.message}`);
+      // Connection is ready, try to send
+      const result = await conn.sendMessage(jid, content, { 
+        ...options,
+        // Add message queue ID for tracking
+        msgId
+      });
+      
+      console.log(`[NOTIFICATION] Successfully sent message: ${msgId}`);
+      pendingNotifications.delete(msgId);
+      stats.sent++;
+      return result;
+    } catch (err) {
+      console.error(`[NOTIFICATION] Error sending message: ${err.message}`);
+      
+      // Retry with backoff if haven't reached max attempts
+      if (attempts < maxAttempts) {
+        attempts++;
+        const delay = Math.min(initialDelay * Math.pow(2, attempts), maxDelay);
         
-        // Update attempt info
-        item.attempts++;
-        item.lastAttempt = Date.now();
+        console.log(`[NOTIFICATION] Will retry in ${delay/1000}s (attempt ${attempts}/${maxAttempts})`);
         
-        // Remove after too many attempts or too old (24 hours)
-        if (item.attempts > 10 || Date.now() - item.created > 24 * 60 * 60 * 1000) {
-          console.log(`⏱️ Removing expired notification: ${id}`);
-          this.queue.delete(id);
-        }
+        return new Promise((resolve) => {
+          setTimeout(async () => {
+            const result = await attemptSend();
+            resolve(result);
+          }, delay);
+        });
+      } else {
+        console.error(`[NOTIFICATION] Failed to send notification after ${maxAttempts} attempts`);
+        pendingNotifications.delete(msgId);
+        stats.failed++;
+        throw err; // Re-throw for the caller to handle
       }
     }
+  };
+  
+  return attemptSend();
+}
+
+/**
+ * Process all queued notifications when connection is re-established
+ * @param {Object} conn - The WhatsApp connection object
+ */
+function processNotificationQueue(conn) {
+  if (!conn.user || pendingNotifications.size === 0) return;
+  
+  console.log(`[NOTIFICATION] Processing ${pendingNotifications.size} queued notifications`);
+  
+  const now = Date.now();
+  const maxAge = 3600000; // 1 hour max age for notifications
+  
+  // Process all pending notifications
+  for (const [id, notification] of pendingNotifications.entries()) {
+    // Skip notifications that are too old
+    if (now - notification.createdAt > maxAge) {
+      console.log(`[NOTIFICATION] Dropping old notification ${id} (${(now - notification.createdAt) / 1000}s old)`);
+      pendingNotifications.delete(id);
+      stats.failed++;
+      continue;
+    }
     
-    // Save queue after processing
-    this.saveQueue();
+    // Try to send the notification
+    sendNotificationWithRetry(
+      conn, 
+      notification.jid, 
+      notification.content, 
+      notification.options
+    ).catch(err => {
+      console.error(`[NOTIFICATION] Failed to process queued notification: ${err.message}`);
+    });
   }
 }
 
-// Create the global queue
-global.notificationQueue = new NotificationQueue();
+/**
+ * Clear the notification queue
+ */
+function clearNotificationQueue() {
+  const count = pendingNotifications.size;
+  pendingNotifications.clear();
+  console.log(`[NOTIFICATION] Cleared ${count} pending notifications`);
+  return count;
+}
 
 /**
- * Safe send message function that queues messages when connection is unavailable
- * 
- * @param {string} jid - The WhatsApp JID to send the message to
- * @param {object} content - The message content (can be text, buttons, etc.)
- * @param {object} options - Additional options for the message
- * @returns {string|boolean} - Queue ID if queued, true if sent immediately
+ * Get notification queue statistics
  */
-const safeSendMessage = async (jid, content, options = {}) => {
-  try {
-    // If connection isn't available, queue for later
-    if (!global.conn?.user) {
-      return global.notificationQueue.add(jid, content, options);
-    }
-    
-    // Try to send directly
-    await global.conn.sendMessage(jid, content, options);
-    return true;
-  } catch (err) {
-    console.error('Error in safeSendMessage:', err);
-    // Queue for later if direct send fails
-    return global.notificationQueue.add(jid, content, options);
-  }
-};
-
-/**
- * Handle connection state changes and implement reconnection logic
- * 
- * @param {object} conn - The Baileys connection object
- */
-const listenToConnectionEvents = (conn) => {
-  const reconnectAttempts = new Map();
-  
-  const handleConnectionLoss = async () => {
-    const jid = conn.user?.jid || 'unknown';
-    
-    // Initialize or increment reconnection attempts
-    reconnectAttempts.set(jid, (reconnectAttempts.get(jid) || 0) + 1);
-    const attempts = reconnectAttempts.get(jid);
-    
-    // Exponential backoff with max 5 minutes
-    const delay = Math.min(Math.pow(2, attempts) * 1000, 300000);
-    
-    console.log(`⚠️ Connection lost for ${jid}. Reconnection attempt ${attempts} in ${delay/1000}s`);
-    
-    setTimeout(async () => {
-      try {
-        console.log(`🔄 Attempting to reconnect ${jid}...`);
-        // Force refresh connection
-        await conn.ev.flush();
-        // Reset reconnection counter on successful reconnection
-        reconnectAttempts.set(jid, 0);
-        console.log(`✅ Successfully reconnected ${jid}`);
-      } catch (err) {
-        console.error(`❌ Failed to reconnect ${jid}:`, err);
-        // Try again
-        handleConnectionLoss();
-      }
-    }, delay);
+function getNotificationStats() {
+  return {
+    ...stats,
+    queueSize: pendingNotifications.size,
+    oldestMessage: pendingNotifications.size > 0 ? 
+      Math.min(...Array.from(pendingNotifications.values()).map(n => n.createdAt)) : null,
+    newestMessage: pendingNotifications.size > 0 ?
+      Math.max(...Array.from(pendingNotifications.values()).map(n => n.createdAt)) : null,
   };
-  
+}
+
+/**
+ * Add notification queue listener to connection events
+ * @param {Object} conn - The WhatsApp connection object
+ */
+function setupNotificationQueue(conn) {
+  // Process queue when connection is established
   conn.ev.on('connection.update', (update) => {
-    const { connection, lastDisconnect } = update;
-    
-    if (connection === 'close') {
-      console.log('⚠️ Connection closed, attempting to reconnect...');
-      
-      // If not logged out, try to reconnect
-      const statusCode = lastDisconnect?.error?.output?.statusCode;
-      const shouldReconnect = statusCode !== 401; // 401 = logged out
-      
-      if (shouldReconnect) {
-        handleConnectionLoss();
-      } else {
-        console.log('⛔ Connection closed due to logout');
-      }
-    }
+    const { connection } = update;
     
     if (connection === 'open') {
-      console.log('✅ Connection established, resetting retry counter');
-      reconnectAttempts.set(conn.user?.jid || 'unknown', 0);
-      
-      // Process any pending notifications now that we're connected
-      if (global.notificationQueue) {
-        global.notificationQueue.processQueue();
-      }
+      // Wait a short while for connection to stabilize
+      setTimeout(() => {
+        processNotificationQueue(conn);
+      }, 5000); // 5 second delay
     }
   });
+  
+  // Periodically attempt to process the queue for messages stuck for a while
+  setInterval(() => {
+    if (conn.user && pendingNotifications.size > 0) {
+      processNotificationQueue(conn);
+    }
+  }, 60000); // Check every minute
+  
+  console.log('[NOTIFICATION] Notification queue system initialized');
+}
+
+// Make functions available globally
+global.notificationQueue = {
+  sendNotificationWithRetry,
+  processNotificationQueue,
+  clearNotificationQueue,
+  getNotificationStats,
+  setupNotificationQueue
 };
 
+// Export functions for direct require
 module.exports = {
-  NotificationQueue,
-  safeSendMessage,
-  listenToConnectionEvents
+  sendNotificationWithRetry,
+  processNotificationQueue,
+  clearNotificationQueue,
+  getNotificationStats,
+  setupNotificationQueue
 };

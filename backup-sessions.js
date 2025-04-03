@@ -8,89 +8,107 @@
 
 const fs = require('fs');
 const path = require('path');
-const util = require('util');
-const exec = util.promisify(require('child_process').exec);
 const { Pool } = require('pg');
+const { promisify } = require('util');
+const readdir = promisify(fs.readdir);
+const readFile = promisify(fs.readFile);
+const writeFile = promisify(fs.writeFile);
+const mkdir = promisify(fs.mkdir);
+const stat = promisify(fs.stat);
 
-// Ensure directories exist
-const sessionsDir = path.join(process.cwd(), 'sessions');
-const backupDir = path.join(process.cwd(), 'sessions-backup');
-const tmpDir = path.join(process.cwd(), 'tmp');
+// Configuration
+const CONFIG = {
+  // Session ID matches the one in config.js
+  sessionId: process.env.SESSION_ID || 'BLACKSKY-MD',
+  
+  // Backup interval in minutes
+  backupInterval: parseInt(process.env.BACKUP_INTERVAL || '30', 10),
+  
+  // Backup enabled flag
+  backupEnabled: process.env.BACKUP_ENABLED === 'true',
+  
+  // Session directory path
+  sessionDir: path.join(process.cwd(), 'sessions'),
+  
+  // Backup directory path
+  backupDir: path.join(process.cwd(), 'sessions_backup'),
+  
+  // PostgreSQL connection from Heroku
+  databaseUrl: process.env.DATABASE_URL
+};
 
-// Create directories if they don't exist
-for (const dir of [sessionsDir, backupDir, tmpDir]) {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-    console.log(`Created directory: ${dir}`);
-  }
-}
-
-// Get session ID
-const sessionId = process.env.SESSION_ID || 'BLACKSKY-MD';
-console.log(`Using session ID: ${sessionId}`);
-
-// Initialize PostgreSQL connection if available
+// Create PostgreSQL pool if DATABASE_URL is available
 let pool = null;
-if (process.env.DATABASE_URL) {
+if (CONFIG.databaseUrl) {
   pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
+    connectionString: CONFIG.databaseUrl,
+    ssl: {
+      rejectUnauthorized: false // Required for Heroku PostgreSQL
+    }
   });
-  console.log('PostgreSQL connection initialized');
+  
+  // Log successful database connection
+  pool.query('SELECT NOW()')
+    .then(() => console.log('📦 Connected to PostgreSQL database'))
+    .catch(err => console.error('❌ Failed to connect to PostgreSQL:', err.message));
 }
 
 /**
  * Backup session files to local backup directory
  */
 async function backupSessionFiles() {
-  console.log('Starting session file backup...');
-  
   try {
-    const sessionFiles = fs.readdirSync(sessionsDir)
-      .filter(file => file.startsWith(sessionId))
-      .map(file => path.join(sessionsDir, file));
+    console.log(`📂 Starting session file backup...`);
     
-    if (sessionFiles.length === 0) {
-      console.log('No session files found to backup');
+    // Create backup directory if it doesn't exist
+    if (!fs.existsSync(CONFIG.backupDir)) {
+      console.log(`Creating backup directory: ${CONFIG.backupDir}`);
+      await mkdir(CONFIG.backupDir, { recursive: true });
+    }
+    
+    // Check if session directory exists
+    if (!fs.existsSync(CONFIG.sessionDir)) {
+      console.error(`❌ Session directory not found: ${CONFIG.sessionDir}`);
       return;
     }
     
-    console.log(`Found ${sessionFiles.length} session files to backup`);
+    // Get all session files
+    const files = await readdir(CONFIG.sessionDir);
+    const sessionFiles = files.filter(file => 
+      file.startsWith(CONFIG.sessionId) && !file.endsWith('.backup')
+    );
     
-    // Copy each file to backup directory with timestamp
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    if (sessionFiles.length === 0) {
+      console.log(`No session files found for ${CONFIG.sessionId}`);
+      return;
+    }
     
+    // Backup each session file
+    let backupCount = 0;
     for (const file of sessionFiles) {
-      const fileName = path.basename(file);
-      const backupFile = path.join(backupDir, `${fileName}.${timestamp}`);
+      const sourcePath = path.join(CONFIG.sessionDir, file);
+      const destPath = path.join(CONFIG.backupDir, file + '.backup');
       
-      // Copy the file
-      fs.copyFileSync(file, backupFile);
-      console.log(`Backed up ${fileName} to ${backupFile}`);
-    }
-    
-    // Clean up old backups (keep only the 5 most recent)
-    const backupFiles = fs.readdirSync(backupDir)
-      .filter(file => file.startsWith(sessionId))
-      .sort((a, b) => {
-        const statsA = fs.statSync(path.join(backupDir, a));
-        const statsB = fs.statSync(path.join(backupDir, b));
-        return statsB.mtime.getTime() - statsA.mtime.getTime();
-      });
-    
-    if (backupFiles.length > 5) {
-      const filesToDelete = backupFiles.slice(5);
-      for (const file of filesToDelete) {
-        fs.unlinkSync(path.join(backupDir, file));
-        console.log(`Deleted old backup: ${file}`);
+      // Check if file has changed since last backup
+      if (fs.existsSync(destPath)) {
+        const sourceStats = await stat(sourcePath);
+        const destStats = await stat(destPath);
+        
+        // Skip if source file is older than backup
+        if (sourceStats.mtime <= destStats.mtime) {
+          continue;
+        }
       }
+      
+      // Read and write file
+      const data = await readFile(sourcePath);
+      await writeFile(destPath, data);
+      backupCount++;
     }
     
-    console.log('Session file backup completed successfully');
-    return true;
+    console.log(`✅ Backed up ${backupCount} session files to ${CONFIG.backupDir}`);
   } catch (error) {
-    console.error('Error during session file backup:', error);
-    return false;
+    console.error(`❌ Error backing up session files:`, error.message);
   }
 }
 
@@ -99,95 +117,59 @@ async function backupSessionFiles() {
  */
 async function backupSessionToDatabase() {
   if (!pool) {
-    console.log('PostgreSQL connection not available, skipping database backup');
+    console.log('📢 PostgreSQL backup skipped: No DATABASE_URL provided');
     return;
   }
   
-  console.log('Starting session database backup...');
-  
   try {
-    // Check if the sessions table exists
-    const tableCheck = await pool.query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'sessions'
-      );
+    console.log(`🗄️ Starting session database backup...`);
+    
+    // Create sessions table if it doesn't exist
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS whatsapp_sessions (
+        id SERIAL PRIMARY KEY,
+        session_id VARCHAR(255) NOT NULL,
+        file_name VARCHAR(255) NOT NULL,
+        file_data BYTEA NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(session_id, file_name)
+      )
     `);
     
-    if (!tableCheck.rows[0].exists) {
-      // Create the sessions table
-      await pool.query(`
-        CREATE TABLE sessions (
-          id SERIAL PRIMARY KEY,
-          session_id TEXT NOT NULL,
-          file_name TEXT NOT NULL,
-          data BYTEA NOT NULL,
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-          updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-        );
-        CREATE INDEX idx_sessions_session_id ON sessions(session_id);
-      `);
-      console.log('Created sessions table');
-    }
-    
-    // Find session files
-    const sessionFiles = fs.readdirSync(sessionsDir)
-      .filter(file => file.startsWith(sessionId));
+    // Get all session files
+    const files = await readdir(CONFIG.sessionDir);
+    const sessionFiles = files.filter(file => 
+      file.startsWith(CONFIG.sessionId) && !file.endsWith('.backup')
+    );
     
     if (sessionFiles.length === 0) {
-      console.log('No session files found to backup to database');
+      console.log(`No session files found for ${CONFIG.sessionId}`);
       return;
     }
     
-    console.log(`Found ${sessionFiles.length} session files to backup to database`);
-    
-    // For each file, update or insert into database
-    for (const fileName of sessionFiles) {
-      const filePath = path.join(sessionsDir, fileName);
-      const fileData = fs.readFileSync(filePath);
+    // Backup each session file to database
+    let backupCount = 0;
+    for (const file of sessionFiles) {
+      const filePath = path.join(CONFIG.sessionDir, file);
+      const fileData = await readFile(filePath);
       
-      // Check if record already exists
-      const existingRecord = await pool.query(
-        'SELECT id FROM sessions WHERE session_id = $1 AND file_name = $2',
-        [sessionId, fileName]
-      );
+      // Insert or update session data
+      await pool.query(`
+        INSERT INTO whatsapp_sessions (session_id, file_name, file_data, updated_at)
+        VALUES ($1, $2, $3, NOW())
+        ON CONFLICT (session_id, file_name) 
+        DO UPDATE SET 
+          file_data = $3,
+          updated_at = NOW()
+      `, [CONFIG.sessionId, file, fileData]);
       
-      if (existingRecord.rows.length > 0) {
-        // Update existing record
-        await pool.query(
-          'UPDATE sessions SET data = $1, updated_at = NOW() WHERE session_id = $2 AND file_name = $3',
-          [fileData, sessionId, fileName]
-        );
-        console.log(`Updated database record for ${fileName}`);
-      } else {
-        // Insert new record
-        await pool.query(
-          'INSERT INTO sessions (session_id, file_name, data) VALUES ($1, $2, $3)',
-          [sessionId, fileName, fileData]
-        );
-        console.log(`Inserted new database record for ${fileName}`);
-      }
+      backupCount++;
     }
     
-    // Clean up old records (keep only the 5 most recent per file)
-    await pool.query(`
-      DELETE FROM sessions
-      WHERE id IN (
-        SELECT id FROM (
-          SELECT id, ROW_NUMBER() OVER(PARTITION BY session_id, file_name ORDER BY updated_at DESC) as row_num
-          FROM sessions
-          WHERE session_id = $1
-        ) t
-        WHERE t.row_num > 5
-      )
-    `, [sessionId]);
-    
-    console.log('Session database backup completed successfully');
-    return true;
+    console.log(`✅ Backed up ${backupCount} session files to PostgreSQL database`);
   } catch (error) {
-    console.error('Error during session database backup:', error);
-    return false;
+    console.error(`❌ Error backing up to database:`, error.message);
   }
 }
 
@@ -196,77 +178,115 @@ async function backupSessionToDatabase() {
  */
 async function restoreSessionFromDatabase() {
   if (!pool) {
-    console.log('PostgreSQL connection not available, skipping database restore');
+    console.log('📢 PostgreSQL restore skipped: No DATABASE_URL provided');
     return;
   }
   
-  console.log('Checking if session restore from database is needed...');
-  
   try {
-    // Check if session files exist locally
-    const sessionFiles = fs.readdirSync(sessionsDir)
-      .filter(file => file.startsWith(sessionId));
+    console.log(`🔄 Checking if session restoration is needed...`);
     
-    if (sessionFiles.length > 0) {
-      console.log('Local session files exist, no need to restore from database');
-      return;
+    // Create session directory if it doesn't exist
+    if (!fs.existsSync(CONFIG.sessionDir)) {
+      console.log(`Creating session directory: ${CONFIG.sessionDir}`);
+      await mkdir(CONFIG.sessionDir, { recursive: true });
     }
     
-    console.log('No local session files found, attempting to restore from database...');
-    
-    // Get the latest session files from database
+    // Get all sessions for this session ID
     const result = await pool.query(`
-      SELECT DISTINCT ON (file_name) file_name, data
-      FROM sessions
+      SELECT file_name, file_data, updated_at
+      FROM whatsapp_sessions
       WHERE session_id = $1
-      ORDER BY file_name, updated_at DESC
-    `, [sessionId]);
+      ORDER BY updated_at DESC
+    `, [CONFIG.sessionId]);
     
     if (result.rows.length === 0) {
-      console.log('No session backups found in database');
+      console.log(`No database backups found for ${CONFIG.sessionId}`);
       return;
     }
     
-    console.log(`Found ${result.rows.length} session files in database`);
-    
-    // Restore each file
+    // Check if we need to restore any files
+    let restoredCount = 0;
     for (const row of result.rows) {
-      const filePath = path.join(sessionsDir, row.file_name);
-      fs.writeFileSync(filePath, row.data);
-      console.log(`Restored ${row.file_name} from database`);
+      const filePath = path.join(CONFIG.sessionDir, row.file_name);
+      
+      // Restore if file doesn't exist
+      if (!fs.existsSync(filePath)) {
+        console.log(`Restoring missing file: ${row.file_name}`);
+        await writeFile(filePath, row.file_data);
+        restoredCount++;
+        continue;
+      }
+      
+      // Check if local file is valid JSON (if it should be)
+      if (row.file_name.endsWith('.json')) {
+        try {
+          const fileContent = await readFile(filePath, 'utf8');
+          JSON.parse(fileContent); // Will throw if invalid JSON
+        } catch (e) {
+          console.log(`Restoring corrupted JSON file: ${row.file_name}`);
+          await writeFile(filePath, row.file_data);
+          restoredCount++;
+        }
+      }
     }
     
-    console.log('Session restore from database completed successfully');
-    return true;
+    if (restoredCount > 0) {
+      console.log(`✅ Restored ${restoredCount} session files from database`);
+    } else {
+      console.log(`✅ No session restoration needed, all files intact`);
+    }
   } catch (error) {
-    console.error('Error during session restore from database:', error);
-    return false;
+    console.error(`❌ Error restoring from database:`, error.message);
   }
 }
 
 async function main() {
-  console.log('Starting WhatsApp session backup process...');
+  // Check if backup is enabled
+  if (!CONFIG.backupEnabled) {
+    console.log(`❗ Session backup is disabled. Set BACKUP_ENABLED=true to enable.`);
+    process.exit(0);
+  }
+  
+  console.log(`
+╔════════════════════════════════════════╗
+║      🌌 BLACKSKY-MD SESSION BACKUP     ║
+║      ⚡ CYBERPUNK EDITION ⚡            ║
+╚════════════════════════════════════════╝
+`);
   
   try {
-    // Try to restore session from database if needed
+    // First check if we need to restore sessions
     await restoreSessionFromDatabase();
     
-    // Backup session files locally
+    // Then backup current sessions
     await backupSessionFiles();
-    
-    // Backup to database
     await backupSessionToDatabase();
     
-    console.log('WhatsApp session backup process completed');
+    console.log(`✅ Backup completed successfully`);
   } catch (error) {
-    console.error('Error in backup process:', error);
-  } finally {
-    // Close database connection
-    if (pool) {
-      await pool.end();
-    }
+    console.error(`❌ Backup process error:`, error);
+  }
+  
+  // Close database pool if it exists
+  if (pool) {
+    await pool.end();
   }
 }
 
-// Run the backup process
-main();
+// Run directly if called as script
+if (require.main === module) {
+  main().catch(console.error);
+}
+
+// Run on a schedule if configured as a module
+if (CONFIG.backupEnabled && CONFIG.backupInterval > 0) {
+  setInterval(main, CONFIG.backupInterval * 60 * 1000);
+  console.log(`🕒 Session backup scheduled every ${CONFIG.backupInterval} minutes`);
+}
+
+// Export functions for use in other modules
+module.exports = {
+  backupSessionFiles,
+  backupSessionToDatabase,
+  restoreSessionFromDatabase
+};
