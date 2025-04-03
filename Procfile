@@ -5,7 +5,8 @@
 web: node connection-patch.js
 
 # Worker process for WhatsApp bot with PM2 for robust process management
-worker: npm install -g pm2 && mkdir -p logs sessions sessions-backup tmp media && pm2-runtime ecosystem.config.js --env production
+# Added garbage collection and memory optimization flags
+worker: npm install -g pm2 && mkdir -p logs sessions sessions-backup tmp media && NODE_OPTIONS="--max-old-space-size=1536 --expose-gc" pm2-runtime ecosystem.config.js --env production
 
 # Release phase tasks to prepare the environment
-release: bash -c "echo Preparing environment for BLACKSKY-MD Premium"
+release: bash -c "echo Preparing environment for BLACKSKY-MD Premium && npm prune --production"

@@ -165,6 +165,110 @@ exit
 heroku ps:restart worker -a your-app-name
 ```
 
+#### "Could not send notification - missing connection or user" Error
+
+**Issue**: You see "Could not send notification - missing connection or user" in logs
+**Solution**:
+1. This error occurs when the connection to WhatsApp is unstable or the session has been disrupted.
+
+2. **Modify your connection-patch.js file**:
+   Add better reconnection handling with this code:
+
+   ```javascript
+   // Add to connection-patch.js
+   const reconnectAttempts = new Map();
+   
+   async function handleConnectionLoss(conn) {
+     const jid = conn.user?.jid || 'unknown';
+     
+     // Initialize or increment reconnection attempts
+     reconnectAttempts.set(jid, (reconnectAttempts.get(jid) || 0) + 1);
+     const attempts = reconnectAttempts.get(jid);
+     
+     // Exponential backoff with max 5 minutes
+     const delay = Math.min(Math.pow(2, attempts) * 1000, 300000);
+     
+     console.log(`⚠️ Connection lost for ${jid}. Reconnection attempt ${attempts} in ${delay/1000}s`);
+     
+     setTimeout(async () => {
+       try {
+         console.log(`🔄 Attempting to reconnect ${jid}...`);
+         // Force refresh connection
+         await conn.ev.flush();
+         // Reset reconnection counter on successful reconnection
+         reconnectAttempts.set(jid, 0);
+         console.log(`✅ Successfully reconnected ${jid}`);
+       } catch (err) {
+         console.error(`❌ Failed to reconnect ${jid}:`, err);
+         // Try again
+         handleConnectionLoss(conn);
+       }
+     }, delay);
+   }
+   ```
+
+3. **Add a persistent notification handler**:
+   ```javascript
+   // Add to your main bot file
+   const pendingNotifications = new Map();
+   
+   // Safe notification sender with retry
+   async function sendNotificationWithRetry(jid, content, options = {}) {
+     const msgId = `${jid}_${Date.now()}`;
+     let attempts = 0;
+     const maxAttempts = 5;
+     
+     const attemptSend = async () => {
+       try {
+         if (!conn.user) {
+           // Connection not ready, queue for later
+           if (!pendingNotifications.has(msgId) && attempts < maxAttempts) {
+             pendingNotifications.set(msgId, { jid, content, options, attempts });
+             console.log(`📤 Queued notification for later: ${msgId}`);
+             
+             // Try again later
+             setTimeout(() => {
+               const notification = pendingNotifications.get(msgId);
+               if (notification) {
+                 notification.attempts++;
+                 attemptSend();
+               }
+             }, 30000); // 30 seconds
+           }
+           return;
+         }
+         
+         // Connection ready, send message
+         await conn.sendMessage(jid, content, { ...options });
+         console.log(`📩 Notification sent successfully: ${msgId}`);
+         pendingNotifications.delete(msgId);
+       } catch (err) {
+         console.error(`❌ Error sending notification: ${err.message}`);
+         
+         // Retry with backoff
+         if (attempts < maxAttempts) {
+           const delay = Math.min(Math.pow(2, attempts) * 1000, 60000);
+           setTimeout(attemptSend, delay);
+         } else {
+           console.error(`❌ Failed to send notification after ${maxAttempts} attempts`);
+           pendingNotifications.delete(msgId);
+         }
+       }
+     };
+     
+     attemptSend();
+   }
+   ```
+
+4. **Ensure proper cleanup on Heroku cycling**:
+   Add this to your `Procfile`:
+   
+   ```
+   worker: node --expose-gc index.js
+   ```
+   
+   This will enable garbage collection and help prevent memory leaks.
+
 #### Memory Issues
 
 **Issue**: Bot crashes with memory errors

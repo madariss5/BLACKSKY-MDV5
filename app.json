@@ -87,6 +87,31 @@
       "description": "Flag to enable Heroku-specific optimizations",
       "value": "true",
       "required": false
+    },
+    "KEEP_ALIVE_URL": {
+      "description": "URL to ping to keep the app alive (your-app-name.herokuapp.com)",
+      "value": "",
+      "required": false
+    },
+    "RECONNECT_INTERVAL": {
+      "description": "Interval in seconds between reconnection attempts",
+      "value": "30",
+      "required": false
+    },
+    "MAX_RECONNECT_RETRIES": {
+      "description": "Maximum number of reconnection attempts before giving up",
+      "value": "10",
+      "required": false
+    },
+    "NOTIFICATION_RETRY_INTERVAL": {
+      "description": "Interval in seconds between notification retry attempts",
+      "value": "60",
+      "required": false
+    },
+    "NODE_OPTIONS": {
+      "description": "Node.js options for better memory management",
+      "value": "--max-old-space-size=1536 --expose-gc",
+      "required": false
     }
   },
   "addons": [
