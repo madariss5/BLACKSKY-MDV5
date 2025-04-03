@@ -1,14 +1,14 @@
 global.owner = [
   // Format [number, name, isCreator] - each as separate entries
-  ['12345678901', 'BLACKSKY Admin', true]
+  ['4915563151347', 'Martin', true]
 ]  
-global.mods = ['12345678901'] 
-global.prems = ['12345678901']
-global.nameowner = 'BLACKSKY Admin'
-global.numberowner = '12345678901'
-global.mail = 'admin@example.com' 
-global.gc = 'https://chat.whatsapp.com/example'
-global.instagram = 'https://instagram.com/example'
+global.mods = ['4915563151347'] 
+global.prems = ['4915563151347']
+global.nameowner = 'Martin'
+global.numberowner = '4915563151347'
+global.mail = 'support@tioprm.eu.org' 
+global.gc = 'https://chat.whatsapp.com/G4f1fTpz9zL4EH3FyIcaPR'
+global.instagram = 'https://instagram.com/erlanrahmat_14'
 global.wm = '© 𝔹𝕃𝔸ℂ𝕂𝕊𝕂𝕐-𝕄𝔻'
 global.packname = 'Made With'
 global.author = '𝔹𝕃𝔸ℂ𝕂𝕊𝕂𝕐-𝕄𝔻'
@@ -20,21 +20,21 @@ global.prefix = '.' // Default command prefix
 global.multiplier = 5 // Increase XP requirements (higher = slower leveling, increased from 3)
 
 // Language settings
-global.language = 'en' // Default language (en = English, de = German)
-global.languages = ['en', 'de'] // Available languages
+global.language = 'de' // Default language (en = English, de = German)
+global.languages = ['de', 'en'] // Available languages
 
 // Timezone settings
-global.timezone = 'Europe/London' // Default timezone for date/time functions
+global.timezone = 'Europe/Berlin' // Default timezone for date/time functions
 
 // Settings
 
-// This is a placeholder API key. In a real environment, you would replace this with your actual API key
-global.lann = 'demo_api_key' 
-// Register first at https://api.betabotz.eu.org
+//THIS MUST BE FILLED IN!//
+global.lann = 'Btz-jdyXQ' 
+//Register first at https://api.betabotz.eu.org (Note: previously was fire.betabotz.eu.org)
 
-// This is a placeholder API key. In a real environment, you would replace this with your actual API key
-global.btc = 'demo_api_key'
-// Register at https://api.betabotz.eu.org
+//THIS IS OPTIONAL, CAN BE FILLED OR LEFT EMPTY//
+global.btc = 'Btz-jdyXQ'
+//Register at https://api.betabotz.eu.org (Note: previously was fire.botcahx.eu.org)
 
 global.APIs = {   
   lann: 'https://api.betabotz.eu.org',

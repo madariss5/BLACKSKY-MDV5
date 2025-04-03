@@ -1,25 +1,8 @@
-// Detect if running in Termux
-const os = require('os');
-const isTermux = os.platform() === 'android' || process.env.TERMUX === 'true';
-
-// Set environment variable for Termux
-if (isTermux) {
-  console.log('📱 Running in Termux environment, using Termux-compatible connection patch');
-  process.env.TERMUX = 'true';
-  require('./connection-patch-termux.js');
-} else {
-  console.log('💻 Running in standard environment, using normal connection patch');
-  try {
-    require('./connection-patch.js');
-  } catch (err) {
-    console.error('Failed to load connection patch:', err);
-  }
-}
-
 const cluster = require('cluster');
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const express = require('express');
 const app = express();
 

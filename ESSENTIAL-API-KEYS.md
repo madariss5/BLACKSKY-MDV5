@@ -1,60 +1,92 @@
 # Essential API Keys for BLACKSKY-MD
 
-This document outlines the **absolutely necessary** API keys needed for basic functionality of the BLACKSKY-MD WhatsApp Bot. For a full list of supported APIs, see the comprehensive `API-KEYS-README.md`.
+This guide explains the minimum API keys you need to make the most used commands work.
 
-## Critical API Keys
+## API Keys You Need
 
-### 1. BetaBotz API Key (REQUIRED)
-- **Purpose**: Core functionality for many commands
-- **Register**: Visit https://api.betabotz.eu.org to create an account
-- **Configuration**: In `config.js`, set `global.lann = 'YOUR_API_KEY_HERE'`
-- **Impact if Missing**: Many core commands will fail
+| Command | API Provider | How to Get | Free Limit |
+|---------|-------------|------------|------------|
+| **Weather** `.weather` | OpenWeatherMap | [Sign Up](https://home.openweathermap.org/users/sign_up) | 1,000 calls/day |
+| **AI** `.ai` `.gpt` | OpenAI | [Sign Up](https://platform.openai.com/signup) | Pay-as-you-go |
 
-### 2. OpenAI API Key
-- **Purpose**: AI chat functionality (`.ai`, `.gpt`, `.dalle` commands)
-- **Register**: Visit https://platform.openai.com/api-keys
-- **Configuration**: Add to `config.js` or set as environment variable `OPENAI_API_KEY`
-- **Impact if Missing**: AI-based features will not work
+## How to Set Up These API Keys
 
-## How to Add API Keys
+### Method 1: Add to Heroku (if using Heroku)
 
-### Method 1: In config.js
-1. Copy `config.example.js` to `config.js`
-2. Replace placeholder values with your actual API keys
-3. Example:
-   ```javascript
-   global.lann = 'YOUR_BETABOTZ_API_KEY' // REQUIRED
-   
-   global.APIs = {   
-     lann: 'https://api.betabotz.eu.org',
-     openai: 'https://api.openai.com/v1'
-   }
-   
-   global.APIKeys = { 
-     'https://api.betabotz.eu.org': global.lann,
-     'https://api.openai.com/v1': 'YOUR_OPENAI_API_KEY'
-   }
-   ```
+1. Go to Heroku Dashboard > Your App > Settings
+2. Find "Config Vars" and click "Reveal Config Vars"
+3. Add these variables:
 
-### Method 2: Environment Variables (Recommended for Deployments)
-For Heroku, Replit, or other hosting platforms, set these environment variables:
 ```
-BETABOTZ_API_KEY=your_key_here
+OPENWEATHERMAP_API_KEY=your_key_here
 OPENAI_API_KEY=your_key_here
 ```
 
-## Testing Your API Keys
+### Method 2: Create .env File (local deployment)
 
-After adding your API keys, you can test if they're working:
+Create a file named `.env` in the main folder with:
 
-1. Start the bot: `npm start`
-2. For BetaBotz API: Try `.weather London` command
-3. For OpenAI API: Try `.ai hello` command
+```
+OPENWEATHERMAP_API_KEY=your_key_here
+OPENAI_API_KEY=your_key_here
+```
 
-If the commands work, your API keys are correctly configured.
+## How to Get Each API Key
 
-## Security Note
+### OpenWeatherMap API (for .weather command)
 
-Keep your API keys secure and never share them publicly. Treat them as sensitive credentials.
+1. Go to [OpenWeatherMap](https://home.openweathermap.org/users/sign_up)
+2. Create a free account
+3. Go to "API Keys" tab
+4. Your API key will be listed (or click "Generate" if needed)
+5. Key activation may take a few hours
 
-For more detailed information about all supported APIs and troubleshooting, see the full `API-KEYS-README.md` file.
+### OpenAI API (for .ai and .gpt commands)
+
+1. Go to [OpenAI Platform](https://platform.openai.com/signup)
+2. Create an account
+3. Go to [API Keys](https://platform.openai.com/api-keys)
+4. Click "Create new secret key"
+5. Give it a name like "BLACKSKY-MD" and create
+6. Copy the key immediately (you won't see it again)
+7. Add a payment method in your account settings
+
+## Testing If It Works
+
+### Test Weather:
+```
+.weather Berlin
+```
+Should show Berlin weather information
+
+### Test AI:
+```
+.ai Tell me a joke
+```
+Should respond with a joke from GPT
+
+## Troubleshooting
+
+If commands don't work:
+
+1. Check if you entered the API keys correctly
+2. For OpenWeatherMap, wait a few hours for key activation
+3. For OpenAI, ensure you have a payment method added
+4. Check the bot logs for specific error messages
+
+## Optional Additional API Keys
+
+These are nice to have but not essential:
+
+- **Google API Key**: For `.google` and `.image` commands
+- **Remove.bg API**: For `.removebg` command (background removal)
+
+## Need Help?
+
+If you're having trouble with API keys:
+- Use `.help weather` or `.help ai` for command help
+- Check our [support group](https://whatsapp.com/channel/0029Va8ZH8fFXUuc69TGVw1q)
+
+---
+
+⚠️ **Keep your API keys private and never share them**

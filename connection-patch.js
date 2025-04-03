@@ -1,13 +1,15 @@
 /**
  * Enhanced Connection Handler Patch
- * This code adds robust connection handling with retries and better error recovery
+ * This code adds a connection success handler that sends a premium notification
+ * with the BLACKSKY-MD logo when the bot successfully connects.
+ * 
+ * It also sets up a health check HTTP server for Heroku deployments
+ * to prevent auto-restarts from failing due to health check failures.
+ * 
+ * Additional Heroku-specific optimizations and fixes are included.
  */
 
-// Initialize global connection object if not exists
-if (!global.conn) {
-    global.conn = {};
-}
-
+// Import required modules
 const express = require('express');
 const app = express();
 const os = require('os');
@@ -16,35 +18,12 @@ const path = require('path');
 const { promisify } = require('util');
 const { exec } = require('child_process');
 const execAsync = promisify(exec);
-const Jimp = require('jimp'); // Importing Jimp
-const { jidDecode } = require('@adiwajshing/baileys');
-
+const sharp = require('sharp');
 
 // Initialize health check server and Heroku compatibility layer
 function setupHealthCheckServer() {
-    // Try ports sequentially until one works
-    const ports = [process.env.PORT || 3000, 8080, 5000, 3001];
-    let server;
-
-    const tryPort = (index) => {
-        if (index >= ports.length) {
-            console.error('No available ports found');
-            return;
-        }
-
-        server = app.listen(ports[index], '0.0.0.0', () => {
-            console.log('\x1b[32m%s\x1b[0m', `⚡ Health check server running on port ${ports[index]}`);
-        }).on('error', (err) => {
-            if (err.code === 'EADDRINUSE') {
-                console.log(`Port ${ports[index]} in use, trying next port...`);
-                tryPort(index + 1);
-            } else {
-                console.error('Server error:', err);
-            }
-        });
-    };
-
-    tryPort(0);
+    const PORT = process.env.PORT || 5000;
+    
     // Basic info route
     app.get('/', (req, res) => {
         res.send(`
@@ -113,7 +92,7 @@ function setupHealthCheckServer() {
                     Status: <span class="online">ONLINE</span><br>
                     WhatsApp Connection: ${global.conn?.user ? "Connected" : "Waiting for connection"}
                 </div>
-
+                
                 <div class="stats">
                     <div class="stat-card">
                         <h3>System Info</h3>
@@ -128,7 +107,7 @@ function setupHealthCheckServer() {
                         <p>Environment: ${process.env.NODE_ENV || "development"}</p>
                     </div>
                 </div>
-
+                
                 <footer>
                     BLACKSKY-MD Bot &copy; 2025
                 </footer>
@@ -137,7 +116,7 @@ function setupHealthCheckServer() {
         </html>
         `);
     });
-
+    
     // Health check endpoint
     app.get('/health', (req, res) => {
         res.status(200).json({
@@ -151,7 +130,7 @@ function setupHealthCheckServer() {
             }
         });
     });
-
+    
     // Logo endpoint for fetching the BLACKSKY-MD logo
     app.get('/logo', async (req, res) => {
         try {
@@ -163,7 +142,7 @@ function setupHealthCheckServer() {
                 'blacksky-logo.svg',
                 'blacksky-logo-simple.svg'
             ];
-
+            
             let logoFile = null;
             for (const file of logoFiles) {
                 const filePath = path.join(process.cwd(), file);
@@ -172,26 +151,28 @@ function setupHealthCheckServer() {
                     break;
                 }
             }
-
+            
             if (!logoFile) {
                 res.status(404).send('Logo not found');
                 return;
             }
-
-            // Convert SVG to PNG using Jimp for better compatibility
+            
+            // Convert SVG to PNG for better compatibility
             try {
                 console.log('[CONNECTION] Using logo:', path.basename(logoFile));
                 console.log('Converting SVG file:', logoFile);
-
-                const image = await Jimp.read(logoFile);
-                const pngBuffer = await image.resize(300, Jimp.AUTO).getBufferAsync(Jimp.MIME_PNG);
-
+                
+                const pngBuffer = await sharp(logoFile)
+                    .resize(300)
+                    .png()
+                    .toBuffer();
+                
                 res.setHeader('Content-Type', 'image/png');
                 res.send(pngBuffer);
                 console.log('[CONNECTION] Successfully converted logo SVG to PNG');
             } catch (err) {
                 console.error('Error converting SVG to PNG:', err);
-
+                
                 // Fallback to sending the raw SVG
                 res.setHeader('Content-Type', 'image/svg+xml');
                 res.send(fs.readFileSync(logoFile));
@@ -201,7 +182,7 @@ function setupHealthCheckServer() {
             res.status(500).send('Error loading logo');
         }
     });
-
+    
     // Session status endpoint
     app.get('/status', (req, res) => {
         const sessionStatus = {
@@ -216,10 +197,10 @@ function setupHealthCheckServer() {
             environment: process.env.NODE_ENV || 'development',
             version: '2.5.0 Premium'
         };
-
+        
         res.json(sessionStatus);
     });
-
+    
     // Metric monitoring endpoint for external monitoring tools
     app.get('/metrics', (req, res) => {
         const metrics = {
@@ -233,7 +214,7 @@ function setupHealthCheckServer() {
             'system_free_memory_bytes': os.freemem(),
             'system_load_average': os.loadavg()[0]
         };
-
+        
         // Format as Prometheus metrics
         let output = '';
         for (const [key, value] of Object.entries(metrics)) {
@@ -241,15 +222,15 @@ function setupHealthCheckServer() {
             output += `# TYPE ${key} gauge\n`;
             output += `${key} ${value}\n`;
         }
-
+        
         res.setHeader('Content-Type', 'text/plain');
         res.send(output);
     });
-
+    
     // Session info endpoint
     app.get('/session', (req, res) => {
         const sessionDir = path.join(process.cwd(), 'sessions');
-
+        
         try {
             if (!fs.existsSync(sessionDir)) {
                 return res.json({
@@ -257,7 +238,7 @@ function setupHealthCheckServer() {
                     message: 'No sessions directory found'
                 });
             }
-
+            
             const sessionId = process.env.SESSION_ID || 'BLACKSKY-MD';
             const sessionFiles = fs.readdirSync(sessionDir)
                 .filter(file => file.startsWith(sessionId))
@@ -267,7 +248,7 @@ function setupHealthCheckServer() {
                     size: fs.statSync(path.join(sessionDir, file)).size,
                     modified: fs.statSync(path.join(sessionDir, file)).mtime,
                 }));
-
+            
             res.json({
                 status: 'success',
                 sessionId,
@@ -281,7 +262,7 @@ function setupHealthCheckServer() {
             });
         }
     });
-
+    
     // Heroku-specific information endpoint
     app.get('/heroku', (req, res) => {
         const herokuInfo = {
@@ -292,8 +273,13 @@ function setupHealthCheckServer() {
             slugId: process.env.HEROKU_SLUG_ID || 'Unknown',
             dynoSize: process.env.HEROKU_DYNO_SIZE || 'eco'
         };
-
+        
         res.json(herokuInfo);
+    });
+    
+    // Start server
+    app.listen(PORT, () => {
+        console.log(`⚡ Health check server running on port ${PORT}`);
     });
 }
 
@@ -303,91 +289,30 @@ function formatUptime(seconds) {
     const hours = Math.floor((seconds % (3600 * 24)) / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
-
+    
     return `${days}d ${hours}h ${minutes}m ${secs}s`;
 }
 
-
-// Enhanced connection management
-const reconnectAttempts = new Map();
-const MAX_RETRIES = 10;
-const BASE_DELAY = 1000; // 1 second
-const MAX_DELAY = 300000; // 5 minutes
-
-async function handleConnectionLoss(connection) {
-    if (!connection) {
-        console.log('[CONNECTION] No connection object provided');
-        return;
-    }
-
-    try {
-        const jid = connection.user?.jid || 'unknown';
-        reconnectAttempts.set(jid, (reconnectAttempts.get(jid) || 0) + 1);
-        const attempts = reconnectAttempts.get(jid);
-
-        if (attempts > MAX_RETRIES) {
-            console.log(`[CONNECTION] Max retries (${MAX_RETRIES}) reached for ${jid}. Resetting connection...`);
-            reconnectAttempts.delete(jid);
-            if (connection.ws) {
-                connection.ws.close();
-            }
-            await new Promise(resolve => setTimeout(resolve, 5000));
-            return;
-        }
-
-        const delay = Math.min(BASE_DELAY * Math.pow(2, attempts - 1) + Math.random() * 1000, MAX_DELAY);
-        console.log(`[CONNECTION] Connection lost for ${jid}. Attempt ${attempts}/${MAX_RETRIES} in ${Math.floor(delay/1000)}s`);
-
-        setTimeout(async () => {
-            try {
-                if (connection.ev) {
-                    connection.ev.removeAllListeners('connection.update');
-                    connection.ev.removeAllListeners('creds.update');
-                }
-                await connection.connect();
-                console.log(`[CONNECTION] Successfully reconnected ${jid}`);
-                reconnectAttempts.delete(jid);
-            } catch (err) {
-                console.error(`[CONNECTION] Failed to reconnect ${jid}:`, err);
-                handleConnectionLoss(connection);
-            }
-        }, delay);
-    } catch (err) {
-        console.error('[CONNECTION] Error in handleConnectionLoss:', err);
-    }
-}
-
-// Make functions available globally
-global.connectionManager = {
-    handleConnectionLoss,
-    resetAttempts: () => reconnectAttempts.clear(),
-    getAttempts: (jid) => reconnectAttempts.get(jid) || 0
-};
-
-// Export the connection handler
-module.exports = {
-    handleConnectionLoss,
-    setupHealthCheckServer
-};
-
-// Load connection message handler
-try {
-    const { sendConnectionMessage } = require('./plugins/info-connection');
-    connectionMessageSender = sendConnectionMessage;
-    console.log('✅ Connection patch loaded successfully');
-} catch (e) {
-    console.log('Loading connection message from globals as fallback');
-    connectionMessageSender = global.sendConnectionMessage;
-}
-
-// Initialize health check server if in production
+// Initialize health check server if running on Heroku or production environment
 if (process.env.NODE_ENV === 'production' || process.env.HEROKU) {
     setupHealthCheckServer();
     console.log('🔍 Health check server initialized for production environment');
 }
 
-// Log the patch loading
-console.log('🔧 Connection success patch and health check loaded');
+// Load our connection message function
+let connectionMessageSender = null;
+
+// For safety, try to find and load the connection message function
+try {
+    // When running as a module, try to require the connection message module
+    const { sendConnectionMessage } = require('./plugins/info-connection');
+    connectionMessageSender = sendConnectionMessage;
+    console.log('✅ Connection patch loaded successfully');
+} catch (e) {
+    // If we can't load it directly, we'll look for it in globals
+    console.log('Loading connection message from globals as fallback');
+    connectionMessageSender = global.sendConnectionMessage;
+}
 
 // For backwards compatibility
 if (!connectionMessageSender && typeof global.sendConnectionSuccess === 'function') {
@@ -397,71 +322,26 @@ if (!connectionMessageSender && typeof global.sendConnectionSuccess === 'functio
 
 // For safety, wrap in a check
 if (typeof connectionMessageSender === 'function') {
-    //Improved connection notification handling.
-
-    // Send the connection message with retry logic
-    async function sendStartupMessage(conn, maxRetries = 5) {
-        let retryCount = 0;
-        const retryInterval = 5000; // 5 seconds between retries
-
-        const sendWithRetry = async () => {
-            try {
-                if (!conn?.user?.jid) {
-                    throw new Error('Connection not ready');
-                }
-
-                const botJid = conn.user.jid;
-                console.log(`[CONNECTION] Attempting to send startup message to ${botJid}`);
-
-                // Send message with premium logo  (assuming messageText, logoBuffer, and groupLink are defined elsewhere)
-                await conn.sendMessage(botJid, {
-                    text: messageText,
-                    contextInfo: {
-                        externalAdReply: {
-                            title: '🌌 BLACKSKY-MD PREMIUM',
-                            body: 'Successfully Connected',
-                            mediaType: 1,
-                            previewType: 0,
-                            thumbnailUrl: 'https://i.ibb.co/r7GLRnP/generated-icon.png',
-                            thumbnail: logoBuffer,
-                            sourceUrl: groupLink,
-                            showAdAttribution: true,
-                            renderLargerThumbnail: true
-                        }
-                    }
-                });
-
-                console.log('[CONNECTION] Startup notification sent successfully');
-                return true;
-            } catch (error) {
-                console.error(`[CONNECTION] Attempt ${retryCount + 1}/${maxRetries} failed:`, error.message);
-                retryCount++;
-
-                if (retryCount < maxRetries) {
-                    console.log(`[CONNECTION] Retrying in ${retryInterval/1000} seconds...`);
-                    await new Promise(resolve => setTimeout(resolve, retryInterval));
-                    return sendWithRetry();
-                } else {
-                    console.error('[CONNECTION] Max retries reached, could not send startup notification');
-                    return false;
+    // Wait for bot to finish loading plugins
+    setTimeout(() => {
+        try {
+            // Send connection success message
+            connectionMessageSender(global.conn);
+            
+            // Also send to owner if owner is configured
+            if (global.owner && global.owner.length > 0) {
+                let ownerJid = global.owner[0][0] + '@s.whatsapp.net';
+                
+                // Send to owner's chat directly
+                if (ownerJid && ownerJid !== 'undefined@s.whatsapp.net') {
+                    connectionMessageSender(global.conn, ownerJid);
+                    console.log('📱 Connection success message sent to owner');
                 }
             }
-        };
-
-        return sendWithRetry();
-    }
-
-    // Wait for connection to be fully ready before sending
-    if (conn) {
-        conn.ev.on('connection.update', async (update) => {
-            const { connection, lastDisconnect } = update;
-
-            if (connection === 'open') {
-                console.log('[CONNECTION] Connection opened, attempting to send startup message');
-                await sendStartupMessage(conn);
-            }
-        });
-    }
+        } catch (error) {
+            console.error('❌ Error sending connection message:', error);
+        }
+    }, 5000); // Wait 5 seconds for everything to load
 } else {
     console.log('⚠️ Connection message function not found');
 }
@@ -470,13 +350,13 @@ if (typeof connectionMessageSender === 'function') {
  * Perform graceful shutdown, saving data and closing connections
  */
 async function performGracefulShutdown() {
-    console.log('🔄 Received shutdown signal, performing gracefulshutdown...');
-
+    console.log('🔄 Received shutdown signal, performing graceful shutdown...');
+    
     try {
         // Save session if it exists
         if (global.conn?.user) {
             console.log('💾 Saving WhatsApp session before shutdown...');
-
+            
             // Try to log out properly
             try {
                 await global.conn.logout();
@@ -485,7 +365,7 @@ async function performGracefulShutdown() {
                 console.error('Error during logout:', logoutError.message);
             }
         }
-
+        
         // Save database if it exists
         if (global.db) {
             console.log('💾 Saving database before shutdown...');
@@ -496,10 +376,10 @@ async function performGracefulShutdown() {
                 console.error('Error saving database:', dbError.message);
             }
         }
-
+        
         // Perform any other cleanup tasks here
         // ...
-
+        
         console.log('👍 Graceful shutdown completed');
     } catch (e) {
         console.error('❌ Error during graceful shutdown:', e);
@@ -528,43 +408,5 @@ process.on('unhandledRejection', (reason, promise) => {
     // Don't exit, let the process continue
 });
 
-
-// Add event listener for connection close using ev
-const initializeConnectionEvents = () => {
-    if (!global.conn) {
-        console.log('[CONNECTION] No connection object found, retrying in 3s...');
-        setTimeout(initializeConnectionEvents, 3000);
-        return;
-    }
-
-    try {
-        if (!global.conn.ev) {
-            global.conn.ev = {
-                on: () => {},
-                off: () => {},
-                removeAllListeners: () => {}
-            };
-        }
-
-        global.conn.ev.on('connection.update', (update) => {
-            const { connection, lastDisconnect } = update;
-            if (connection === 'close') {
-                const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== 401;
-                if (shouldReconnect) {
-                    console.log('[CONNECTION] Attempting to reconnect...');
-                    setTimeout(initializeConnectionEvents, 3000);
-                }
-            } else if (connection === 'open') {
-                console.log('[CONNECTION] WhatsApp connection established');
-            }
-        });
-
-        console.log('[CONNECTION] Event listeners initialized successfully');
-    } catch (err) {
-        console.log('[CONNECTION] Error initializing connection:', err);
-        setTimeout(initializeConnectionEvents, 3000);
-    }
-};
-
-// Initialize events
-initializeConnectionEvents();
+// Log the patch loading
+console.log('🔧 Connection success patch and health check loaded');
