@@ -1,0 +1,57 @@
+# Sensitive configuration files
+config.js
+.env
+
+# Session data
+sessions/
+*.session.json
+*creds.json
+
+# Database files
+database.json
+
+# Large media files
+gifs/*.gif
+attached_assets/*.gif
+attached_assets/*.mp3
+attached_assets/*.mp4
+src/*.mp3
+src/*.mp4
+
+# Node.js
+node_modules/
+npm-debug.log
+package-lock.json
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.log
+
+# Temporary files
+tmp/
+.tmp/
+*.tmp
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Editor/IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Keep placeholder files using .gitkeep
+!gifs/.gitkeep
+!attached_assets/.gitkeep
