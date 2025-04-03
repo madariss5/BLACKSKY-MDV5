@@ -530,9 +530,21 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // Add event listener for connection close using ev
 const initializeConnectionEvents = () => {
-    if (!global.conn) return;
-    
+    if (!global.conn) {
+        console.log('[CONNECTION] No connection object found, retrying in 3s...');
+        setTimeout(initializeConnectionEvents, 3000);
+        return;
+    }
+
     try {
+        if (!global.conn.ev) {
+            global.conn.ev = {
+                on: () => {},
+                off: () => {},
+                removeAllListeners: () => {}
+            };
+        }
+
         global.conn.ev.on('connection.update', (update) => {
             const { connection, lastDisconnect } = update;
             if (connection === 'close') {
@@ -541,9 +553,10 @@ const initializeConnectionEvents = () => {
                 console.log('[CONNECTION] WhatsApp connection established');
             }
         });
+
         console.log('[CONNECTION] Event listeners initialized successfully');
     } catch (err) {
-        console.log('[CONNECTION] Waiting for WhatsApp connection to be established...');
+        console.log('[CONNECTION] Error initializing connection:', err);
         setTimeout(initializeConnectionEvents, 3000);
     }
 };

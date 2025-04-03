@@ -5,6 +5,7 @@ const fs = require('fs');
 const os = require('os');
 const express = require('express');
 const app = express();
+const { jidDecode } = require('@adiwajshing/baileys');
 
 // Import notification queue system
 const { 
@@ -15,13 +16,23 @@ const {
   setupNotificationQueue
 } = require('./notification-queue');
 
-// Initialize connection with proper structure
+// Initialize connection properly
 if (!global.conn) {
   global.conn = {
     user: null,
-    ev: null,
+    ev: {
+      on: () => {},
+      off: () => {},
+      removeAllListeners: () => {}
+    },
     ws: null,
-    authState: null
+    authState: null,
+    decodeJid: (jid) => {
+      if (/:\d+@/gi.test(jid)) {
+        const decode = jidDecode(jid) || {};
+        return (decode.user && decode.server && decode.user + '@' + decode.server) || jid;
+      } else return jid;
+    }
   };
 }
 
