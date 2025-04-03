@@ -174,8 +174,36 @@ function getNotificationStats() {
  * @param {Object} conn - The WhatsApp connection object
  */
 function setupNotificationQueue(conn) {
-  if (!conn || !conn.user) {
-    console.log('[CONNECTION] Waiting for WhatsApp connection...');
+  // Enhanced connection verification
+  const verifyConnection = () => {
+    if (!conn) {
+      console.log('[CONNECTION] No connection object found');
+      return false;
+    }
+    if (!conn.user) {
+      console.log('[CONNECTION] Connection exists but user not authenticated');
+      return false;
+    }
+    if (!conn.user.id) {
+      console.log('[CONNECTION] User object exists but no user ID found');
+      return false;
+    }
+    return true;
+  };
+
+  // Initial verification
+  if (!verifyConnection()) {
+    console.log('[CONNECTION] Waiting for WhatsApp connection to be fully established...');
+    
+    // Set up connection monitoring
+    if (conn) {
+      conn.ev.on('connection.update', (update) => {
+        if (update.connection === 'open' && verifyConnection()) {
+          console.log('[CONNECTION] Connection successfully established');
+          setupNotificationQueue(conn); // Retry setup once connected
+        }
+      });
+    }
     return false;
   }
 

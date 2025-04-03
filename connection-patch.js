@@ -393,28 +393,74 @@ if (!connectionMessageSender && typeof global.sendConnectionSuccess === 'functio
     connectionMessageSender = global.sendConnectionSuccess;
 }
 
+
 // For safety, wrap in a check
 if (typeof connectionMessageSender === 'function') {
-    // Wait for bot to finish loading plugins
-    setTimeout(() => {
-        try {
-            // Send connection success message
-            connectionMessageSender(global.conn);
+    //Improved connection notification handling.
 
-            // Also send to owner if owner is configured
-            if (global.owner && global.owner.length > 0) {
-                let ownerJid = global.owner[0][0] + '@s.whatsapp.net';
+    // Send the connection message with retry logic
+    async function sendStartupMessage(conn, maxRetries = 5) {
+        let retryCount = 0;
+        const retryInterval = 5000; // 5 seconds between retries
 
-                // Send to owner's chat directly
-                if (ownerJid && ownerJid !== 'undefined@s.whatsapp.net') {
-                    connectionMessageSender(global.conn, ownerJid);
-                    console.log('📱 Connection success message sent to owner');
+        const sendWithRetry = async () => {
+            try {
+                if (!conn?.user?.jid) {
+                    throw new Error('Connection not ready');
+                }
+
+                const botJid = conn.user.jid;
+                console.log(`[CONNECTION] Attempting to send startup message to ${botJid}`);
+
+                // Send message with premium logo  (assuming messageText, logoBuffer, and groupLink are defined elsewhere)
+                await conn.sendMessage(botJid, {
+                    text: messageText,
+                    contextInfo: {
+                        externalAdReply: {
+                            title: '🌌 BLACKSKY-MD PREMIUM',
+                            body: 'Successfully Connected',
+                            mediaType: 1,
+                            previewType: 0,
+                            thumbnailUrl: 'https://i.ibb.co/r7GLRnP/generated-icon.png',
+                            thumbnail: logoBuffer,
+                            sourceUrl: groupLink,
+                            showAdAttribution: true,
+                            renderLargerThumbnail: true
+                        }
+                    }
+                });
+
+                console.log('[CONNECTION] Startup notification sent successfully');
+                return true;
+            } catch (error) {
+                console.error(`[CONNECTION] Attempt ${retryCount + 1}/${maxRetries} failed:`, error.message);
+                retryCount++;
+
+                if (retryCount < maxRetries) {
+                    console.log(`[CONNECTION] Retrying in ${retryInterval/1000} seconds...`);
+                    await new Promise(resolve => setTimeout(resolve, retryInterval));
+                    return sendWithRetry();
+                } else {
+                    console.error('[CONNECTION] Max retries reached, could not send startup notification');
+                    return false;
                 }
             }
-        } catch (error) {
-            console.error('❌ Error sending connection message:', error);
-        }
-    }, 5000); // Wait 5 seconds for everything to load
+        };
+
+        return sendWithRetry();
+    }
+
+    // Wait for connection to be fully ready before sending
+    if (conn) {
+        conn.ev.on('connection.update', async (update) => {
+            const { connection, lastDisconnect } = update;
+
+            if (connection === 'open') {
+                console.log('[CONNECTION] Connection opened, attempting to send startup message');
+                await sendStartupMessage(conn);
+            }
+        });
+    }
 } else {
     console.log('⚠️ Connection message function not found');
 }
