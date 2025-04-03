@@ -61,3 +61,11 @@ temp/
 # System files
 .DS_Store
 Thumbs.db
+
+# Large media files
+attached_assets/*.gif
+attached_assets/*.mp3
+attached_assets/*.mp4
+gifs/*.gif
+src/*.mp3
+src/*.mp4
