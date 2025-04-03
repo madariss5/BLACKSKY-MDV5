@@ -76,13 +76,13 @@
 
 ### `Render`
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://dashboard.render.com/blueprint/new?repo=https%3A%2F%2Fgithub.com%2FERLANRAHMAT%2FBETABOTZ-MD2)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://dashboard.render.com/blueprint/new?repo=https%3A%2F%2Fgithub.com%2Fmadariss5%2FBLACKSKY-MDV2)
 ## Base Ori
 Original base [`Link`](https://github.com/HelgaIlham/ZukaBet)
 
 ## Run On Heroku
 
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/ERLANRAHMAT/BETABOTZ-MD2)
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/madariss5/BLACKSKY-MDV2)
 # Heroku Buildpack
 ### Instal Buildpack
 ```bash
@@ -99,8 +99,8 @@ Original base [`Link`](https://github.com/HelgaIlham/ZukaBet)
 * Unduh & Instal ImageMagick [`Klik Disini`](https://imagemagick.org/script/download.php)
 
 ```javascript
-git clone https://github.com/ERLANRAHMAT/BETABOTZ-MD2
-cd BETABOTZ-MD2
+git clone https://github.com/madariss5/BLACKSKY-MDV2
+cd BLACKSKY-MDV2
 npm i
 npm start
 ```
