@@ -1,169 +1,138 @@
 /**
- * Replit-Optimized Connection Handler Patch
+ * Replit-specific connection patch for WhatsApp bot
  * 
- * This module enhances the WhatsApp connection stability specifically for Replit environment
- * by implementing session management, connection recovery, and notification queuing.
+ * This module addresses several issues specific to running WhatsApp bots
+ * on Replit:
+ * 
+ * 1. Connection stability issues due to Replit's unique networking
+ * 2. Session persistence handling for Replit's ephemeral filesystem
+ * 3. Connection recovery mechanisms to prevent disconnections
+ * 4. Special keepalive system to maintain WhatsApp connectivity
  */
 
-// Import required modules
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
+const http = require('http');
 const { promisify } = require('util');
 const { exec } = require('child_process');
 const execAsync = promisify(exec);
-const os = require('os');
-const { Low, JSONFile } = require('./lib/lowdb');
 
 // Configuration
 const CONFIG = {
-  // How often to check connection status (ms)
-  connectionCheckInterval: 60000, 
-  
-  // Maximum reconnection attempts
-  maxReconnectAttempts: 10,
-  
-  // Base delay between reconnection attempts (ms) 
-  reconnectBaseDelay: 5000,
-  
-  // Session backup interval (ms)
-  sessionBackupInterval: 300000, // 5 minutes
-  
-  // Notification queue processing interval (ms)
-  notificationQueueInterval: 10000,
+  // Session ID (same as in main config)
+  sessionId: process.env.SESSION_ID || 'BLACKSKY-MD',
   
   // Session directory
   sessionDir: path.join(process.cwd(), 'sessions'),
   
   // Session backup file
-  sessionBackupFile: path.join(process.cwd(), 'sessions', 'session-backup.json'),
+  sessionBackupFile: path.join(process.cwd(), '.session-backup.json'),
   
-  // Notification queue file
-  notificationQueueFile: path.join(process.cwd(), 'sessions', 'notification-queue.json')
+  // Heartbeat interval (ms)
+  heartbeatInterval: 50000,
+  
+  // Health check interval (ms)
+  healthCheckInterval: 30000,
+  
+  // Debug mode
+  debug: true
 };
 
-// Initialize notification queue
-let notificationQueue = [];
-const notificationQueueDB = new Low(new JSONFile(CONFIG.notificationQueueFile));
+// State tracking
+const STATE = {
+  connectedSince: null,
+  isConnected: false,
+  connectionAttempts: 0,
+  lastHeartbeat: 0,
+  uptime: 0
+};
 
-// Load notification queue from file
-async function loadNotificationQueue() {
-  try {
-    await notificationQueueDB.read();
-    notificationQueueDB.data = notificationQueueDB.data || { queue: [] };
-    notificationQueue = notificationQueueDB.data.queue || [];
-    console.log(`[QUEUE] Loaded ${notificationQueue.length} pending notifications`);
-  } catch (error) {
-    console.error('[QUEUE] Error loading notification queue:', error);
-    notificationQueue = [];
+// Log with timestamp for debugging
+function log(message, type = 'INFO') {
+  if (type !== 'DEBUG' || CONFIG.debug) {
+    const timestamp = new Date().toISOString();
+    console.log(`[REPLIT-PATCH][${type}][${timestamp}] ${message}`);
   }
 }
 
-// Save notification queue to file
-async function saveNotificationQueue() {
-  try {
-    notificationQueueDB.data = { queue: notificationQueue };
-    await notificationQueueDB.write();
-  } catch (error) {
-    console.error('[QUEUE] Error saving notification queue:', error);
-  }
-}
-
-// Initialize variables
-let reconnectAttempts = 0;
-let isReconnecting = false;
-let lastConnectionCheck = Date.now();
-
-/**
- * Send a notification with retry mechanism
- * @param {Object} conn - Baileys connection object
- * @param {String} jid - JID to send message to
- * @param {Object} content - Message content
- * @param {Object} options - Message options
- * @returns {Promise<Object>} - Message info
- */
-async function sendNotificationWithRetry(conn, jid, content, options = {}) {
-  if (!conn || !conn.user) {
-    // Connection not available, queue the message
-    const queueItem = {
-      jid,
-      content,
-      options,
-      timestamp: Date.now(),
-      attempts: 0
-    };
-    notificationQueue.push(queueItem);
-    await saveNotificationQueue();
-    console.log(`[QUEUE] Message to ${jid} queued for later delivery`);
-    return null;
-  }
+// Apply monkey patches to the Baileys library once connection is established
+function applyBaileysPatch(conn) {
+  if (!conn) return false;
   
   try {
-    // Try to send the message
-    const result = await conn.sendMessage(jid, content, options);
-    return result;
-  } catch (error) {
-    console.error(`[CONNECTION] Error sending notification:`, error);
-    
-    // Queue the failed message
-    const queueItem = {
-      jid,
-      content,
-      options,
-      timestamp: Date.now(),
-      attempts: 1,
-      lastError: error.message
-    };
-    notificationQueue.push(queueItem);
-    await saveNotificationQueue();
-    console.log(`[QUEUE] Failed message to ${jid} queued for retry`);
-    return null;
-  }
-}
-
-/**
- * Process the notification queue
- * @param {Object} conn - Baileys connection object
- */
-async function processNotificationQueue(conn) {
-  if (!conn || !conn.user || notificationQueue.length === 0) {
-    return;
-  }
-  
-  console.log(`[QUEUE] Processing ${notificationQueue.length} queued notifications`);
-  
-  // Process queue from oldest to newest
-  const currentQueue = [...notificationQueue];
-  notificationQueue = [];
-  
-  for (const item of currentQueue) {
-    // Skip items that have been retried too many times
-    if (item.attempts >= 5) {
-      console.log(`[QUEUE] Dropping message to ${item.jid} after 5 failed attempts`);
-      continue;
+    // Patch the connection's logout function to prevent accidental disconnection
+    if (typeof conn.logout === 'function') {
+      const originalLogout = conn.logout;
+      conn.logout = async function patchedLogout() {
+        log('⚠️ Logout intercepted! This is usually not intended in a bot. Continuing operation.', 'WARN');
+        return { success: false, reason: 'logout-prevented-by-patch' };
+      };
+      log('Applied logout protection patch', 'DEBUG');
     }
     
-    try {
-      // Calculate delay based on number of attempts
-      const delayMs = Math.min(item.attempts * 1000, 5000);
+    // Patch the WebSocket ping to keep connection alive
+    if (conn.ws && typeof conn.ws.on === 'function') {
+      // Add an extra ping event to keep the connection alive
+      const pingInterval = setInterval(() => {
+        if (conn.ws && typeof conn.ws.ping === 'function') {
+          try {
+            conn.ws.ping();
+            STATE.lastHeartbeat = Date.now();
+            log('WebSocket ping sent', 'DEBUG');
+          } catch (err) {
+            log(`WebSocket ping error: ${err.message}`, 'ERROR');
+          }
+        }
+      }, CONFIG.heartbeatInterval);
       
-      // Add a small delay between messages to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, delayMs));
+      // Clear interval on WebSocket close
+      conn.ws.on('close', () => {
+        clearInterval(pingInterval);
+        log('WebSocket closed, cleared ping interval', 'DEBUG');
+      });
       
-      console.log(`[QUEUE] Retrying message to ${item.jid} (attempt ${item.attempts + 1})`);
-      await conn.sendMessage(item.jid, item.content, item.options);
-      console.log(`[QUEUE] Successfully delivered queued message to ${item.jid}`);
-    } catch (error) {
-      console.error(`[QUEUE] Failed to deliver queued message:`, error);
-      
-      // Update attempt count and requeue
-      item.attempts += 1;
-      item.lastError = error.message;
-      notificationQueue.push(item);
+      log('Applied WebSocket ping patch', 'DEBUG');
     }
+    
+    // Patch the ev (event) system to track connection status
+    if (conn.ev) {
+      conn.ev.on('connection.update', (update) => {
+        const { connection, lastDisconnect } = update;
+        
+        if (connection === 'open') {
+          STATE.isConnected = true;
+          STATE.connectedSince = Date.now();
+          STATE.connectionAttempts = 0;
+          log('🟢 Connection established', 'SUCCESS');
+          
+          // Backup session immediately on successful connection
+          backupSessionFiles().catch(err => 
+            log(`Session backup error: ${err.message}`, 'ERROR')
+          );
+        } else if (connection === 'close') {
+          STATE.isConnected = false;
+          
+          // Get error code if available
+          const statusCode = lastDisconnect?.error?.output?.statusCode;
+          const logoutStatusCodes = [401, 403, 440];
+          
+          if (statusCode && logoutStatusCodes.includes(statusCode)) {
+            log(`❌ Connection closed with auth error (${statusCode}). User may have logged out from phone.`, 'ERROR');
+          } else {
+            log(`❌ Connection closed. Automatic reconnection will be attempted.`, 'WARN');
+          }
+        }
+      });
+      
+      log('Applied connection tracking patch', 'DEBUG');
+    }
+    
+    return true;
+  } catch (error) {
+    log(`Error applying Baileys patches: ${error.message}`, 'ERROR');
+    return false;
   }
-  
-  // Save the updated queue
-  await saveNotificationQueue();
 }
 
 /**
@@ -172,7 +141,7 @@ async function processNotificationQueue(conn) {
 async function backupSessionFiles() {
   try {
     if (!fs.existsSync(CONFIG.sessionDir)) {
-      console.log(`[BACKUP] Creating session directory: ${CONFIG.sessionDir}`);
+      log(`Creating session directory: ${CONFIG.sessionDir}`, 'INFO');
       fs.mkdirSync(CONFIG.sessionDir, { recursive: true });
     }
     
@@ -181,7 +150,7 @@ async function backupSessionFiles() {
     const sessionFiles = files.filter(file => file.endsWith('.json') && !file.includes('backup'));
     
     if (sessionFiles.length === 0) {
-      console.log('[BACKUP] No session files found to backup');
+      log('No session files found to backup', 'WARN');
       return;
     }
     
@@ -194,15 +163,15 @@ async function backupSessionFiles() {
         const fileContent = fs.readFileSync(filePath, 'utf8');
         backupData[file] = fileContent;
       } catch (error) {
-        console.error(`[BACKUP] Error reading file ${file}:`, error);
+        log(`Error reading file ${file}: ${error.message}`, 'ERROR');
       }
     }
     
     // Save backup data
     fs.writeFileSync(CONFIG.sessionBackupFile, JSON.stringify(backupData, null, 2));
-    console.log(`[BACKUP] Successfully backed up ${Object.keys(backupData).length} session files`);
+    log(`Successfully backed up ${Object.keys(backupData).length} session files`, 'SUCCESS');
   } catch (error) {
-    console.error('[BACKUP] Error backing up session files:', error);
+    log(`Error backing up session files: ${error.message}`, 'ERROR');
   }
 }
 
@@ -212,7 +181,7 @@ async function backupSessionFiles() {
 async function restoreSessionFiles() {
   try {
     if (!fs.existsSync(CONFIG.sessionBackupFile)) {
-      console.log('[RESTORE] No backup file found');
+      log('No backup file found', 'WARN');
       return false;
     }
     
@@ -220,7 +189,7 @@ async function restoreSessionFiles() {
     const files = Object.keys(backupData);
     
     if (files.length === 0) {
-      console.log('[RESTORE] Backup file contains no data');
+      log('Backup file contains no data', 'WARN');
       return false;
     }
     
@@ -235,169 +204,152 @@ async function restoreSessionFiles() {
       fs.writeFileSync(filePath, backupData[file]);
     }
     
-    console.log(`[RESTORE] Successfully restored ${files.length} session files`);
+    log(`Successfully restored ${files.length} session files`, 'SUCCESS');
     return true;
   } catch (error) {
-    console.error('[RESTORE] Error restoring session files:', error);
+    log(`Error restoring session files: ${error.message}`, 'ERROR');
     return false;
   }
 }
 
-/**
- * Handle WhatsApp connection loss
- * @param {Object} conn - Baileys connection object
- */
-async function handleConnectionLoss(conn) {
-  if (isReconnecting) return;
-  isReconnecting = true;
-  
-  console.log('[CONNECTION] Connection lost. Attempting to reconnect...');
-  
-  try {
-    // Try to backup existing session before reconnecting
-    await backupSessionFiles();
-    
-    // Retry connection with exponential backoff
-    while (reconnectAttempts < CONFIG.maxReconnectAttempts) {
-      reconnectAttempts++;
-      
-      // Calculate delay with exponential backoff and jitter
-      const delay = CONFIG.reconnectBaseDelay * Math.pow(1.5, reconnectAttempts) * (0.5 + Math.random());
-      console.log(`[CONNECTION] Reconnect attempt ${reconnectAttempts}/${CONFIG.maxReconnectAttempts} in ${Math.round(delay/1000)}s`);
-      
-      await new Promise(resolve => setTimeout(resolve, delay));
-      
-      // Try to reconnect
-      try {
-        if (!conn.user) {
-          // Try to reload session from backup if needed
-          await restoreSessionFiles();
-          
-          // Trigger reload
-          if (typeof global.reloadHandler === 'function') {
-            const success = await global.reloadHandler(true);
-            if (success && conn.user) {
-              console.log('[CONNECTION] Successfully reconnected!');
-              reconnectAttempts = 0;
-              break;
-            }
-          }
-        } else {
-          console.log('[CONNECTION] Connection already restored');
-          reconnectAttempts = 0;
-          break;
-        }
-      } catch (err) {
-        console.error('[CONNECTION] Error during reconnection attempt:', err);
-      }
-    }
-    
-    if (reconnectAttempts >= CONFIG.maxReconnectAttempts) {
-      console.error('[CONNECTION] Maximum reconnection attempts reached. Please restart the bot manually.');
-    }
-  } catch (error) {
-    console.error('[CONNECTION] Error in connection recovery:', error);
-  } finally {
-    isReconnecting = false;
-  }
-}
-
-/**
- * Check connection status and handle recovery if needed
- */
-function checkConnectionStatus() {
-  const conn = global.conn;
-  
-  if (!conn) {
-    console.log('[CONNECTION] No connection object found');
-    return;
-  }
-  
-  // If not connected, try to reconnect
-  if (!conn.user) {
-    console.log('[CONNECTION] Not connected to WhatsApp');
-    handleConnectionLoss(conn);
-    return;
-  }
-  
-  // Process any queued notifications if connected
-  if (conn.user && notificationQueue.length > 0) {
-    processNotificationQueue(conn);
-  }
-  
-  // Backup session periodically
-  const now = Date.now();
-  if (now - lastConnectionCheck >= CONFIG.sessionBackupInterval) {
-    backupSessionFiles();
-    lastConnectionCheck = now;
-  }
-}
-
-// Initialize everything
-async function init() {
-  // Ensure session directory exists
-  if (!fs.existsSync(CONFIG.sessionDir)) {
-    fs.mkdirSync(CONFIG.sessionDir, { recursive: true });
-  }
-  
-  // Load notification queue
-  await loadNotificationQueue();
-  
-  // Set up periodic connection check
-  setInterval(checkConnectionStatus, CONFIG.connectionCheckInterval);
-  
-  // Set up notification queue processing
+// Set up a health check system
+function setupHealthCheck() {
   setInterval(() => {
-    if (global.conn && global.conn.user && notificationQueue.length > 0) {
-      processNotificationQueue(global.conn);
+    try {
+      // Basic system info
+      const freeMem = os.freemem() / 1024 / 1024;
+      const totalMem = os.totalmem() / 1024 / 1024;
+      const memoryUsage = Math.round(((totalMem - freeMem) / totalMem) * 100);
+      
+      // Get process memory usage
+      const processMemory = process.memoryUsage();
+      const rssInMB = Math.round(processMemory.rss / 1024 / 1024);
+      const heapInMB = Math.round(processMemory.heapUsed / 1024 / 1024);
+      
+      // Check session directory
+      let sessionFiles = [];
+      if (fs.existsSync(CONFIG.sessionDir)) {
+        sessionFiles = fs.readdirSync(CONFIG.sessionDir)
+          .filter(file => file.endsWith('.json'));
+      }
+      
+      // Update uptime
+      if (STATE.connectedSince) {
+        STATE.uptime = Math.floor((Date.now() - STATE.connectedSince) / 1000);
+      }
+      
+      // Log status
+      log(`Health check - Memory: ${memoryUsage}% (Process: ${rssInMB}MB, Heap: ${heapInMB}MB), ` +
+        `Connection: ${STATE.isConnected ? 'Connected' : 'Disconnected'}, ` +
+        `Uptime: ${formatUptime(STATE.uptime)}, ` +
+        `Session files: ${sessionFiles.length}`, 'DEBUG');
+          
+      // Backup session files periodically
+      if (STATE.isConnected) {
+        backupSessionFiles().catch(err => 
+          log(`Error in periodic backup: ${err.message}`, 'ERROR')
+        );
+      }
+      
+    } catch (err) {
+      log(`Health check error: ${err.message}`, 'ERROR');
     }
-  }, CONFIG.notificationQueueInterval);
+  }, CONFIG.healthCheckInterval);
   
-  // Export functions to global space for use in other modules
-  global.sendNotificationWithRetry = sendNotificationWithRetry;
-  global.notificationQueue = {
-    add: async (jid, content, options = {}) => {
-      const queueItem = {
-        jid,
-        content,
-        options,
-        timestamp: Date.now(),
-        attempts: 0
-      };
-      notificationQueue.push(queueItem);
-      await saveNotificationQueue();
-      return true;
-    },
-    process: () => processNotificationQueue(global.conn),
-    getCount: () => notificationQueue.length
-  };
-  
-  console.log('[CONNECTION] Replit-optimized connection patch initialized');
+  log('Health check system initialized', 'INFO');
 }
 
-// Start initialization
-init().catch(err => {
-  console.error('[CONNECTION] Error initializing connection patch:', err);
-});
+// Format uptime for display
+function formatUptime(seconds) {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  
+  let result = '';
+  if (days > 0) result += `${days}d `;
+  if (hours > 0) result += `${hours}h `;
+  if (minutes > 0) result += `${minutes}m `;
+  result += `${secs}s`;
+  
+  return result;
+}
 
-// Register graceful shutdown
-process.on('SIGTERM', async () => {
-  console.log('[CONNECTION] Received SIGTERM signal, performing graceful shutdown...');
-  await backupSessionFiles();
-  await saveNotificationQueue();
-  process.exit(0);
-});
+// Register global patches and handlers
+function registerGlobalHandlers() {
+  // Listen for WhatsApp connection object 
+  Object.defineProperty(global, 'conn', {
+    set: function(newConn) {
+      this._conn = newConn;
+      
+      // Apply patches when connection is set
+      if (newConn) {
+        log('WhatsApp connection object detected, applying patches...', 'INFO');
+        applyBaileysPatch(newConn);
+        
+        // Add a property to indicate our patch was applied
+        newConn.replitPatched = true;
+      }
+    },
+    get: function() {
+      return this._conn;
+    },
+    configurable: true
+  });
+  
+  // Handle uncaught exceptions
+  process.on('uncaughtException', err => {
+    log(`Uncaught Exception: ${err.message}`, 'ERROR');
+    log(err.stack, 'ERROR');
+    
+    // If it's a fatal error, try to backup sessions
+    if (err.message.includes('FATAL') || 
+        err.message.includes('Cannot read property') ||
+        err.message.includes('undefined is not a function')) {
+      backupSessionFiles().catch(e => 
+        log(`Error backing up sessions after crash: ${e.message}`, 'ERROR')
+      );
+    }
+  });
+  
+  // Handle unhandled promise rejections
+  process.on('unhandledRejection', (reason, promise) => {
+    log(`Unhandled Promise Rejection: ${reason}`, 'ERROR');
+    
+    // If it's a connection-related rejection, try to backup sessions
+    if (reason && typeof reason === 'object' && 
+        (reason.message?.includes('Connection') || 
+         reason.message?.includes('WebSocket'))) {
+      backupSessionFiles().catch(e => 
+        log(`Error backing up sessions after rejection: ${e.message}`, 'ERROR')
+      );
+    }
+  });
+  
+  log('Global handlers registered', 'INFO');
+}
 
-process.on('SIGINT', async () => {
-  console.log('[CONNECTION] Received SIGINT signal, performing graceful shutdown...');
-  await backupSessionFiles();
-  await saveNotificationQueue();
-  process.exit(0);
-});
+// Main initialization function
+function initialize() {
+  log('Initializing Replit connection patch...', 'INFO');
+  
+  // Restore session files first, if available
+  restoreSessionFiles()
+    .then(restored => {
+      if (restored) {
+        log('Session files restored from backup', 'SUCCESS');
+      }
+    })
+    .catch(err => log(`Error restoring sessions: ${err.message}`, 'ERROR'));
+  
+  // Register global handlers for connection
+  registerGlobalHandlers();
+  
+  // Start health check system
+  setupHealthCheck();
+  
+  log('Replit connection patch initialized successfully', 'SUCCESS');
+}
 
-module.exports = {
-  sendNotificationWithRetry,
-  processNotificationQueue,
-  backupSessionFiles,
-  restoreSessionFiles
-};
+// Run initialization
+initialize();

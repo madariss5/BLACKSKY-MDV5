@@ -146,6 +146,15 @@ app.get('/backup', async (req, res) => {
 // First start the server
 const server = app.listen(port, '0.0.0.0', () => {
   console.log(`⚡ Server running on port ${port}`);
+  
+  // Fix session directories and files first
+  try {
+    require('./replit-session-fix.js');
+    console.log('✅ Session fix applied successfully');
+  } catch (err) {
+    console.error('❌ Failed to apply session fix:', err);
+  }
+  
   // Start the bot after server is confirmed running
   setTimeout(startBot, 1000);
 });
@@ -172,12 +181,57 @@ function startBot() {
   process.env.NODE_ENV = 'production';
   process.env.SESSION_ID = 'BLACKSKY-MD';
   
-  // Force use connection patch
+  // Make sure sessions directory exists and has proper permissions
+  const sessionsDir = path.join(__dirname, 'sessions');
+  if (!fs.existsSync(sessionsDir)) {
+    fs.mkdirSync(sessionsDir, { recursive: true });
+    console.log(`📁 Created sessions directory at ${sessionsDir}`);
+  }
+  
+  // Initialize an empty creds.json file if it doesn't exist
+  // This prevents the "no such file or directory" errors
+  const credsPath = path.join(sessionsDir, 'creds.json');
+  if (!fs.existsSync(credsPath)) {
+    fs.writeFileSync(credsPath, JSON.stringify({
+      noiseKey: null,
+      signedIdentityKey: null,
+      signedPreKey: null,
+      registrationId: 0,
+      advSecretKey: null,
+      nextPreKeyId: 0,
+      firstUnuploadedPreKeyId: 0,
+      serverHasPreKeys: false,
+      account: null,
+      me: null,
+      signalIdentities: [],
+      lastAccountSyncTimestamp: 0,
+      myAppStateKeyId: null
+    }, null, 2));
+    console.log(`📝 Created initial creds.json file at ${credsPath}`);
+  }
+  
+  // Load our connection keeper to maintain WhatsApp connection
   try {
-    require('./connection-patch.js');
-    console.log('✅ Connection patch loaded successfully');
+    require('./connection-keeper.js');
+    console.log('✅ Connection keeper loaded successfully');
   } catch (err) {
-    console.error('❌ Failed to load connection patch:', err);
+    console.error('❌ Failed to load connection keeper:', err);
+  }
+  
+  // Use Replit-specific connection patch
+  try {
+    require('./replit-connection-patch.js');
+    console.log('✅ Replit connection patch loaded successfully');
+  } catch (err) {
+    console.error('❌ Failed to load Replit connection patch:', err);
+    
+    // Fall back to standard connection patch if Replit-specific one fails
+    try {
+      require('./connection-patch.js');
+      console.log('✅ Fallback to standard connection patch successful');
+    } catch (fallbackErr) {
+      console.error('❌ Failed to load fallback connection patch:', fallbackErr);
+    }
   }
   
   // Start the bot in the same process to avoid complexity
@@ -204,3 +258,6 @@ process.on('SIGINT', () => {
   console.log('🛑 Received SIGINT signal. Shutting down gracefully...');
   process.exit(0);
 });
+
+// Start the bot
+startBot();
