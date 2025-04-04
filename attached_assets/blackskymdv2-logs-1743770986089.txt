@@ -1,0 +1,178 @@
+2025-04-04T12:49:28.101963+00:00 app[web.1]: │📑ㅤCIPHERTEXT
+2025-04-04T12:49:28.101963+00:00 app[web.1]: │📊ㅤ0 [0 B]
+2025-04-04T12:49:28.101963+00:00 app[web.1]: │📤ㅤ+43 676 9645892 ~+43 676 9645892
+2025-04-04T12:49:28.101963+00:00 app[web.1]: │📃ㅤ6|2554|10
+2025-04-04T12:49:28.101964+00:00 app[web.1]: │📥ㅤ120363417790141096@g.us ~꧁🎭𝓒𝓱𝓪𝓽'𝓷𝓒𝓱𝓲𝓵𝓵 🎭꧂
+2025-04-04T12:49:28.101965+00:00 app[web.1]: │💬ㅤ
+2025-04-04T12:49:28.101965+00:00 app[web.1]: ▣────────────···
+2025-04-04T12:49:28.101968+00:00 app[web.1]: 
+2025-04-04T12:49:28.102115+00:00 app[web.1]: undefined
+2025-04-04T12:49:28.344122+00:00 app[web.1]: true
+2025-04-04T12:49:29.398502+00:00 app[web.1]: [SECURITY] Loading 1 owners from config
+2025-04-04T12:49:29.398530+00:00 app[web.1]: [SECURITY] Normalizing owner format for index 0
+2025-04-04T12:49:29.398530+00:00 app[web.1]: [SECURITY DEBUG] ownerNumbers: []
+2025-04-04T12:49:29.398542+00:00 app[web.1]: [SECURITY DEBUG] sender: 491788375790@s.whatsapp.net, fromMe: false, isROwner: false
+2025-04-04T12:49:29.398551+00:00 app[web.1]: [SECURITY RESULT] isOwner granted: false
+2025-04-04T12:49:29.398614+00:00 app[web.1]: [METADATA] No participants found for 120363417790141096@g.us, fetching fresh metadata...
+2025-04-04T12:49:29.398633+00:00 app[web.1]: [METADATA] Successfully fetched group metadata for 120363417790141096@g.us
+2025-04-04T12:49:29.398635+00:00 app[web.1]: [METADATA] Group 120363417790141096@g.us has 63 participants
+2025-04-04T12:49:29.398666+00:00 app[web.1]: [ADMIN CHECK] Chat: 120363417790141096@g.us, User 491788375790@s.whatsapp.net is admin: false, Bot is admin: true
+2025-04-04T12:49:29.398685+00:00 app[web.1]: [ADMIN DEBUG] Bot JID: 4915562378343@s.whatsapp.net
+2025-04-04T12:49:29.398686+00:00 app[web.1]: [ADMIN DEBUG] Admin list: ["4915783440671@s.whatsapp.net","4915736110639@s.whatsapp.net","4915562378343@s.whatsapp.net","491778004210@s.whatsapp.net"]
+2025-04-04T12:49:29.398695+00:00 app[web.1]: [ADMIN DEBUG] Final status - Bot is admin: true, User is admin: false
+2025-04-04T12:49:29.403460+00:00 app[web.1]: ▣────────────···
+2025-04-04T12:49:29.403461+00:00 app[web.1]: │ +49 15562 378343 ~BLACKSKY-MD
+2025-04-04T12:49:29.403461+00:00 app[web.1]: │⏰ㅤ12:49:29 GMT+0000 (Coordinated Universal Time)
+2025-04-04T12:49:29.403462+00:00 app[web.1]: │📑ㅤCIPHERTEXT
+2025-04-04T12:49:29.403462+00:00 app[web.1]: │📊ㅤ0 [0 B]
+2025-04-04T12:49:29.403462+00:00 app[web.1]: │📤ㅤ+49 178 8375790 ~+49 178 8375790
+2025-04-04T12:49:29.403462+00:00 app[web.1]: │📃ㅤ6|3816|10
+2025-04-04T12:49:29.403462+00:00 app[web.1]: │📥ㅤ120363417790141096@g.us ~꧁🎭𝓒𝓱𝓪𝓽'𝓷𝓒𝓱𝓲𝓵𝓵 🎭꧂
+2025-04-04T12:49:29.403463+00:00 app[web.1]: │💬ㅤ
+2025-04-04T12:49:29.403463+00:00 app[web.1]: ▣────────────···
+2025-04-04T12:49:29.403478+00:00 app[web.1]: 
+2025-04-04T12:49:29.403578+00:00 app[web.1]: undefined
+2025-04-04T12:49:29.436682+00:00 app[web.1]: true
+2025-04-04T12:49:30.194383+00:00 app[web.1]: true
+2025-04-04T12:49:31.298756+00:00 app[web.1]: true
+2025-04-04T12:49:32.908775+00:00 app[web.1]: Unhandled Rejection at: Promise {
+2025-04-04T12:49:32.908788+00:00 app[web.1]:   <rejected> Error: Connection Closed
+2025-04-04T12:49:32.908788+00:00 app[web.1]:       at sendRawMessage (/app/node_modules/@adiwajshing/baileys/lib/Socket/socket.js:57:19)
+2025-04-04T12:49:32.908789+00:00 app[web.1]:       at sendNode (/app/node_modules/@adiwajshing/baileys/lib/Socket/socket.js:76:16)
+2025-04-04T12:49:32.908789+00:00 app[web.1]:       at query (/app/node_modules/@adiwajshing/baileys/lib/Socket/socket.js:140:15)
+2025-04-04T12:49:32.908790+00:00 app[web.1]:       at assertSessions (/app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:182:34)
+2025-04-04T12:49:32.908790+00:00 app[web.1]:       at /app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:389:17
+2025-04-04T12:49:32.908790+00:00 app[web.1]:       at Object.transaction (/app/node_modules/@adiwajshing/baileys/lib/Utils/auth-utils.js:135:26)
+2025-04-04T12:49:32.908790+00:00 app[web.1]:       at relayMessage (/app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:287:9)
+2025-04-04T12:49:32.908791+00:00 app[web.1]:       at sendPeerDataOperationMessage (/app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:218:23)
+2025-04-04T12:49:32.908791+00:00 app[web.1]:       at sendRetryRequest (/app/node_modules/@adiwajshing/baileys/lib/Socket/messages-recv.js:99:27)
+2025-04-04T12:49:32.908791+00:00 app[web.1]:       at /app/node_modules/@adiwajshing/baileys/lib/Socket/messages-recv.js:644:33 {
+2025-04-04T12:49:32.908792+00:00 app[web.1]:     data: null,
+2025-04-04T12:49:32.908792+00:00 app[web.1]:     isBoom: true,
+2025-04-04T12:49:32.908792+00:00 app[web.1]:     isServer: false,
+2025-04-04T12:49:32.908793+00:00 app[web.1]:     output: { statusCode: 428, payload: [Object], headers: {} }
+2025-04-04T12:49:32.908793+00:00 app[web.1]:   }
+2025-04-04T12:49:32.908793+00:00 app[web.1]: } reason: Error: Connection Closed
+2025-04-04T12:49:32.908793+00:00 app[web.1]:     at sendRawMessage (/app/node_modules/@adiwajshing/baileys/lib/Socket/socket.js:57:19)
+2025-04-04T12:49:32.908794+00:00 app[web.1]:     at sendNode (/app/node_modules/@adiwajshing/baileys/lib/Socket/socket.js:76:16)
+2025-04-04T12:49:32.908794+00:00 app[web.1]:     at query (/app/node_modules/@adiwajshing/baileys/lib/Socket/socket.js:140:15)
+2025-04-04T12:49:32.908794+00:00 app[web.1]:     at assertSessions (/app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:182:34)
+2025-04-04T12:49:32.908794+00:00 app[web.1]:     at /app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:389:17
+2025-04-04T12:49:32.908794+00:00 app[web.1]:     at Object.transaction (/app/node_modules/@adiwajshing/baileys/lib/Utils/auth-utils.js:135:26)
+2025-04-04T12:49:32.908794+00:00 app[web.1]:     at relayMessage (/app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:287:9)
+2025-04-04T12:49:32.908794+00:00 app[web.1]:     at sendPeerDataOperationMessage (/app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:218:23)
+2025-04-04T12:49:32.908795+00:00 app[web.1]:     at sendRetryRequest (/app/node_modules/@adiwajshing/baileys/lib/Socket/messages-recv.js:99:27)
+2025-04-04T12:49:32.908795+00:00 app[web.1]:     at /app/node_modules/@adiwajshing/baileys/lib/Socket/messages-recv.js:644:33 {
+2025-04-04T12:49:32.908795+00:00 app[web.1]:   data: null,
+2025-04-04T12:49:32.908795+00:00 app[web.1]:   isBoom: true,
+2025-04-04T12:49:32.908795+00:00 app[web.1]:   isServer: false,
+2025-04-04T12:49:32.908796+00:00 app[web.1]:   output: {
+2025-04-04T12:49:32.908796+00:00 app[web.1]:     statusCode: 428,
+2025-04-04T12:49:32.908796+00:00 app[web.1]:     payload: {
+2025-04-04T12:49:32.908796+00:00 app[web.1]:       statusCode: 428,
+2025-04-04T12:49:32.908796+00:00 app[web.1]:       error: 'Precondition Required',
+2025-04-04T12:49:32.908796+00:00 app[web.1]:       message: 'Connection Closed'
+2025-04-04T12:49:32.908796+00:00 app[web.1]:     },
+2025-04-04T12:49:32.908797+00:00 app[web.1]:     headers: {}
+2025-04-04T12:49:32.908797+00:00 app[web.1]:   }
+2025-04-04T12:49:32.908797+00:00 app[web.1]: }
+2025-04-04T12:49:33.554801+00:00 app[web.1]: ⚠️ Connection appears to be closed. Attempt #1 to reconnect...
+2025-04-04T12:49:34.398733+00:00 app[web.1]: Unhandled Rejection at: Promise {
+2025-04-04T12:49:34.398762+00:00 app[web.1]:   <rejected> Error: Connection Closed
+2025-04-04T12:49:34.398763+00:00 app[web.1]:       at sendRawMessage (/app/node_modules/@adiwajshing/baileys/lib/Socket/socket.js:57:19)
+2025-04-04T12:49:34.398763+00:00 app[web.1]:       at sendNode (/app/node_modules/@adiwajshing/baileys/lib/Socket/socket.js:76:16)
+2025-04-04T12:49:34.398763+00:00 app[web.1]:       at query (/app/node_modules/@adiwajshing/baileys/lib/Socket/socket.js:140:15)
+2025-04-04T12:49:34.398764+00:00 app[web.1]:       at assertSessions (/app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:182:34)
+2025-04-04T12:49:34.398764+00:00 app[web.1]:       at /app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:389:17
+2025-04-04T12:49:34.398764+00:00 app[web.1]:       at Object.transaction (/app/node_modules/@adiwajshing/baileys/lib/Utils/auth-utils.js:135:26)
+2025-04-04T12:49:34.398765+00:00 app[web.1]:       at relayMessage (/app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:287:9)
+2025-04-04T12:49:34.398770+00:00 app[web.1]:       at sendPeerDataOperationMessage (/app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:218:23)
+2025-04-04T12:49:34.398770+00:00 app[web.1]:       at sendRetryRequest (/app/node_modules/@adiwajshing/baileys/lib/Socket/messages-recv.js:99:27)
+2025-04-04T12:49:34.398770+00:00 app[web.1]:       at /app/node_modules/@adiwajshing/baileys/lib/Socket/messages-recv.js:644:33 {
+2025-04-04T12:49:34.398771+00:00 app[web.1]:     data: null,
+2025-04-04T12:49:34.398771+00:00 app[web.1]:     isBoom: true,
+2025-04-04T12:49:34.398771+00:00 app[web.1]:     isServer: false,
+2025-04-04T12:49:34.398772+00:00 app[web.1]:     output: { statusCode: 428, payload: [Object], headers: {} }
+2025-04-04T12:49:34.398772+00:00 app[web.1]:   }
+2025-04-04T12:49:34.398772+00:00 app[web.1]: } reason: Error: Connection Closed
+2025-04-04T12:49:34.398772+00:00 app[web.1]:     at sendRawMessage (/app/node_modules/@adiwajshing/baileys/lib/Socket/socket.js:57:19)
+2025-04-04T12:49:34.398772+00:00 app[web.1]:     at sendNode (/app/node_modules/@adiwajshing/baileys/lib/Socket/socket.js:76:16)
+2025-04-04T12:49:34.398773+00:00 app[web.1]:     at query (/app/node_modules/@adiwajshing/baileys/lib/Socket/socket.js:140:15)
+2025-04-04T12:49:34.398773+00:00 app[web.1]:     at assertSessions (/app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:182:34)
+2025-04-04T12:49:34.398792+00:00 app[web.1]:     at /app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:389:17
+2025-04-04T12:49:34.398792+00:00 app[web.1]:     at Object.transaction (/app/node_modules/@adiwajshing/baileys/lib/Utils/auth-utils.js:135:26)
+2025-04-04T12:49:34.398792+00:00 app[web.1]:     at relayMessage (/app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:287:9)
+2025-04-04T12:49:34.398792+00:00 app[web.1]:     at sendPeerDataOperationMessage (/app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:218:23)
+2025-04-04T12:49:34.398793+00:00 app[web.1]:     at sendRetryRequest (/app/node_modules/@adiwajshing/baileys/lib/Socket/messages-recv.js:99:27)
+2025-04-04T12:49:34.398793+00:00 app[web.1]:     at /app/node_modules/@adiwajshing/baileys/lib/Socket/messages-recv.js:644:33 {
+2025-04-04T12:49:34.398793+00:00 app[web.1]:   data: null,
+2025-04-04T12:49:34.398793+00:00 app[web.1]:   isBoom: true,
+2025-04-04T12:49:34.398793+00:00 app[web.1]:   isServer: false,
+2025-04-04T12:49:34.398793+00:00 app[web.1]:   output: {
+2025-04-04T12:49:34.398794+00:00 app[web.1]:     statusCode: 428,
+2025-04-04T12:49:34.398794+00:00 app[web.1]:     payload: {
+2025-04-04T12:49:34.398794+00:00 app[web.1]:       statusCode: 428,
+2025-04-04T12:49:34.398794+00:00 app[web.1]:       error: 'Precondition Required',
+2025-04-04T12:49:34.398794+00:00 app[web.1]:       message: 'Connection Closed'
+2025-04-04T12:49:34.398794+00:00 app[web.1]:     },
+2025-04-04T12:49:34.398795+00:00 app[web.1]:     headers: {}
+2025-04-04T12:49:34.398795+00:00 app[web.1]:   }
+2025-04-04T12:49:34.398795+00:00 app[web.1]: }
+2025-04-04T12:49:35.462752+00:00 app[web.1]: true
+2025-04-04T12:49:36.268358+00:00 app[web.1]: true
+2025-04-04T12:49:37.153751+00:00 app[web.1]: true
+2025-04-04T12:49:38.080894+00:00 app[web.1]: true
+2025-04-04T12:49:38.838034+00:00 app[web.1]: true
+2025-04-04T12:49:39.945193+00:00 app[web.1]: true
+2025-04-04T12:49:40.487675+00:00 app[web.1]: true
+2025-04-04T12:49:41.729303+00:00 app[web.1]: true
+2025-04-04T12:49:42.918733+00:00 app[web.1]: true
+2025-04-04T12:49:43.751861+00:00 app[web.1]: [SECURITY] Loading 1 owners from config
+2025-04-04T12:49:43.751874+00:00 app[web.1]: [SECURITY] Normalizing owner format for index 0
+2025-04-04T12:49:43.751885+00:00 app[web.1]: [SECURITY DEBUG] ownerNumbers: []
+2025-04-04T12:49:43.751892+00:00 app[web.1]: [SECURITY DEBUG] sender: 491788375790@s.whatsapp.net, fromMe: false, isROwner: false
+2025-04-04T12:49:43.751893+00:00 app[web.1]: [SECURITY RESULT] isOwner granted: false
+2025-04-04T12:49:43.751957+00:00 app[web.1]: [METADATA] No participants found for 120363417790141096@g.us, fetching fresh metadata...
+2025-04-04T12:49:43.751976+00:00 app[web.1]: [METADATA] Successfully fetched group metadata for 120363417790141096@g.us
+2025-04-04T12:49:43.751986+00:00 app[web.1]: [METADATA] Group 120363417790141096@g.us has 63 participants
+2025-04-04T12:49:43.752008+00:00 app[web.1]: [ADMIN CHECK] Chat: 120363417790141096@g.us, User 491788375790@s.whatsapp.net is admin: false, Bot is admin: true
+2025-04-04T12:49:43.752024+00:00 app[web.1]: [ADMIN DEBUG] Bot JID: 4915562378343@s.whatsapp.net
+2025-04-04T12:49:43.752034+00:00 app[web.1]: [ADMIN DEBUG] Admin list: ["4915783440671@s.whatsapp.net","4915736110639@s.whatsapp.net","4915562378343@s.whatsapp.net","491778004210@s.whatsapp.net"]
+2025-04-04T12:49:43.752035+00:00 app[web.1]: [ADMIN DEBUG] Final status - Bot is admin: true, User is admin: false
+2025-04-04T12:49:43.754736+00:00 app[web.1]: ▣────────────···
+2025-04-04T12:49:43.754736+00:00 app[web.1]: │ +49 15562 378343 ~BLACKSKY-MD
+2025-04-04T12:49:43.754736+00:00 app[web.1]: │⏰ㅤ12:49:43 GMT+0000 (Coordinated Universal Time)
+2025-04-04T12:49:43.754737+00:00 app[web.1]: │📑ㅤCIPHERTEXT
+2025-04-04T12:49:43.754737+00:00 app[web.1]: │📊ㅤ0 [0 B]
+2025-04-04T12:49:43.754737+00:00 app[web.1]: │📤ㅤ+49 178 8375790 ~+49 178 8375790
+2025-04-04T12:49:43.754737+00:00 app[web.1]: │📃ㅤ10|3826|10
+2025-04-04T12:49:43.754738+00:00 app[web.1]: │📥ㅤ120363417790141096@g.us ~꧁🎭𝓒𝓱𝓪𝓽'𝓷𝓒𝓱𝓲𝓵𝓵 🎭꧂
+2025-04-04T12:49:43.754738+00:00 app[web.1]: │💬ㅤ
+2025-04-04T12:49:43.754738+00:00 app[web.1]: ▣────────────···
+2025-04-04T12:49:43.754752+00:00 app[web.1]: 
+2025-04-04T12:49:43.754818+00:00 app[web.1]: undefined
+2025-04-04T12:49:43.759442+00:00 app[web.1]: [SECURITY] Loading 1 owners from config
+2025-04-04T12:49:43.759465+00:00 app[web.1]: [SECURITY] Normalizing owner format for index 0
+2025-04-04T12:49:43.759477+00:00 app[web.1]: [SECURITY DEBUG] ownerNumbers: []
+2025-04-04T12:49:43.759485+00:00 app[web.1]: [SECURITY DEBUG] sender: 436769645892@s.whatsapp.net, fromMe: false, isROwner: false
+2025-04-04T12:49:43.759486+00:00 app[web.1]: [SECURITY RESULT] isOwner granted: false
+2025-04-04T12:49:43.759503+00:00 app[web.1]: [METADATA] No participants found for 120363417790141096@g.us, fetching fresh metadata...
+2025-04-04T12:49:43.759516+00:00 app[web.1]: [METADATA] Successfully fetched group metadata for 120363417790141096@g.us
+2025-04-04T12:49:43.759524+00:00 app[web.1]: [METADATA] Group 120363417790141096@g.us has 63 participants
+2025-04-04T12:49:43.759540+00:00 app[web.1]: [ADMIN CHECK] Chat: 120363417790141096@g.us, User 436769645892@s.whatsapp.net is admin: false, Bot is admin: true
+2025-04-04T12:49:43.759553+00:00 app[web.1]: [ADMIN DEBUG] Bot JID: 4915562378343@s.whatsapp.net
+2025-04-04T12:49:43.759562+00:00 app[web.1]: [ADMIN DEBUG] Admin list: ["4915783440671@s.whatsapp.net","4915736110639@s.whatsapp.net","4915562378343@s.whatsapp.net","491778004210@s.whatsapp.net"]
+2025-04-04T12:49:43.759563+00:00 app[web.1]: [ADMIN DEBUG] Final status - Bot is admin: true, User is admin: false
+2025-04-04T12:49:43.762191+00:00 app[web.1]: ▣────────────···
+2025-04-04T12:49:43.762191+00:00 app[web.1]: │ +49 15562 378343 ~BLACKSKY-MD
+2025-04-04T12:49:43.762191+00:00 app[web.1]: │⏰ㅤ12:49:43 GMT+0000 (Coordinated Universal Time)
+2025-04-04T12:49:43.762191+00:00 app[web.1]: │📑ㅤCIPHERTEXT
+2025-04-04T12:49:43.762192+00:00 app[web.1]: │📊ㅤ0 [0 B]
+2025-04-04T12:49:43.762192+00:00 app[web.1]: │📤ㅤ+43 676 9645892 ~+43 676 9645892
+2025-04-04T12:49:43.762192+00:00 app[web.1]: │📃ㅤ6|2560|10
+2025-04-04T12:49:43.762192+00:00 app[web.1]: │📥ㅤ120363417790141096@g.us ~꧁🎭𝓒𝓱𝓪𝓽'𝓷𝓒𝓱𝓲𝓵𝓵 🎭꧂
+2025-04-04T12:49:43.762192+00:00 app[web.1]: │💬ㅤ
+2025-04-04T12:49:43.762192+00:00 app[web.1]: ▣────────────···
+2025-04-04T12:49:43.762206+00:00 app[web.1]: 
+2025-04-04T12:49:43.762260+00:00 app[web.1]: undefined
+2025-04-04T12:49:43.764737+00:00 app[web.1]: true
