@@ -202,12 +202,49 @@ async function initializeOptimizations(conn) {
  */
 function optimize(conn) {
   if (!conn) {
-    console.error('[OPTIMIZE] No connection object provided');
-    return false;
+    console.log('[OPTIMIZE] No connection object provided, will use global.conn when available');
+    
+    // Set up a watcher for global.conn
+    const checkInterval = setInterval(() => {
+      if (global.conn && typeof global.conn === 'object') {
+        console.log('[OPTIMIZE] global.conn is now available, applying optimizations');
+        clearInterval(checkInterval);
+        initializeOptimizations(global.conn);
+      }
+    }, 1000); // Check every second
+    
+    return true;
   }
   
   return initializeOptimizations(conn);
 }
+
+// Self-initialize when global.conn becomes available
+(function setupGlobalConnWatcher() {
+  // Only run this once
+  if (global.connWatcherSetup) return;
+  global.connWatcherSetup = true;
+  
+  console.log('[OPTIMIZE] Setting up global connection watcher for automatic optimization');
+  
+  // Load optimization modules early
+  loadOptimizationModules();
+  
+  // Watch for global.conn to become available
+  const checkInterval = setInterval(() => {
+    if (global.conn && typeof global.conn === 'object') {
+      console.log('[OPTIMIZE] global.conn detected, automatically applying optimizations');
+      clearInterval(checkInterval);
+      initializeOptimizations(global.conn);
+    }
+  }, 1000); // Check every second
+  
+  // Ensure interval is cleared after 60 seconds to prevent memory leaks
+  setTimeout(() => {
+    clearInterval(checkInterval);
+    console.log('[OPTIMIZE] Stopped global.conn watcher after timeout');
+  }, 60 * 1000);
+})();
 
 module.exports = {
   optimize,

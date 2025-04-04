@@ -111,10 +111,9 @@ async function createSessionTable() {
       CREATE TABLE IF NOT EXISTS whatsapp_sessions (
         id SERIAL PRIMARY KEY,
         session_id VARCHAR(255) NOT NULL,
-        file_path VARCHAR(255) NOT NULL,
-        file_data BYTEA NOT NULL,
-        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+        session_data JSONB NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
       
       CREATE INDEX IF NOT EXISTS idx_whatsapp_sessions_session_id ON whatsapp_sessions(session_id);
@@ -162,18 +161,35 @@ async function backupSessionToDatabase() {
         const filePath = path.join(sessionDir, file);
         if (fs.statSync(filePath).isDirectory()) continue;
         
-        const fileData = fs.readFileSync(filePath);
-        const sessionId = process.env.SESSION_ID || 'BLACKSKY-MD';
-        
-        // Upsert the session file
-        await client.query(`
-          INSERT INTO whatsapp_sessions (session_id, file_path, file_data, updated_at)
-          VALUES ($1, $2, $3, NOW())
-          ON CONFLICT (session_id, file_path) 
-          DO UPDATE SET file_data = $3, updated_at = NOW()
-        `, [sessionId, file, fileData]);
-        
-        count++;
+        try {
+          const fileContent = fs.readFileSync(filePath, 'utf8');
+          let sessionData;
+          
+          // Try to parse as JSON
+          try {
+            sessionData = JSON.parse(fileContent);
+          } catch (parseErr) {
+            // If it's not valid JSON, store as binary data in a JSON wrapper
+            sessionData = { 
+              type: 'binary', 
+              data: fileContent.toString('base64') 
+            };
+          }
+          
+          const sessionId = file.replace('.json', '');
+          
+          // Upsert the session data
+          await client.query(`
+            INSERT INTO whatsapp_sessions (session_id, session_data, updated_at)
+            VALUES ($1, $2, NOW())
+            ON CONFLICT (session_id) 
+            DO UPDATE SET session_data = $2, updated_at = NOW()
+          `, [sessionId, sessionData]);
+          
+          count++;
+        } catch (fileErr) {
+          log(`Error processing file ${file}: ${fileErr.message}`, 'ERROR');
+        }
       }
       
       await client.query('COMMIT');
@@ -207,37 +223,47 @@ async function restoreSessionFromDatabase() {
       fs.mkdirSync(sessionDir, { recursive: true });
     }
     
-    // Get all session files from database
-    const sessionId = process.env.SESSION_ID || 'BLACKSKY-MD';
+    // Get all session data from database
     const result = await STATE.postgresPool.query(`
-      SELECT file_path, file_data FROM whatsapp_sessions 
-      WHERE session_id = $1
+      SELECT session_id, session_data FROM whatsapp_sessions 
       ORDER BY updated_at DESC
-    `, [sessionId]);
+    `);
     
     if (result.rows.length === 0) {
-      log('No session files found in database', 'WARN');
+      log('No sessions found in database', 'WARN');
       return false;
     }
     
     let count = 0;
     for (const row of result.rows) {
-      const filePath = path.join(sessionDir, row.file_path);
-      const fileData = row.file_data;
-      
-      // Ensure directory exists
-      const dir = path.dirname(filePath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
+      try {
+        const { session_id, session_data } = row;
+        const filePath = path.join(sessionDir, `${session_id}.json`);
+        
+        // Ensure parent directory exists
+        const dir = path.dirname(filePath);
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+        
+        // Handle binary data if stored in that format
+        if (session_data && session_data.type === 'binary' && session_data.data) {
+          // Convert base64 back to binary
+          const binaryData = Buffer.from(session_data.data, 'base64');
+          fs.writeFileSync(filePath, binaryData);
+        } else {
+          // Write JSON data
+          fs.writeFileSync(filePath, JSON.stringify(session_data, null, 2));
+        }
+        
+        count++;
+      } catch (err) {
+        log(`Error restoring session ${row.session_id}: ${err.message}`, 'ERROR');
       }
-      
-      // Write file
-      fs.writeFileSync(filePath, fileData);
-      count++;
     }
     
     log(`Successfully restored ${count} session files from database`, 'SUCCESS');
-    return true;
+    return count > 0;
   } catch (err) {
     log(`Error restoring sessions from database: ${err.message}`, 'ERROR');
     return false;

@@ -11,14 +11,13 @@ function initOptimizer() {
   if (optimizerInitialized) return;
   
   try {
-    const { optimize } = require('./apply-optimizations.js');
-    if (typeof optimize === 'function') {
-      console.log('🚀 Initializing performance optimization system...');
-      optimize(global.conn);
-      optimizerInitialized = true;
-    }
+    // Just requiring the module will trigger the self-initialization code
+    console.log('🚀 Loading performance optimization system...');
+    require('./apply-optimizations.js');
+    optimizerInitialized = true;
+    console.log('✅ Performance optimization system loaded successfully');
   } catch (err) {
-    console.error('⚠️ Failed to initialize performance optimizations:', err.message);
+    console.error('⚠️ Failed to load performance optimizations:', err.message);
   }
 }
 const express = require('express');
