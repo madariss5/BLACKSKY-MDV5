@@ -7,7 +7,19 @@
 try {
   // Initialize handler patches if not already applied
   if (!global.handlerPatchesApplied) {
-    console.log('[HANDLER] No fixes needed to apply');
+    console.log('[HANDLER] Applying performance optimizations...');
+    
+    // Initialize advanced performance optimizations
+    try {
+      const botOptimizer = require('./optimize-bot');
+      botOptimizer.initializeOptimizations();
+      botOptimizer.setupStatsReporting();
+      console.log('[HANDLER] Performance optimization module loaded successfully');
+    } catch (err) {
+      console.error('[HANDLER] Failed to load performance optimizations:', err);
+      // Still continue even if optimizations fail
+    }
+    
     global.handlerPatchesApplied = true;
   }
 } catch (error) {
@@ -105,6 +117,16 @@ async function performGracefulShutdown() {
 
 module.exports = {
     async handler(chatUpdate) {
+        // Start measuring processing time
+        const processingStartTime = performance.now();
+        
+        // Try parallel processing for eligible messages
+        if (global.tryParallelProcessing && typeof global.tryParallelProcessing === 'function') {
+            if (await global.tryParallelProcessing(chatUpdate)) {
+                return; // Message was processed in parallel mode
+            }
+        }
+        
         // Early ciphertext and undefined message handling
         if (chatUpdate && chatUpdate.messages && chatUpdate.messages.length > 0) {
             let m = chatUpdate.messages[chatUpdate.messages.length - 1];
@@ -1067,25 +1089,69 @@ module.exports = {
                 this.msgqueque.push(m.id || m.key.id)
                 await delay(this.msgqueque.length * 1000)
             }
-            for (let name in global.plugins) {
-                let plugin = global.plugins[name]
-                if (!plugin) continue
-                if (plugin.disabled) continue
-                if (!plugin.all) continue
-                if (typeof plugin.all !== 'function') continue
-                try {
-                    await plugin.all.call(this, m, chatUpdate)
-                } catch (e) {
-                    if (typeof e === 'string') continue
-                    console.error(e)
+            // Performance tracking
+            const allPluginsStartTime = performance.now();
+            
+            // Try optimized plugin processing if available
+            if (global.botOptimizer && typeof global.botOptimizer.processAllPlugins === 'function') {
+                const processed = await global.botOptimizer.processAllPlugins(this, m, chatUpdate);
+                if (processed) {
+                    // Plugins were processed with optimization
+                    if (global.botOptimizer.trackPerformance) {
+                        global.botOptimizer.trackPerformance('all_plugins', allPluginsStartTime, false);
+                    }
+                    // Skip standard processing
+                } else {
+                    // Fall back to standard processing
+                    for (let name in global.plugins) {
+                        let plugin = global.plugins[name]
+                        if (!plugin) continue
+                        if (plugin.disabled) continue
+                        if (!plugin.all) continue
+                        if (typeof plugin.all !== 'function') continue
+                        try {
+                            await plugin.all.call(this, m, chatUpdate)
+                        } catch (e) {
+                            if (typeof e === 'string') continue
+                            console.error(e)
+                            
+                            // Get user's preferred language
+                            const user = global.db.data.users[m.sender];
+                            const chat = global.db.data.chats[m.chat];
+                            const lang = global.language || user?.language || chat?.language || 'de';
+                            
+                            // Send error message in user's language
+                            m.reply(getMessage('error', lang));
+                        }
+                    }
                     
-                    // Get user's preferred language
-                    const user = global.db.data.users[m.sender];
-                    const chat = global.db.data.chats[m.chat];
-                    const lang = global.language || user?.language || chat?.language || 'de';
-                    
-                    // Send error message in user's language
-                    m.reply(getMessage('error', lang));
+                    // Track performance for standard processing
+                    if (global.botOptimizer && global.botOptimizer.trackPerformance) {
+                        global.botOptimizer.trackPerformance('all_plugins', allPluginsStartTime, false);
+                    }
+                }
+            } else {
+                // Standard plugin processing without optimization
+                for (let name in global.plugins) {
+                    let plugin = global.plugins[name]
+                    if (!plugin) continue
+                    if (plugin.disabled) continue
+                    if (!plugin.all) continue
+                    if (typeof plugin.all !== 'function') continue
+                    try {
+                        await plugin.all.call(this, m, chatUpdate)
+                    } catch (e) {
+                        if (typeof e === 'string') continue
+                        console.error(e)
+                        
+                        // Get user's preferred language
+                        const user = global.db.data.users[m.sender];
+                        const chat = global.db.data.chats[m.chat];
+                        const lang = global.language || user?.language || chat?.language || 'de';
+                        
+                        // Send error message in user's language
+                        m.reply(getMessage('error', lang));
+                    }
                 }
             }
             if (m.id.startsWith('3EB0') || (m.id.startsWith('BAE5') && m.id.length === 16 || m.isBaileys && m.fromMe)) return;
@@ -1282,14 +1348,59 @@ module.exports = {
                     }
                 }
             }
-            for (let name in global.plugins) {
-                let plugin = global.plugins[name]
-                if (!plugin) continue
-                if (plugin.disabled) continue
-                if (!opts['restrict']) if (plugin.tags && plugin.tags.includes('admin')) {
-                    // global.dfail('restrict', m, this)
-                    continue
+            // Performance tracking for command matching
+            const commandMatchStartTime = performance.now();
+            
+            // Try optimized command matching if available
+            let fastMatch = null;
+            if (global.botOptimizer && typeof global.botOptimizer.fastCommandLookup === 'function' && m.text) {
+                // Extract command from text (first word after prefix)
+                const cmdText = m.text.trim();
+                if (cmdText.length > 0) {
+                    // Try to find prefix in the command
+                    const prefixChar = global.prefix || '.';
+                    if (cmdText.startsWith(prefixChar)) {
+                        const cmdName = cmdText.slice(prefixChar.length).trim().split(/\s+/)[0];
+                        // Try fast lookup
+                        const pluginName = global.botOptimizer.fastCommandLookup(cmdName);
+                        if (pluginName && global.plugins[pluginName]) {
+                            fastMatch = {
+                                plugin: global.plugins[pluginName],
+                                name: pluginName
+                            };
+                            console.log(`[OPTIMIZER] Fast command match found: ${cmdName} -> ${pluginName}`);
+                        }
+                    }
                 }
+            }
+            
+            // If we have a fast match, use it directly; otherwise, use the standard loop
+            let matchedPlugins = [];
+            if (fastMatch) {
+                matchedPlugins.push(fastMatch);
+            } else {
+                // Standard command processing loop
+                for (let name in global.plugins) {
+                    let plugin = global.plugins[name]
+                    if (!plugin) continue
+                    if (plugin.disabled) continue
+                    if (!opts['restrict']) if (plugin.tags && plugin.tags.includes('admin')) {
+                        // global.dfail('restrict', m, this)
+                        continue
+                    }
+                    
+                    // Process this plugin
+                    matchedPlugins.push({ plugin, name });
+                }
+            }
+            
+            // Track command matching performance
+            if (global.botOptimizer && global.botOptimizer.trackPerformance) {
+                global.botOptimizer.trackPerformance('command_matching', commandMatchStartTime, !!fastMatch);
+            }
+            
+            // Process all matched plugins
+            for (const { plugin, name } of matchedPlugins) {
                 const str2Regex = str => str.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&')
                 let _prefix = plugin.customPrefix ? plugin.customPrefix : conn.prefix ? conn.prefix : global.prefix
                 let match = (_prefix instanceof RegExp ? // RegExp Mode?
@@ -1335,7 +1446,7 @@ module.exports = {
                     // This ensures RegExp patterns can match both the command and its parameters
                     const fullCommand = noPrefix.trim().toLowerCase()
                     
-                    // Debug log for command parsing
+                    // Debug log for command parsing (only for specific commands)
                     if (command.startsWith('nsfw') || command.startsWith('togglensfw')) {
                         console.log(`[COMMAND DEBUG] Full command: ${fullCommand}`);
                         console.log(`[COMMAND DEBUG] Command part: ${command}`);
@@ -1343,23 +1454,54 @@ module.exports = {
                         console.log(`[COMMAND DEBUG] Text: ${text}`);
                     }
                     
-                    let fail = plugin.fail || global.dfail // When failed
+                    // Check cache for fast response if available
+                    if (global.optimizeCommand && typeof global.optimizeCommand === 'function') {
+                        const cachedResponse = await global.optimizeCommand(m, command, args, plugin);
+                        if (cachedResponse !== null) {
+                            // Found cached response, use it directly
+                            if (typeof cachedResponse === 'function') {
+                                await cachedResponse(m, { conn: this, args, usedPrefix, command, text });
+                            } else {
+                                await m.reply(cachedResponse);
+                            }
+                            
+                            // Track message processing time and return early
+                            const processingTime = performance.now() - processingStartTime;
+                            if (global.msgProcessingStats && typeof global.msgProcessingStats.trackMessage === 'function') {
+                                global.msgProcessingStats.trackMessage(processingTime);
+                            }
+                            return;
+                        }
+                    }
                     
-                    // IMPROVED: Enhanced command matching with full command text support
-                    let isAccept = plugin.command instanceof RegExp ? // RegExp Mode?
-                        // Try matching the full command string first for regex patterns that include parameters
-                        plugin.command.test(fullCommand) || plugin.command.test(command) :
-                        Array.isArray(plugin.command) ? // Array?
-                            plugin.command.some(cmd => {
-                                if (cmd instanceof RegExp) { // RegExp in Array?
-                                    // Try full command first, then just the command part
-                                    return cmd.test(fullCommand) || cmd.test(command);
-                                }
-                                return cmd === command;
-                            }) :
-                            typeof plugin.command === 'string' ? // String?
-                                plugin.command === command :
-                                false
+                    // Fast command matching using optimized patterns if available
+                    let isAccept = false;
+                    
+                    if (global.fastCommandMatch && typeof global.fastCommandMatch === 'function') {
+                        const matchResult = global.fastCommandMatch(command, fullCommand);
+                        if (matchResult) {
+                            // Match found using optimized pattern matching
+                            isAccept = true;
+                        }
+                    } else {
+                        // Fallback to standard pattern matching
+                        isAccept = plugin.command instanceof RegExp ? // RegExp Mode?
+                            // Try matching the full command string first for regex patterns that include parameters
+                            plugin.command.test(fullCommand) || plugin.command.test(command) :
+                            Array.isArray(plugin.command) ? // Array?
+                                plugin.command.some(cmd => {
+                                    if (cmd instanceof RegExp) { // RegExp in Array?
+                                        // Try full command first, then just the command part
+                                        return cmd.test(fullCommand) || cmd.test(command);
+                                    }
+                                    return cmd === command;
+                                }) :
+                                typeof plugin.command === 'string' ? // String?
+                                    plugin.command === command :
+                                    false;
+                    }
+                    
+                    let fail = plugin.fail || global.dfail // When failed
 
                     if (!isAccept) continue
                     m.plugin = name
@@ -1509,7 +1651,29 @@ module.exports = {
                         chatUpdate,
                     }                          
                     try {
-                        await plugin.call(this, m, extra)
+                        // Performance timing for plugin execution
+                        const pluginStartTime = performance.now();
+                        
+                        // Get a response from the plugin
+                        const response = await plugin.call(this, m, extra);
+                        
+                        // Cache the response if caching is enabled
+                        if (global.botOptimizer && 
+                            typeof global.botOptimizer.cacheResponse === 'function' && 
+                            response !== undefined) {
+                            // Cache successful responses
+                            global.botOptimizer.cacheResponse(m, command, args, response);
+                        }
+                        
+                        // Track plugin execution performance
+                        if (global.botOptimizer && typeof global.botOptimizer.trackPerformance === 'function') {
+                            global.botOptimizer.trackPerformance(
+                                `plugin:${name}`, 
+                                pluginStartTime, 
+                                false
+                            );
+                        }
+                        
                         if (!isPrems) m.limit = m.limit || plugin.limit || false
                     } catch (e) {
                         // Error occured
@@ -1544,7 +1708,25 @@ module.exports = {
         } catch (e) {
             console.error(e)
         } finally {
-             //conn.sendPresenceUpdate('composing', m.chat) // kalo pengen auto vn delete // di baris dekat conn
+            // Track performance metrics
+            const processingTime = performance.now() - processingStartTime;
+            if (global.msgProcessingStats && typeof global.msgProcessingStats.trackMessage === 'function') {
+                global.msgProcessingStats.trackMessage(processingTime);
+            }
+            
+            // Cache successful command responses if appropriate
+            if (global.cacheCommandResponse && typeof global.cacheCommandResponse === 'function' &&
+                m && m.isCommand && m.plugin && !m.error && processingTime < 500) {
+                try {
+                    // Only cache fast-executing, successful commands
+                    global.cacheCommandResponse(m, m.text.split` `[0].slice(1), 
+                        m.text.split` `.slice(1), m._text || m.text);
+                } catch (cacheErr) {
+                    console.error('[CACHE] Error caching response:', cacheErr);
+                }
+            }
+            
+            //conn.sendPresenceUpdate('composing', m.chat) // kalo pengen auto vn delete // di baris dekat conn
             //console.log(global.db.data.users[m.sender])
             let user, stats = global.db.data.stats
             if (m) {
