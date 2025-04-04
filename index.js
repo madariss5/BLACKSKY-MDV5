@@ -7,6 +7,15 @@ const path = require('path');
 // Initialize auto recovery flag
 global.autoRecovery = true;
 
+// Initialize memory management - added for optimized performance
+try {
+  const { initializeMemoryManagement } = require('./memory-management');
+  initializeMemoryManagement();
+  console.log('🧠 Memory management system activated');
+} catch (err) {
+  console.error('⚠️ Memory management initialization failed:', err);
+}
+
 // Load environment variables and API keys
 require('./load-env')();
 require('./config');
@@ -680,8 +689,59 @@ process.on('unhandledRejection', (reason) => {
   start('main.js');
 });
 
+// Handle SIGTERM signal (especially for Heroku dyno cycling)
+process.on('SIGTERM', () => {
+  console.log('🛑 Received SIGTERM signal. Heroku is cycling dynos.');
+  console.log('💾 Attempting to save sessions before shutdown...');
+  
+  // Perform memory cleanup
+  if (global.memoryManager) {
+    try {
+      console.log('🧹 Performing graceful memory cleanup...');
+      global.memoryManager.runEmergencyCleanup();
+      global.memoryManager.shutdown();
+    } catch (err) {
+      console.error('❌ Error during memory cleanup:', err);
+    }
+  }
+  
+  // Try to force garbage collection
+  if (global.safeGC) {
+    console.log('🧹 Performing final garbage collection...');
+    global.safeGC();
+  }
+  
+  // Give Heroku some time to finish cleanup before actual shutdown
+  setTimeout(() => {
+    console.log('👍 Graceful shutdown completed');
+    process.exit(0);
+  }, 500);
+});
+
 process.on('exit', (code) => {
   console.error(`Exited with code: ${code}`);
+  
+  // Perform memory cleanup before exit
+  if (global.memoryManager) {
+    try {
+      console.log('🧹 Performing final memory cleanup...');
+      global.memoryManager.runEmergencyCleanup();
+      global.memoryManager.shutdown();
+    } catch (err) {
+      console.error('❌ Error during memory cleanup:', err);
+    }
+  }
+  
+  // Try to force garbage collection before exit
+  if (global.safeGC) {
+    console.log('🧹 Performing final garbage collection...');
+    try {
+      global.safeGC();
+    } catch (e) {
+      console.error('Error during garbage collection:', e);
+    }
+  }
+  
   console.error('Script will restart...');
   start('main.js');
 });

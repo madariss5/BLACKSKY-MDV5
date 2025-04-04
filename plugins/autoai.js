@@ -47,21 +47,46 @@ handler.before = async (m, { conn }) => {
             m.text
         ];
         try {
-            const response = await axios.get(`https://api.betabotz.eu.org/fire/search/openai-logic`, {
-                params: {
-                    text: m.text,
-                    logic: JSON.stringify(messages),
-                    apikey: `${lann}`
+            // Using OpenAI API directly instead of BetaBotz
+            const apiKey = process.env.OPENAI_API_KEY || global.APIKeys['https://api.openai.com/v1'];
+            if (!apiKey) {
+                throw new Error("OpenAI API key is not configured");
+            }
+            
+            const response = await axios.post('https://api.openai.com/v1/chat/completions', {
+                model: "gpt-3.5-turbo",
+                messages: [
+                    {
+                        role: "system",
+                        content: messages[messages.length - 2] // Use the custom personality as system prompt
+                    },
+                    {
+                        role: "user",
+                        content: m.text
+                    }
+                ],
+                temperature: 0.7,
+                max_tokens: 500
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
                 }
             });
 
             const responseData = response.data;
-            if (responseData.status) {
+            if (responseData && responseData.choices && responseData.choices.length > 0) {
                 await conn.sendMessage(m.chat, { react: { text: `✅`, key: m.key }});
-                m.reply(responseData.message);
-                conn.egvuaxrl[m.sender].message = messages;
+                const aiResponse = responseData.choices[0].message.content;
+                m.reply(aiResponse);
+                
+                // Update conversation history with both user input and AI response
+                conn.egvuaxrl[m.sender].message = [
+                    ...messages,
+                    aiResponse
+                ];
             } else {
-                throw new Error("fire response status is false");
+                throw new Error("Invalid OpenAI API response format");
             }
         } catch (error) {
             console.error("Error fetching data:", error);

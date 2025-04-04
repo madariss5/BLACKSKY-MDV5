@@ -34,7 +34,8 @@ global.APIs = {
   xteam: 'https://api.xteam.xyz',
   lol: 'https://api.lolhuman.xyz',
   openai: 'https://api.openai.com/v1',
-  openweather: 'https://api.openweathermap.org/data/2.5'
+  openweather: 'https://api.openweathermap.org/data/2.5',
+  deepai: 'https://api.deepai.org/api'
 }
 
 // API Keys
@@ -42,8 +43,12 @@ global.APIKeys = {
   'https://api.xteam.xyz': process.env.XTEAM_API_KEY || '',
   'https://api.lolhuman.xyz': process.env.LOLHUMAN_API_KEY || '',
   'https://api.openai.com/v1': process.env.OPENAI_API_KEY || '',
-  'https://api.openweathermap.org/data/2.5': process.env.OPENWEATHERMAP_API_KEY || ''
+  'https://api.openweathermap.org/data/2.5': process.env.OPENWEATHERMAP_API_KEY || '',
+  'https://api.deepai.org/api': process.env.DEEPAI_API_KEY || ''
 }
+
+// For easier access in plugins
+global.deepaiApiKey = process.env.DEEPAI_API_KEY || ''
 
 let fs = require('fs')
 let chalk = require('chalk')

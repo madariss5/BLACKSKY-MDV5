@@ -4,7 +4,7 @@ modules = ["nodejs-20"]
 channel = "stable-24_05"
 
 [workflows]
-runButton = "24-7-Heroku-Bot"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Run With Pairing"
@@ -59,7 +59,6 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node heroku-health-check.js"
-waitForPort = 5000
 
 [[workflows.workflow]]
 name = "Heroku-Bot-Starter"
@@ -104,6 +103,10 @@ externalPort = 3000
 [[ports]]
 localPort = 4000
 externalPort = 80
+
+[[ports]]
+localPort = 4001
+externalPort = 3002
 
 [[ports]]
 localPort = 5000

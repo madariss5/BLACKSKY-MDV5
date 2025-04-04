@@ -1,87 +1,92 @@
 /**
- * Memory Status Command
- * 
- * This plugin provides a command for bot owners to check memory usage
- * and perform manual cleanup to reduce memory usage.
+ * BLACKSKY-MD Memory Status Command
+ * This plugin allows the bot owner to check memory usage and status
  */
 
-let handler = async (m, { conn }) => {
-  // Memory details
-  const memoryUsage = process.memoryUsage();
-  const formatMemory = (bytes) => {
-    return (bytes / 1024 / 1024).toFixed(2) + ' MB';
-  };
-  
-  // Current session files
-  let sessionCount = 0;
-  let sessionSize = 0;
+const os = require('os');
+const { performance } = require('perf_hooks');
+
+// Command info
+let handler = async (m, { conn, args, usedPrefix, command }) => {
   try {
-    // Check session files
-    const fs = require('fs');
-    const path = require('path');
-    const sessionDir = './sessions';
-    if (fs.existsSync(sessionDir)) {
-      const files = fs.readdirSync(sessionDir);
-      sessionCount = files.length;
-      
-      for (const file of files) {
-        try {
-          const filePath = path.join(sessionDir, file);
-          const stats = fs.statSync(filePath);
-          if (stats.isFile()) {
-            sessionSize += stats.size;
-          }
-        } catch (err) {
-          // Ignore errors for individual files
-        }
-      }
+    // Check if memory management is initialized
+    if (!global.memoryManager) {
+      await m.reply('⚠️ Memory manager is not initialized. Bot is running without memory management.');
+      return;
     }
-  } catch (err) {
-    console.error('[MEMORY-STATUS] Error counting session files:', err.message);
-  }
-  
-  // Format responses
-  const heapUsed = formatMemory(memoryUsage.heapUsed);
-  const heapTotal = formatMemory(memoryUsage.heapTotal);
-  const rss = formatMemory(memoryUsage.rss);
-  const external = formatMemory(memoryUsage.external || 0);
-  const heapPercentage = Math.round((memoryUsage.heapUsed / memoryUsage.heapTotal) * 100);
-  
-  let status = '';
-  if (heapPercentage > 85) {
-    status = '🔴 Critical - Memory usage is dangerously high';
-  } else if (heapPercentage > 75) {
-    status = '🟠 Warning - Memory usage is high';
-  } else if (heapPercentage > 60) {
-    status = '🟡 Notice - Memory usage is moderate';
-  } else {
-    status = '🟢 Good - Memory usage is normal';
-  }
 
-  // Check if memory manager is available
-  let memoryManagerStatus = '❌ Not initialized';
-  if (global.memoryManager) {
-    memoryManagerStatus = '✅ Running and active';
-  }
-  
-  // Build reply
-  let reply = `*🧠 Memory Status Report*\n\n`;
-  reply += `*Status:* ${status}\n`;
-  reply += `*Heap Used:* ${heapUsed} (${heapPercentage}%)\n`;
-  reply += `*Heap Total:* ${heapTotal}\n`;
-  reply += `*RSS:* ${rss}\n`;
-  reply += `*External:* ${external}\n\n`;
-  reply += `*Session Files:* ${sessionCount} files\n`;
-  reply += `*Session Size:* ${(sessionSize / 1024 / 1024).toFixed(2)} MB\n\n`;
-  reply += `*Memory Manager:* ${memoryManagerStatus}\n\n`;
-  reply += `Use *.memorycleanup* to perform a memory cleanup.`;
+    // Format filesize
+    const formatSize = (bytes) => {
+      const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+      if (bytes === 0) return '0 Byte';
+      const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
+      return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i];
+    };
 
-  m.reply(reply);
+    // Get memory usage
+    const memory = process.memoryUsage();
+    const systemMemory = {
+      total: os.totalmem(),
+      free: os.freemem(),
+      used: os.totalmem() - os.freemem()
+    };
+
+    // Get memory manager stats
+    const cacheStats = global.memoryManager.getAllCacheStats ? 
+                      global.memoryManager.getAllCacheStats() : 
+                      { 'No cache stats available': { size: 0 } };
+
+    // Create status message
+    let statusMessage = `╭─「 🧠 *MEMORY STATUS* 🧠 」\n`;
+    
+    // System memory
+    statusMessage += `│ 💻 *System Memory*:\n`;
+    statusMessage += `│   Total: ${formatSize(systemMemory.total)}\n`;
+    statusMessage += `│   Free: ${formatSize(systemMemory.free)}\n`;
+    statusMessage += `│   Used: ${formatSize(systemMemory.used)} (${Math.round((systemMemory.used / systemMemory.total) * 100)}%)\n`;
+    
+    // Process memory
+    statusMessage += `│ 🤖 *Bot Memory*:\n`;
+    statusMessage += `│   Heap Used: ${formatSize(memory.heapUsed)}\n`;
+    statusMessage += `│   Heap Total: ${formatSize(memory.heapTotal)}\n`;
+    statusMessage += `│   RSS: ${formatSize(memory.rss)}\n`;
+    statusMessage += `│   External: ${formatSize(memory.external || 0)}\n`;
+
+    // Memory manager stats
+    statusMessage += `│ 🔍 *Memory Manager*:\n`;
+    statusMessage += `│   Status: Active\n`;
+    
+    if (global.memoryManager.state) {
+      statusMessage += `│   Total Cleanups: ${global.memoryManager.state.totalCleanups || 0}\n`;
+      statusMessage += `│   Critical Events: ${global.memoryManager.state.criticalMemoryEvents || 0}\n`;
+    }
+
+    // Cache info
+    statusMessage += `│ 📦 *Cache Stats*:\n`;
+    
+    Object.entries(cacheStats).slice(0, 3).forEach(([cacheName, stats]) => {
+      statusMessage += `│   ${cacheName}: ${stats.size || 0} items\n`;
+    });
+
+    // Manual control commands
+    statusMessage += `│ 📋 *Commands*:\n`;
+    statusMessage += `│   ${usedPrefix}memorycleanup - Run cleanup\n`;
+    statusMessage += `│   ${usedPrefix}gc - Run garbage collection\n`;
+    statusMessage += `╰──────────────`
+
+    // Send formatted message
+    await m.reply(statusMessage);
+
+  } catch (error) {
+    console.error('Error in memory status command:', error);
+    await m.reply(`❌ Error: ${error.message}`);
+  }
 };
 
+// Set command properties
 handler.help = ['memorystatus'];
 handler.tags = ['owner'];
-handler.command = /^(memorystatus|memory|memstat)$/i;
+handler.command = /^(memorystatus|memstat|memorystat)$/i;
 handler.owner = true;
 
 module.exports = handler;

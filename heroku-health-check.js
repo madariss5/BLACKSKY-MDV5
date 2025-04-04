@@ -14,7 +14,8 @@ const path = require('path');
 const os = require('os');
 const express = require('express');
 const app = express();
-const port = process.env.PORT || 5000;
+// Use a different port to avoid conflicts with main server
+const port = process.env.HEALTH_PORT || 4001;
 
 // Global state tracking
 const STATE = {
