@@ -7,33 +7,6 @@ const path = require('path');
 // Initialize auto recovery flag
 global.autoRecovery = true;
 
-// Check for memory optimization flag
-const isMemoryOptimized = process.argv.includes('--memory-optimized');
-if (isMemoryOptimized) {
-  console.log('🚀 Starting with memory optimizations enabled');
-  
-  // Initialize global command cache to prevent repeated processing
-  global.commandResponseCache = {};
-  global.mediaCache = {};
-  
-  // Initialize memory optimization if available
-  try {
-    // Set lower memory thresholds
-    if (!process.env.NODE_OPTIONS || !process.env.NODE_OPTIONS.includes('--max-old-space-size')) {
-      // Set a reasonable memory limit if not specified
-      process.env.NODE_OPTIONS = `${process.env.NODE_OPTIONS || ''} --max-old-space-size=1024`;
-      console.log('🧠 Setting memory limit to 1024MB');
-    }
-    
-    // Load memory optimization module
-    const memoryOptimizer = require('./memory-leak-fix');
-    global.memoryOptimizer = memoryOptimizer.initMemoryOptimization();
-    console.log('✅ Memory optimization initialized');
-  } catch (e) {
-    console.error('⚠️ Failed to initialize memory optimization:', e);
-  }
-}
-
 // Load environment variables and API keys
 require('./load-env')();
 require('./config');
@@ -626,23 +599,9 @@ function start(file) {
   if (isRunning) return;
   isRunning = true;
 
-  // Pass memory optimization flag if running in production or explicitly requested
-  let extraArgs = [...process.argv.slice(2)];
-  
-  // Add memory optimization flag if not already present
-  if (!extraArgs.includes('--memory-optimized') && 
-      (process.env.NODE_ENV === 'production' || process.env.OPTIMIZE_MEMORY === 'true')) {
-    console.log('🚀 Adding memory optimization flag');
-    extraArgs.push('--memory-optimized');
-  }
-  
-  const args = [path.join(__dirname, file), ...extraArgs];
+  const args = [path.join(__dirname, file), ...process.argv.slice(2)];
   const p = spawn(process.argv[0], args, {
     stdio: ["inherit", "inherit", "inherit", "ipc"],
-    env: {
-      ...process.env,
-      NODE_OPTIONS: process.env.NODE_OPTIONS || '--expose-gc --max-old-space-size=1024'
-    }
   });
 
   p.on("message", (data) => {
@@ -655,13 +614,6 @@ function start(file) {
         break;
       case "uptime":
         p.send(process.uptime());
-        break;
-      case "memory-stats":
-        // Send back memory usage data
-        p.send(JSON.stringify({
-          type: 'memory-stats',
-          data: process.memoryUsage()
-        }));
         break;
     }
   });

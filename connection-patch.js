@@ -215,17 +215,6 @@ function setupHealthCheckServer() {
             'system_load_average': os.loadavg()[0]
         };
 
-        // Add memory optimizer metrics if available
-        if (global.memoryOptimizer && global.memoryOptimizer.getMemoryStats) {
-            const memStats = global.memoryOptimizer.getMemoryStats();
-            if (memStats && memStats.cacheStats) {
-                metrics['cache_command_size'] = memStats.cacheStats.commandCache.size || 0;
-                metrics['cache_command_hits'] = memStats.cacheStats.commandCache.hits || 0;
-                metrics['cache_command_misses'] = memStats.cacheStats.commandCache.misses || 0;
-                metrics['cache_media_size'] = memStats.cacheStats.mediaCache.size || 0;
-            }
-        }
-
         // Format as Prometheus metrics
         let output = '';
         for (const [key, value] of Object.entries(metrics)) {
@@ -236,59 +225,6 @@ function setupHealthCheckServer() {
 
         res.setHeader('Content-Type', 'text/plain');
         res.send(output);
-    });
-    
-    // Memory diagnostics endpoint with detailed memory information
-    app.get('/memory', (req, res) => {
-        const memoryInfo = {
-            process: process.memoryUsage(),
-            system: {
-                total: os.totalmem(),
-                free: os.freemem(),
-                usage: ((os.totalmem() - os.freemem()) / os.totalmem() * 100).toFixed(2) + '%'
-            },
-            gc: !!global.gc,
-            optimization: !!global.memoryOptimizer
-        };
-        
-        // Add memory optimizer stats if available
-        if (global.memoryOptimizer && global.memoryOptimizer.getMemoryStats) {
-            try {
-                memoryInfo.optimizer = global.memoryOptimizer.getMemoryStats();
-            } catch (e) {
-                memoryInfo.optimizer = { error: e.message };
-            }
-        }
-        
-        // Add memory trigger action
-        if (req.query.action === 'gc' && global.gc) {
-            try {
-                console.log('Manual garbage collection triggered via API');
-                const beforeMem = process.memoryUsage().heapUsed / 1024 / 1024;
-                global.gc(true);
-                const afterMem = process.memoryUsage().heapUsed / 1024 / 1024;
-                memoryInfo.gc_result = {
-                    before: beforeMem.toFixed(2) + ' MB',
-                    after: afterMem.toFixed(2) + ' MB',
-                    freed: (beforeMem - afterMem).toFixed(2) + ' MB'
-                };
-            } catch (e) {
-                memoryInfo.gc_result = { error: e.message };
-            }
-        }
-        
-        // For deep cleanup
-        if (req.query.action === 'cleanup' && global.memoryOptimizer && global.memoryOptimizer.cleanupMemory) {
-            try {
-                console.log('Manual memory cleanup triggered via API');
-                global.memoryOptimizer.cleanupMemory(req.query.aggressive === 'true');
-                memoryInfo.cleanup_triggered = true;
-            } catch (e) {
-                memoryInfo.cleanup_error = e.message;
-            }
-        }
-        
-        res.json(memoryInfo);
     });
 
     // Session info endpoint
@@ -460,22 +396,6 @@ async function performGracefulShutdown() {
     console.log('🔄 Received shutdown signal, performing graceful shutdown...');
 
     try {
-        // Clean up memory if memory optimizer is available
-        if (global.memoryOptimizer && typeof global.memoryOptimizer.stopMemoryOptimization === 'function') {
-            console.log('🧹 Stopping memory optimization...');
-            global.memoryOptimizer.stopMemoryOptimization();
-        }
-        
-        // Force garbage collection if available
-        if (global.gc) {
-            try {
-                console.log('🧹 Performing final garbage collection...');
-                global.gc(true);
-            } catch (gcError) {
-                console.error('Error during garbage collection:', gcError.message);
-            }
-        }
-
         // Save session if it exists
         if (global.conn?.user) {
             console.log('💾 Saving WhatsApp session before shutdown...');
@@ -500,24 +420,8 @@ async function performGracefulShutdown() {
             }
         }
 
-        // Clear caches to help with cleanup
-        if (global.commandResponseCache) {
-            global.commandResponseCache = {};
-        }
-        
-        if (global.mediaCache) {
-            global.mediaCache = {};
-        }
-        
-        // Clear other potentially large buffers
-        if (global.conn) {
-            try {
-                if (global.conn.messageCache) global.conn.messageCache.clear();
-                if (global.conn.queryCache) global.conn.queryCache.clear();
-            } catch (e) {
-                console.log('Error clearing connection caches:', e.message);
-            }
-        }
+        // Perform any other cleanup tasks here
+        // ...
 
         console.log('👍 Graceful shutdown completed');
     } catch (e) {
