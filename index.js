@@ -1,23 +1,6 @@
-// Detect environment and platform
+// Detect if running in Termux and handle Sharp compatibility
 const os = require('os');
-const fs = require('fs');
-const path = require('path');
 const isTermux = os.platform() === 'android' || process.env.TERMUX === 'true';
-const isHeroku = !!process.env.DYNO || process.env.HEROKU === 'true';
-
-// Apply platform-specific optimizations immediately
-console.log(`💻 Running in ${isTermux ? 'Termux' : isHeroku ? 'Heroku' : 'standard'} environment`);
-
-// Global instance tracking
-const GLOBAL_STATE = {
-  startTime: Date.now(),
-  restartCount: 0,
-  lastRestart: null,
-  isConnected: false,
-};
-
-// Set process title for better identification
-process.title = 'BLACKSKY-MD-Premium';
 
 // Use Sharp compatibility layer in Termux
 if (isTermux) {
@@ -30,68 +13,6 @@ if (isTermux) {
     console.error('Failed to load Sharp, falling back to compatibility layer:', err);
     global.sharp = require('./sharp-compat.js');
   }
-}
-
-// Initialize Heroku optimization if on Heroku platform
-if (isHeroku) {
-  try {
-    console.log('🚀 Initializing Heroku 24/7 connection optimizations...');
-    // Create sessions-backup directory if it doesn't exist
-    const sessionsBackupDir = path.join(process.cwd(), 'sessions-backup');
-    if (!fs.existsSync(sessionsBackupDir)) {
-      fs.mkdirSync(sessionsBackupDir, { recursive: true });
-    }
-    
-    // Initialize Heroku connection keeper
-    const herokuKeeper = require('./heroku-connection-keeper.js');
-    herokuKeeper.initialize();
-    
-    // Make herokuKeeper available globally
-    global.herokuKeeper = herokuKeeper;
-    
-    console.log('✅ Heroku 24/7 connection optimizations initialized successfully');
-  } catch (err) {
-    console.error('❌ Error initializing Heroku optimizations:', err);
-  }
-}
-
-// Apply performance optimizations
-try {
-  if (fs.existsSync('./optimize-bot.js')) {
-    console.log('⚡ Applying performance optimizations...');
-    const optimizer = require('./optimize-bot.js');
-    
-    // Make optimizer available globally for use in handler.js
-    global.botOptimizer = optimizer;
-    
-    // Initialize key optimization functions as global functions for direct access
-    global.fastCommandMatch = optimizer.fastCommandLookup;
-    global.optimizeCommand = optimizer.getCachedResponse;
-    global.cacheCommandResponse = optimizer.cacheResponse;
-    global.tryParallelProcessing = optimizer.processMessageParallel;
-    
-    // Setup the optimizations
-    optimizer.initializeOptimizations();
-    optimizer.setupStatsReporting();
-    
-    // Create stats tracking object
-    global.msgProcessingStats = {
-      messages: 0,
-      totalTime: 0,
-      avgTime: 0,
-      maxTime: 0,
-      trackMessage: function(time) {
-        this.messages++;
-        this.totalTime += time;
-        this.avgTime = this.totalTime / this.messages;
-        if (time > this.maxTime) this.maxTime = time;
-      }
-    };
-    
-    console.log('✅ Bot performance optimizations applied!');
-  }
-} catch (optimizeErr) {
-  console.error('⚠️ Error applying performance optimizations:', optimizeErr);
 }
 
 // Set environment variable for Termux
@@ -109,12 +30,14 @@ if (isTermux) {
 }
 
 const cluster = require('cluster');
-// Using already declared modules
+const { spawn } = require('child_process');
+const path = require('path');
+const fs = require('fs');
 const express = require('express');
 const app = express();
 
 // Express.js 
-const ports = [5000, 4500, 3500, 8080];
+const ports = [4000, 3000, 5000, 8000];
 let availablePortIndex = 0;
 
 function checkPort(port) {
@@ -610,27 +533,10 @@ let isRunning = false;
 function start(file) {
   if (isRunning) return;
   isRunning = true;
-  
-  // Import required modules if not already available
-  const { spawn } = require('child_process');
-  
-  // Log optimization status before starting
-  if (file === 'main.js') {
-    console.log('\x1b[32m%s\x1b[0m', `⚡ Starting optimized bot process...`);
-    // Add NODE_OPTIONS to enable GC if not already set
-    if (!process.env.NODE_OPTIONS) {
-      process.env.NODE_OPTIONS = '--expose-gc';
-      console.log('\x1b[32m%s\x1b[0m', `✅ Enabled garbage collection with --expose-gc`);
-    }
-  }
 
   const args = [path.join(__dirname, file), ...process.argv.slice(2)];
   const p = spawn(process.argv[0], args, {
     stdio: ["inherit", "inherit", "inherit", "ipc"],
-    env: {
-      ...process.env,
-      PERFORMANCE_MODE: 'true' // Signal to child process that performance mode is active
-    }
   });
 
   p.on("message", (data) => {
@@ -643,10 +549,6 @@ function start(file) {
         break;
       case "uptime":
         p.send(process.uptime());
-        break;
-      case "optimize":
-        console.log('\x1b[32m%s\x1b[0m', `⚡ Optimization request received, applying optimizations...`);
-        p.send("optimizing");
         break;
     }
   });

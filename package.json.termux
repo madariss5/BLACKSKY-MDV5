@@ -1,0 +1,44 @@
+{
+  "name": "blacksky-md-termux",
+  "version": "1.0.0",
+  "description": "BLACKSKY-MD WhatsApp Bot for Termux",
+  "main": "src/termux-connection.js",
+  "scripts": {
+    "start": "node src/termux-connection.js"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.5.0",
+    "qrcode-terminal": "^0.12.0",
+    "qrcode": "^1.5.1",
+    "express": "^4.18.2",
+    "pino": "^8.14.1",
+    "pino-pretty": "^10.0.0",
+    "moment-timezone": "^0.5.43",
+    "moment": "^2.29.4",
+    "jimp": "^0.22.8",
+    "fluent-ffmpeg": "^2.1.2",
+    "node-cache": "^5.1.2",
+    "axios": "^1.4.0",
+    "chalk": "^4.1.2",
+    "adm-zip": "^0.5.10",
+    "file-type": "^18.5.0",
+    "node-cron": "^3.0.2",
+    "ejs": "^3.1.9",
+    "ws": "^8.13.0",
+    "mathjs": "^11.11.1",
+    "path": "^0.12.7",
+    "util": "^0.12.5",
+    "crypto": "^1.0.1",
+    "crypto-random-string": "^5.0.0",
+    "fs-extra": "^11.1.1",
+    "os": "^0.1.2"
+  },
+  "optionalDependencies": {
+    "canvas": "^2.11.2",
+    "sharp": "^0.32.6",
+    "node-webpmux": "^3.1.7"
+  }
+}
