@@ -33,7 +33,7 @@
       "waifu": "Belum Di Set",
       "husbu": "Belum Di Set",
       "pc": 0,
-      "exp": 19423,
+      "exp": 19482,
       "coin": 0,
       "atm": 0,
       "limit": 9,
@@ -297,7 +297,7 @@
       "lastgrab": 0,
       "lastngocok": 0,
       "lastturu": 0,
-      "lastseen": 1743758642255,
+      "lastseen": 1743759235391,
       "lastSetStatus": 0,
       "registered": true,
       "mangga": 0,
@@ -348,8 +348,8 @@
       "lastdate": 0,
       "lasttambang": 0,
       "lastngepet": 0,
-      "chat": 3515,
-      "chatTotal": 3515,
+      "chat": 3526,
+      "chatTotal": 3526,
       "glimit": 10,
       "pertambangan": 0,
       "lastbossbattle": 0,
@@ -384,9 +384,9 @@
       "bibitapel": 0,
       "bibitmangga": 0,
       "bibitjeruk": 0,
-      "command": 476,
-      "commandTotal": 476,
-      "lastCmd": 1743758639800,
+      "command": 479,
+      "commandTotal": 479,
+      "lastCmd": 1743759234076,
       "language": "de",
       "doctor": 0,
       "mining": 0,
@@ -32977,7 +32977,7 @@
       "waifu": "Not Set Yet",
       "husbu": "Not Set Yet",
       "pc": 0,
-      "exp": 7131,
+      "exp": 7445,
       "coin": 0,
       "atm": 0,
       "limit": 10,
@@ -33238,7 +33238,7 @@
       "lastgrab": 0,
       "lastngocok": 0,
       "lastturu": 0,
-      "lastseen": 1743758915857,
+      "lastseen": 1743759239360,
       "lastSetstatus": 0,
       "registered": false,
       "mango": 0,
@@ -33288,8 +33288,8 @@
       "lastdate": 0,
       "lastshamanrite": 0,
       "lastXpTime": 1743523329589,
-      "chat": 1230,
-      "chatTotal": 1230,
+      "chat": 1285,
+      "chatTotal": 1285,
       "language": "de",
       "expenses": 0,
       "hunger": 100,
@@ -84219,11 +84219,11 @@
           "blacklist": false,
           "banned": false,
           "bannedTime": 0,
-          "chat": 1243,
-          "chatTotal": 1243,
+          "chat": 1298,
+          "chatTotal": 1298,
           "command": 3,
           "commandTotal": 3,
-          "lastseen": 1743758915857,
+          "lastseen": 1743759239360,
           "lastCmd": 1743675357148
         },
         "4915739812427@s.whatsapp.net": {
@@ -85160,10 +85160,10 @@
   },
   "stats": {
     "menu.js": {
-      "total": 183,
-      "success": 183,
-      "last": 1743758635355,
-      "lastSuccess": 1743758635355
+      "total": 184,
+      "success": 184,
+      "last": 1743759214097,
+      "lastSuccess": 1743759214097
     },
     "tools-profile.js": {
       "total": 26,
@@ -85532,10 +85532,10 @@
       "lastSuccess": 1743701091102
     },
     "sticker-maker.js": {
-      "total": 7,
-      "success": 7,
-      "last": 1743700154260,
-      "lastSuccess": 1743700154260
+      "total": 8,
+      "success": 8,
+      "last": 1743759235388,
+      "lastSuccess": 1743759235388
     },
     "tools-age.js": {
       "total": 2,
@@ -85544,10 +85544,10 @@
       "lastSuccess": 1743700965741
     },
     "hugall.js": {
-      "total": 5,
-      "success": 5,
-      "last": 1743751975464,
-      "lastSuccess": 1743751975464
+      "total": 6,
+      "success": 6,
+      "last": 1743759218071,
+      "lastSuccess": 1743759218071
     }
   },
   "msgs": {},
