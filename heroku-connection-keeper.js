@@ -35,7 +35,7 @@ const CONFIG = {
   backupInterval: 15 * 60 * 1000, // 15 minutes
   
   // Anti-idle settings
-  healthCheckPort: process.env.PORT || 3000,
+  healthCheckPort: process.env.PORT || 4000,
   antiIdleInterval: 20 * 60 * 1000, // 20 minutes
 };
 
