@@ -22,14 +22,14 @@ const pool = new Pool({
 async function createSessionTable() {
   try {
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS wa_sessions (
+      CREATE TABLE IF NOT EXISTS whatsapp_sessions (
         id SERIAL PRIMARY KEY,
         session_id VARCHAR(255) NOT NULL,
         session_data JSONB NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
-      CREATE INDEX IF NOT EXISTS idx_wa_sessions_session_id ON wa_sessions(session_id);
+      CREATE INDEX IF NOT EXISTS idx_whatsapp_sessions_session_id ON whatsapp_sessions(session_id);
     `);
     console.log('✅ Session table created or confirmed');
   } catch (err) {
@@ -193,7 +193,7 @@ async function restoreSessionFromDatabase() {
     }
     
     // Query latest sessions from database
-    const result = await pool.query('SELECT session_id, session_data FROM wa_sessions ORDER BY updated_at DESC');
+    const result = await pool.query('SELECT session_id, session_data FROM whatsapp_sessions ORDER BY updated_at DESC');
     
     if (result.rows.length === 0) {
       console.log('⚠️ No sessions found in database');
@@ -287,7 +287,7 @@ async function backupSessionToDatabase() {
         
         // Insert or update in database
         await pool.query(
-          `INSERT INTO wa_sessions (session_id, session_data, updated_at) 
+          `INSERT INTO whatsapp_sessions (session_id, session_data, updated_at) 
            VALUES ($1, $2, NOW()) 
            ON CONFLICT (session_id) 
            DO UPDATE SET session_data = $2, updated_at = NOW()`,
