@@ -28,21 +28,21 @@ global.timezone = 'Europe/Berlin' // Default timezone for date/time functions
 
 // Settings
 
-//THIS MUST BE FILLED IN!//
-global.lann = 'Btz-jdyXQ' 
-//Register first at https://api.betabotz.eu.org (Note: previously was fire.betabotz.eu.org)
 
-//THIS IS OPTIONAL, CAN BE FILLED OR LEFT EMPTY//
-global.btc = 'Btz-jdyXQ'
-//Register at https://api.betabotz.eu.org (Note: previously was fire.botcahx.eu.org)
-
-global.APIs = {   
-  lann: 'https://api.betabotz.eu.org',
-  btc: 'https://api.betabotz.eu.org'
+// API Configuration
+global.APIs = {
+  xteam: 'https://api.xteam.xyz',
+  lol: 'https://api.lolhuman.xyz',
+  openai: 'https://api.openai.com/v1',
+  openweather: 'https://api.openweathermap.org/data/2.5'
 }
-global.APIKeys = { 
-  'https://api.betabotz.eu.org': global.lann, 
-  'https://api.betabotz.eu.org': global.btc //OPTIONAL
+
+// API Keys
+global.APIKeys = {
+  'https://api.xteam.xyz': process.env.XTEAM_API_KEY || '',
+  'https://api.lolhuman.xyz': process.env.LOLHUMAN_API_KEY || '',
+  'https://api.openai.com/v1': process.env.OPENAI_API_KEY || '',
+  'https://api.openweathermap.org/data/2.5': process.env.OPENWEATHERMAP_API_KEY || ''
 }
 
 let fs = require('fs')

@@ -7,6 +7,10 @@ const path = require('path');
 // Initialize auto recovery flag
 global.autoRecovery = true;
 
+// Load environment variables and API keys
+require('./load-env')();
+require('./config');
+
 // Check if we need to fix session issues
 const needsSessionFix = () => {
   try {
