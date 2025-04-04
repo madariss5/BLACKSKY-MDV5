@@ -47,7 +47,7 @@ app.use((req, res, next) => {
 // Root endpoint with status page
 app.get('/', (req, res) => {
   const uptimeHours = ((Date.now() - STATE.botStartTime) / 1000 / 60 / 60).toFixed(2);
-  
+
   res.send(`
     <!DOCTYPE html>
     <html>
@@ -135,7 +135,7 @@ app.get('/', (req, res) => {
                 <p>Uptime: ${uptimeHours} hours</p>
                 <p>Last Updated: ${new Date().toLocaleString()}</p>
             </div>
-            
+
             <div>
                 <h3>System Metrics</h3>
                 <div class="metric">
@@ -170,7 +170,7 @@ app.get('/', (req, res) => {
                     <span class="metric-value">${process.version}</span>
                 </div>
             </div>
-            
+
             <footer>
                 BLACKSKY-MD Premium © 2025 | Running on Heroku
             </footer>
@@ -184,25 +184,26 @@ app.get('/', (req, res) => {
 app.get('/health', (req, res) => {
   // Update last health check time
   STATE.lastHealthCheck = Date.now();
-  
+
   // Check session files
   const sessionDir = path.join(process.cwd(), 'sessions');
   STATE.sessionExists = fs.existsSync(sessionDir) && fs.readdirSync(sessionDir).some(f => f.endsWith('.json'));
-  
+
   // Get current memory usage
   STATE.memoryUsage = process.memoryUsage();
-  
-  // Return health status
-  res.status(200).json({
+
+  const uptime = process.uptime();
+  const memory = process.memoryUsage();
+
+  res.json({
     status: STATE.connectionStatus === 'connected' ? 'ok' : 'warning',
-    uptime: process.uptime(),
     timestamp: new Date().toISOString(),
+    uptime: Math.floor(uptime),
     memory: {
-      rss: Math.round(STATE.memoryUsage.rss / 1024 / 1024) + ' MB',
-      heapUsed: Math.round(STATE.memoryUsage.heapUsed / 1024 / 1024) + ' MB',
-      heapTotal: Math.round(STATE.memoryUsage.heapTotal / 1024 / 1024) + ' MB',
-      external: Math.round(STATE.memoryUsage.external / 1024 / 1024) + ' MB'
+      heapUsed: Math.round(memory.heapUsed / 1024 / 1024) + 'MB',
+      rss: Math.round(memory.rss / 1024 / 1024) + 'MB'
     },
+    connection: global.conn?.user ? 'connected' : 'disconnected',
     session: STATE.sessionExists,
     connectionStatus: STATE.connectionStatus,
     postgresqlStatus: STATE.postgresqlStatus,
@@ -222,7 +223,7 @@ app.get('/metrics', (req, res) => {
   const freeMem = os.freemem() / 1024 / 1024;
   const totalMem = os.totalmem() / 1024 / 1024;
   const memoryUsage = Math.round(((totalMem - freeMem) / totalMem) * 100);
-  
+
   res.status(200).json({
     bot: {
       uptime: process.uptime(),
@@ -270,11 +271,11 @@ app.get('/metrics', (req, res) => {
 // Update bot status endpoint (used by the bot to report its status)
 app.post('/status/update', (req, res) => {
   const { connectionStatus, qrCodeAvailable, error, backup, postgresqlStatus } = req.body;
-  
+
   if (connectionStatus) STATE.connectionStatus = connectionStatus;
   if (qrCodeAvailable !== undefined) STATE.qrCodeAvailable = qrCodeAvailable;
   if (postgresqlStatus) STATE.postgresqlStatus = postgresqlStatus;
-  
+
   if (error) {
     STATE.errorCount++;
     STATE.lastError = {
@@ -282,26 +283,26 @@ app.post('/status/update', (req, res) => {
       time: Date.now()
     };
   }
-  
+
   if (backup) {
     STATE.lastBackup = Date.now();
   }
-  
+
   res.status(200).json({ success: true });
 });
 
 // Trigger backup endpoint (requires authorization)
 app.post('/trigger/backup', (req, res) => {
   const authHeader = req.headers.authorization;
-  
+
   // Basic auth check - in production you'd want something more secure
   if (!authHeader || authHeader !== `Bearer ${process.env.HEROKU_API_KEY}`) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
-  
+
   // Set a global flag that the bot can check
   global.TRIGGER_BACKUP = true;
-  
+
   res.status(200).json({ 
     success: true,
     message: 'Backup triggered. Bot will perform backup on next cycle.'
@@ -317,7 +318,7 @@ app.use((err, req, res, next) => {
 // Start the server
 const server = app.listen(port, '0.0.0.0', () => {
   console.log(`Health check server running on port ${port}`);
-  
+
   // Log startup for diagnostics
   console.log(`System: ${os.type()} ${os.platform()} ${os.release()}`);
   console.log(`Node.js: ${process.version}`);
