@@ -1,122 +1,171 @@
 /**
- * BLACKSKY-MD Premium - Performance Monitor Plugin
+ * BLACKSKY-MD Premium - Bot Performance Statistics
  * 
- * Shows real-time bot performance metrics including:
- * - Response time statistics
- * - Memory usage
- * - Command hit rates
- * - System information
- * - Connection statistics
+ * This plugin provides detailed performance statistics for the bot,
+ * including response times, cache hit rates, and memory usage.
  */
 
-let handler = async (m, { conn, usedPrefix, command }) => {
+let handler = async (m, { conn }) => {
+  // Show processing message
+  await m.reply('📊 Sammle Performance-Statistiken...');
+  
   try {
-    // Check if running on Heroku or has optimization system
-    const isHeroku = !!process.env.DYNO || process.env.HEROKU === 'true';
-    const hasOptimizer = !!global.botOptimizer;
-    const hasMemoryManager = !!require('../lib/advanced-memory-manager');
-    
-    // Get performance stats
-    let msgStats = global.msgProcessingStats || { 
-      messages: 0, 
-      avgTime: 0, 
-      maxTime: 0 
-    };
-    
-    // Get memory usage
+    // Get memory usage statistics
     const memoryUsage = process.memoryUsage();
-    const formatMemory = (bytes) => (bytes / 1024 / 1024).toFixed(2) + ' MB';
+    const heapUsedMB = Math.round(memoryUsage.heapUsed / 1024 / 1024);
+    const heapTotalMB = Math.round(memoryUsage.heapTotal / 1024 / 1024);
+    const rssMB = Math.round(memoryUsage.rss / 1024 / 1024);
+    const memoryPercent = Math.round((memoryUsage.heapUsed / memoryUsage.heapTotal) * 100);
     
-    // Get uptime
-    const uptime = process.uptime();
-    const formatUptime = (seconds) => {
-      const days = Math.floor(seconds / 86400);
-      const hours = Math.floor((seconds % 86400) / 3600);
-      const minutes = Math.floor((seconds % 3600) / 60);
-      const secs = Math.floor(seconds % 60);
-      return `${days}d ${hours}h ${minutes}m ${secs}s`;
+    // Get process uptime
+    const uptimeSeconds = process.uptime();
+    const uptimeDays = Math.floor(uptimeSeconds / 86400);
+    const uptimeHours = Math.floor((uptimeSeconds % 86400) / 3600);
+    const uptimeMinutes = Math.floor((uptimeSeconds % 3600) / 60);
+    const uptimeString = `${uptimeDays}d ${uptimeHours}h ${uptimeMinutes}m`;
+    
+    // Get cache statistics if available
+    let cacheStats = {
+      available: false,
+      size: 0,
+      hits: 0,
+      misses: 0,
+      hitRatio: 0,
+      groupHits: 0
     };
     
-    // Get cache stats if available
-    let cacheStats = { hitRate: 0, size: 0, maxSize: 0 };
-    if (hasOptimizer && global.botOptimizer.performanceStats) {
-      const stats = global.botOptimizer.performanceStats;
+    if (global.responseCache && typeof global.responseCache.getCacheStats === 'function') {
+      cacheStats.available = true;
+      const stats = global.responseCache.getCacheStats();
       cacheStats = {
-        commandsProcessed: stats.commandsProcessed || 0,
-        cacheHits: stats.cacheHits || 0,
-        cacheMisses: stats.cacheMisses || 0,
-        hitRate: stats.cacheHits / (stats.cacheHits + stats.cacheMisses) || 0
+        ...cacheStats,
+        size: stats.size || 0,
+        hits: stats.hits || 0,
+        misses: stats.misses || 0,
+        hitRatio: stats.hitRatio || 0,
+        groupHits: stats.groupHits || 0
       };
     }
     
-    // Get memory manager stats if available
-    let memoryManagerStats = { peak: 0, collections: 0 };
-    if (hasMemoryManager) {
-      const memManager = require('../lib/advanced-memory-manager');
-      memoryManagerStats = memManager.getStats();
+    // Get group optimization statistics if available
+    let groupStats = {
+      available: false,
+      totalGroupMessages: 0,
+      throttledMessages: 0,
+      priorityMessages: 0,
+      averageProcessingTime: 0
+    };
+    
+    if (global.groupOptimization && typeof global.groupOptimization.getGroupOptimizationStats === 'function') {
+      groupStats.available = true;
+      const stats = global.groupOptimization.getGroupOptimizationStats();
+      groupStats = {
+        ...groupStats,
+        totalGroupMessages: stats.totalGroupMessages || 0,
+        throttledMessages: stats.throttledMessages || 0,
+        priorityMessages: stats.priorityMessages || 0,
+        averageProcessingTime: stats.averageProcessingTime ? Math.round(stats.averageProcessingTime) : 0,
+        metadataCacheSize: stats.metadataCacheSize || 0,
+        metadataHits: stats.metadataHits || 0,
+        metadataMisses: stats.metadataMisses || 0
+      };
     }
     
-    // Format the message with ANSI color codes for terminal and markdown for WhatsApp
-    const reply = `
-*🚀 BLACKSKY-MD PERFORMANCE MONITOR 🚀*
+    // Build detailed performance report
+    let performanceReport = `
+╔════════ 📊 PERFORMANCE STATS 📊 ════════╗
+║
+║ 🖥️ *SYSTEM RESOURCES*
+║ • Memory Usage: ${heapUsedMB}MB / ${heapTotalMB}MB (${memoryPercent}%)
+║ • RSS: ${rssMB}MB
+║ • Uptime: ${uptimeString}
+║
+`;
+    
+    // Add cache statistics if available
+    if (cacheStats.available) {
+      const hitRatioPercent = Math.round(cacheStats.hitRatio * 100);
+      performanceReport += `
+║ 🚀 *RESPONSE CACHE SYSTEM*
+║ • Cache Size: ${cacheStats.size} entries
+║ • Cache Hits: ${cacheStats.hits} (${hitRatioPercent}% hit rate)
+║ • Group Cache Hits: ${cacheStats.groupHits}
+║ • Cache Misses: ${cacheStats.misses}
+║
+`;
+    } else {
+      performanceReport += `
+║ 🚫 *RESPONSE CACHE SYSTEM*
+║ • Not available
+║
+`;
+    }
+    
+    // Add group optimization statistics if available
+    if (groupStats.available) {
+      performanceReport += `
+║ 👥 *GROUP OPTIMIZATION SYSTEM*
+║ • Group Messages: ${groupStats.totalGroupMessages}
+║ • Throttled Messages: ${groupStats.throttledMessages}
+║ • Priority Messages: ${groupStats.priorityMessages}
+║ • Avg. Processing Time: ${groupStats.averageProcessingTime}ms
+║ • Group Metadata Cache: ${groupStats.metadataCacheSize} groups
+║ • Metadata Cache Hits: ${groupStats.metadataHits}
+║ • Metadata Cache Misses: ${groupStats.metadataMisses}
+║
+`;
+    } else {
+      performanceReport += `
+║ 🚫 *GROUP OPTIMIZATION SYSTEM*
+║ • Not available
+║
+`;
+    }
+    
+    // Add connection information
+    performanceReport += `
+║ 🔌 *CONNECTION STATUS*
+║ • Connected: ${global.conn && global.conn.user ? 'Yes' : 'No'}
+`;
 
-⏱️ *Response Times*
-• Average: ${msgStats.avgTime.toFixed(2)}ms
-• Maximum: ${msgStats.maxTime.toFixed(2)}ms
-• Messages processed: ${msgStats.messages}
+    if (global.conn && global.conn.user) {
+      performanceReport += `║ • Bot Number: ${global.conn.user.jid.split('@')[0]}
+`;
+    }
+    
+    // Check if optimizations are active
+    let optimizationsActive = false;
+    try {
+      // Check if optimization modules are loaded
+      optimizationsActive = (
+        (global.responseCache && typeof global.responseCache.getCacheStats === 'function') ||
+        (global.groupOptimization && typeof global.groupOptimization.getGroupOptimizationStats === 'function')
+      );
+    } catch (err) {
+      console.error('Error checking optimization status:', err);
+    }
+    
+    performanceReport += `
+║ ⚡ *OPTIMIZATION STATUS*
+║ • Optimizations: ${optimizationsActive ? '✅ Active' : '❌ Inactive'}
+`;
+    
+    performanceReport += `
+╚═══════════════════════════════════════╝
 
-💾 *Memory Usage*
-• Heap: ${formatMemory(memoryUsage.heapUsed)} / ${formatMemory(memoryUsage.heapTotal)}
-• RSS: ${formatMemory(memoryUsage.rss)}
-• Peak memory: ${hasMemoryManager ? formatMemory(memoryManagerStats.peak * 1024 * 1024) : 'N/A'}
-
-⚡ *Cache Performance*
-• Commands processed: ${cacheStats.commandsProcessed || 'N/A'}
-• Cache hit rate: ${((cacheStats.hitRate || 0) * 100).toFixed(2)}%
-• Cache hits/misses: ${cacheStats.cacheHits || 0}/${cacheStats.cacheMisses || 0}
-
-🖥️ *System Information*
-• Platform: ${process.platform} (${process.arch})
-• Node.js: ${process.version}
-• Uptime: ${formatUptime(uptime)}
-• Heroku: ${isHeroku ? 'Yes' : 'No'}
-• GC enabled: ${typeof global.gc === 'function' ? 'Yes' : 'No'}
-• GC collections: ${memoryManagerStats.collections || 'N/A'}
-
-💎 *Optimization Status*
-• Performance mode: ${process.env.PERFORMANCE_MODE === 'true' ? 'Enabled' : 'Disabled'}
-• Parallel processing: ${hasOptimizer && global.botOptimizer.config.enableParallelProcessing ? 'Enabled' : 'Disabled'}
-• Response caching: ${hasOptimizer && global.botOptimizer.config.enableCache ? 'Enabled' : 'Disabled'}
-• Memory management: ${hasMemoryManager ? 'Active' : 'Inactive'}
-• Heroku optimization: ${isHeroku && global.herokuKeeper ? 'Active' : 'Inactive'}
-
-_To enable 24/7 Heroku operation, the bot uses advanced connection management and database persistence._
-`.trim();
-
+⚡ *BLACKSKY-MD PREMIUM* ⚡
+Optimized for fast response in groups`;
+    
     // Send the performance report
-    await conn.reply(m.chat, reply, m);
-    
-    // Send optimization tips if on Heroku
-    if (isHeroku) {
-      await conn.reply(m.chat, `
-*📈 HEROKU 24/7 OPTIMIZATION TIPS*
-
-• Keep the dyno awake with an auto-pinger
-• Use the PostgreSQL database for session persistence
-• Ensure proper session backups before dyno cycling
-• Set HEROKU=true in your environment variables
-• Consider upgrading to Eco or Basic dynos for better performance
-`.trim(), m);
-    }
-    
-  } catch (e) {
-    console.error('Error in performance command:', e);
-    await conn.reply(m.chat, '⚠️ An error occurred while retrieving performance data', m);
+    await m.reply(performanceReport);
+  } catch (error) {
+    console.error('Error in performance command:', error);
+    await m.reply(`❌ Error generating performance statistics: ${error.message}`);
   }
 };
 
-handler.help = ['performance', 'stats', 'benchmark'];
-handler.tags = ['info', 'tools', 'owner'];
-handler.command = /^(perf(ormance)?|stats|benchmark)$/i;
+handler.help = ['performance', 'stats'];
+handler.tags = ['info'];
+handler.command = /^(performance|stats)$/i;
 
 module.exports = handler;

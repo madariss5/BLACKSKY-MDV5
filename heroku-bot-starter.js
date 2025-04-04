@@ -1,8 +1,26 @@
 /**
  * BLACKSKY-MD Bot Starter for Heroku with enhanced stability
  * Optimized for Replit environment
+ * With advanced group chat and response time optimizations
  */
 const { initialize: initKeeper } = require('./heroku-connection-keeper.js');
+
+// Performance optimization support
+let optimizerInitialized = false;
+function initOptimizer() {
+  if (optimizerInitialized) return;
+  
+  try {
+    const { optimize } = require('./apply-optimizations.js');
+    if (typeof optimize === 'function') {
+      console.log('🚀 Initializing performance optimization system...');
+      optimize(global.conn);
+      optimizerInitialized = true;
+    }
+  } catch (err) {
+    console.error('⚠️ Failed to initialize performance optimizations:', err.message);
+  }
+}
 const express = require('express');
 const app = express();
 const port = process.env.PORT || 4444; // Use a different port to avoid conflicts
@@ -136,6 +154,10 @@ app.get('/', (req, res) => {
 const server = app.listen(port, '0.0.0.0', () => {
   console.log(`⚡ Server running on port ${port}`);
 
+  // Initialize performance optimization system
+  console.log('🚀 Initializing performance optimization system...');
+  initOptimizer();
+
   // Start bot after server is confirmed running
   setTimeout(() => {
     try {
@@ -168,6 +190,11 @@ server.on('error', (err) => {
     server.close();
     app.listen(0, '0.0.0.0', () => {
       console.log(`⚡ Server running on a random port`);
+      
+      // Initialize performance optimization system
+      console.log('🚀 Initializing performance optimization system...');
+      initOptimizer();
+      
       setTimeout(() => {
         try {
           require('./index.js');

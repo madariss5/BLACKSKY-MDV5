@@ -10,6 +10,28 @@ try {
     console.log('[HANDLER] No fixes needed to apply');
     global.handlerPatchesApplied = true;
   }
+  
+  // Load response cache for optimized command execution
+  if (!global.responseCache) {
+    try {
+      global.responseCache = require('./lib/response-cache.js');
+      console.log('[HANDLER] ✅ Response cache system loaded successfully');
+    } catch (e) {
+      console.error('[HANDLER] ⚠️ Failed to load response cache:', e.message);
+      global.responseCache = null;
+    }
+  }
+  
+  // Load group optimization system
+  if (!global.groupOptimization) {
+    try {
+      global.groupOptimization = require('./lib/group-optimization.js');
+      console.log('[HANDLER] ✅ Group chat optimization system loaded successfully');
+    } catch (e) {
+      console.error('[HANDLER] ⚠️ Failed to load group optimization:', e.message);
+      global.groupOptimization = null;
+    }
+  }
 } catch (error) {
   console.error('[HANDLER] Error in initialization:', error);
 }
@@ -105,6 +127,35 @@ async function performGracefulShutdown() {
 
 module.exports = {
     async handler(chatUpdate) {
+        // Process parallel group messages if applicable
+        if (global.groupOptimization && 
+            chatUpdate && chatUpdate.messages && 
+            chatUpdate.messages.length > 1 && 
+            !chatUpdate._PARALLEL_PROCESSED) {
+                
+            // Check if any of the messages are from a group
+            const hasGroupMessages = chatUpdate.messages.some(msg => {
+                return msg.key && msg.key.remoteJid && msg.key.remoteJid.endsWith('@g.us');
+            });
+            
+            if (hasGroupMessages) {
+                // Use group optimization to process multiple messages in parallel
+                try {
+                    const processed = await global.groupOptimization.handleGroupMessages(
+                        chatUpdate.messages.map(m => simple.smsg(this, m)).filter(Boolean),
+                        m => this._handleSingleMessage(m, chatUpdate)
+                    );
+                    
+                    if (processed) {
+                        return; // Processing was handled by the optimization
+                    }
+                } catch (err) {
+                    console.error('[HANDLER] Error in group optimization:', err);
+                    // Continue with normal processing if optimization fails
+                }
+            }
+        }
+        
         // Early ciphertext and undefined message handling
         if (chatUpdate && chatUpdate.messages && chatUpdate.messages.length > 0) {
             let m = chatUpdate.messages[chatUpdate.messages.length - 1];

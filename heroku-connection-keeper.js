@@ -858,6 +858,18 @@ function applyConnectionPatch(conn) {
       if (connection === 'open') {
         log('Connection opened', 'SUCCESS');
         
+        // Apply performance optimizations when connection is established
+        try {
+          log('Initializing performance optimization system...', 'INFO');
+          const { optimize } = require('./apply-optimizations.js');
+          if (typeof optimize === 'function') {
+            optimize(conn);
+            log('Performance optimizations applied successfully', 'SUCCESS');
+          }
+        } catch (optErr) {
+          log(`Failed to apply performance optimizations: ${optErr.message}`, 'ERROR');
+        }
+        
         // Reset connection state
         STATE.connectionLostTime = null;
         STATE.reconnectAttempts = 0;
