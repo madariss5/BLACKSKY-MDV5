@@ -1,0 +1,190 @@
+2025-04-04T12:53:32.353414+00:00 app[web.1]:     at listenInCluster (node:net:1994:12)
+2025-04-04T12:53:32.353414+00:00 app[web.1]:     at Server.listen (node:net:2099:7)
+2025-04-04T12:53:32.353414+00:00 app[web.1]:     at Function.listen (/app/node_modules/express/lib/application.js:635:24)
+2025-04-04T12:53:32.353414+00:00 app[web.1]:     at setupHealthCheckServer (/app/connection-patch.js:281:9)
+2025-04-04T12:53:32.353415+00:00 app[web.1]:     at Object.<anonymous> (/app/connection-patch.js:298:5)
+2025-04-04T12:53:32.353415+00:00 app[web.1]:     at Module._compile (node:internal/modules/cjs/loader:1554:14)
+2025-04-04T12:53:32.353415+00:00 app[web.1]:     at Object..js (node:internal/modules/cjs/loader:1706:10)
+2025-04-04T12:53:32.353415+00:00 app[web.1]:     at Module.load (node:internal/modules/cjs/loader:1289:32)
+2025-04-04T12:53:32.353415+00:00 app[web.1]:     at Function._load (node:internal/modules/cjs/loader:1108:12)
+2025-04-04T12:53:32.427863+00:00 app[web.1]: -- using WA v2.3000.1020608496, isLatest: true --
+2025-04-04T12:53:32.790738+00:00 app[web.1]: [STARTUP] GIF Tester registered
+2025-04-04T12:53:33.016128+00:00 app[web.1]: [INFO] Created directory: ./media/reactions
+2025-04-04T12:53:33.016414+00:00 app[web.1]: [WARNING] Missing GIF: cry
+2025-04-04T12:53:33.016576+00:00 app[web.1]: [INFO] Found 41/42 reaction GIFs
+2025-04-04T12:53:33.415082+00:00 app[web.1]: [
+2025-04-04T12:53:33.415103+00:00 app[web.1]:   'Rpg_buydm.js',
+2025-04-04T12:53:33.415103+00:00 app[web.1]:   'Rpg_daily.js',
+2025-04-04T12:53:33.415103+00:00 app[web.1]:   '_afk.js',
+2025-04-04T12:53:33.415113+00:00 app[web.1]:   '_afk_afk.js',
+2025-04-04T12:53:33.415113+00:00 app[web.1]:   '_ai-lepton.js',
+2025-04-04T12:53:33.415114+00:00 app[web.1]:   '_anti+212.js',
+2025-04-04T12:53:33.415114+00:00 app[web.1]:   '_anti-badword-kick.js',
+2025-04-04T12:53:33.415114+00:00 app[web.1]:   '_anti-badword-nonkick.js',
+2025-04-04T12:53:33.415114+00:00 app[web.1]:   '_anti-foreign.js',
+2025-04-04T12:53:33.415115+00:00 app[web.1]:   '_anti-link-delete.js',
+2025-04-04T12:53:33.415115+00:00 app[web.1]:   '_anti-link.js',
+2025-04-04T12:53:33.415115+00:00 app[web.1]:   '_anti-morocco.js',
+2025-04-04T12:53:33.415115+00:00 app[web.1]:   '_anti-photo.js',
+2025-04-04T12:53:33.415115+00:00 app[web.1]:   '_anti-sticker.js',
+2025-04-04T12:53:33.415115+00:00 app[web.1]:   '_anti-video.js',
+2025-04-04T12:53:33.415116+00:00 app[web.1]:   '_anti_luar.js',
+2025-04-04T12:53:33.415116+00:00 app[web.1]:   '_antibadword_kick.js',
+2025-04-04T12:53:33.415116+00:00 app[web.1]:   '_antibadword_nonkick.js',
+2025-04-04T12:53:33.415116+00:00 app[web.1]:   '_anticall.js',
+2025-04-04T12:53:33.415116+00:00 app[web.1]:   '_antifile.js',
+2025-04-04T12:53:33.415116+00:00 app[web.1]:   '_antifoto.js',
+2025-04-04T12:53:33.415116+00:00 app[web.1]:   '_antililink_del.js',
+2025-04-04T12:53:33.415117+00:00 app[web.1]:   '_antilink.js',
+2025-04-04T12:53:33.415117+00:00 app[web.1]:   '_antispam.js',
+2025-04-04T12:53:33.415117+00:00 app[web.1]:   '_antistciker.js',
+2025-04-04T12:53:33.415117+00:00 app[web.1]:   '_antivideo.js',
+2025-04-04T12:53:33.415117+00:00 app[web.1]:   '_antiviewonce.js',
+2025-04-04T12:53:33.415117+00:00 app[web.1]:   '_auto_prayer.js',
+2025-04-04T12:53:33.415117+00:00 app[web.1]:   '_autoblok.js',
+2025-04-04T12:53:33.415118+00:00 app[web.1]:   '_autodetectporn.js',
+2025-04-04T12:53:33.415118+00:00 app[web.1]:   '_autodownload.js',
+2025-04-04T12:53:33.415118+00:00 app[web.1]:   '_autoeat.js',
+2025-04-04T12:53:33.415118+00:00 app[web.1]:   '_autohd.js',
+2025-04-04T12:53:33.415118+00:00 app[web.1]:   '_automakan.js',
+2025-04-04T12:53:33.415118+00:00 app[web.1]:   '_autoreact.js',
+2025-04-04T12:53:33.415118+00:00 app[web.1]:   '_autoresponlink.js',
+2025-04-04T12:53:33.415118+00:00 app[web.1]:   '_autosholat.js',
+2025-04-04T12:53:33.415119+00:00 app[web.1]:   '_autosticker.js',
+2025-04-04T12:53:33.415119+00:00 app[web.1]:   '_autotranslate.js',
+2025-04-04T12:53:33.415119+00:00 app[web.1]:   '_catatan-del.js',
+2025-04-04T12:53:33.415119+00:00 app[web.1]:   '_catatan-view.js',
+2025-04-04T12:53:33.415119+00:00 app[web.1]:   '_catatan.js',
+2025-04-04T12:53:33.415119+00:00 app[web.1]:   '_cmdRespon.js',
+2025-04-04T12:53:33.415119+00:00 app[web.1]:   '_didyoumean.js',
+2025-04-04T12:53:33.415119+00:00 app[web.1]:   '_enable.js',
+2025-04-04T12:53:33.415120+00:00 app[web.1]:   '_getpp.js',
+2025-04-04T12:53:33.415120+00:00 app[web.1]:   '_jadwalsholat.js',
+2025-04-04T12:53:33.415120+00:00 app[web.1]:   '_list-block.js',
+2025-04-04T12:53:33.415120+00:00 app[web.1]:   '_note-delete.js',
+2025-04-04T12:53:33.415120+00:00 app[web.1]:   '_note-view.js',
+2025-04-04T12:53:33.415120+00:00 app[web.1]:   '_note.js',
+2025-04-04T12:53:33.415120+00:00 app[web.1]:   '_openai-ai-logic.js',
+2025-04-04T12:53:33.415120+00:00 app[web.1]:   '_openai-ai.js',
+2025-04-04T12:53:33.415121+00:00 app[web.1]:   '_openai-bard(img,audio,video).js',
+2025-04-04T12:53:33.415121+00:00 app[web.1]:   '_openai-bard.js',
+2025-04-04T12:53:33.415121+00:00 app[web.1]:   '_openai-bing.js',
+2025-04-04T12:53:33.415121+00:00 app[web.1]:   '_openai-blackbox.js',
+2025-04-04T12:53:33.415122+00:00 app[web.1]:   '_openai-character-ai.js',
+2025-04-04T12:53:33.415122+00:00 app[web.1]:   '_openai-simi_chat.js',
+2025-04-04T12:53:33.415122+00:00 app[web.1]:   '_openai-simisimi.js',
+2025-04-04T12:53:33.415122+00:00 app[web.1]:   '_openai-tag.js',
+2025-04-04T12:53:33.415122+00:00 app[web.1]:   '_openai_simi2.js',
+2025-04-04T12:53:33.415122+00:00 app[web.1]:   '_owner-greeting.js',
+2025-04-04T12:53:33.415122+00:00 app[web.1]:   '_owner-sambutan.js',
+2025-04-04T12:53:33.415122+00:00 app[web.1]:   '_prayer_schedule.js',
+2025-04-04T12:53:33.415123+00:00 app[web.1]:   '_premium.js',
+2025-04-04T12:53:33.415123+00:00 app[web.1]:   '_pushkontak.js',
+2025-04-04T12:53:33.415123+00:00 app[web.1]:   '_salambot.js',
+2025-04-04T12:53:33.415123+00:00 app[web.1]:   'absen-absen.js',
+2025-04-04T12:53:33.415123+00:00 app[web.1]:   'absen-cekabsen.js',
+2025-04-04T12:53:33.415123+00:00 app[web.1]:   'absen-delete.js',
+2025-04-04T12:53:33.415123+00:00 app[web.1]:   'absen-start.js',
+2025-04-04T12:53:33.415124+00:00 app[web.1]:   'admin-grouplanguage.js',
+2025-04-04T12:53:33.415124+00:00 app[web.1]:   'anime-storyanime.js',
+2025-04-04T12:53:33.415124+00:00 app[web.1]:   'attendance-check.js',
+2025-04-04T12:53:33.415124+00:00 app[web.1]:   'attendance-delete.js',
+2025-04-04T12:53:33.415124+00:00 app[web.1]:   'attendance-mark.js',
+2025-04-04T12:53:33.415125+00:00 app[web.1]:   'attendance-start.js',
+2025-04-04T12:53:33.415125+00:00 app[web.1]:   'autoai.js',
+2025-04-04T12:53:33.415125+00:00 app[web.1]:   'autobackup.js',
+2025-04-04T12:53:33.415126+00:00 app[web.1]:   'autobio.js',
+2025-04-04T12:53:33.415126+00:00 app[web.1]:   'autoresetlimit.js',
+2025-04-04T12:53:33.415126+00:00 app[web.1]:   'b64kill.js',
+2025-04-04T12:53:33.415126+00:00 app[web.1]:   'betabotz_anthem.js',
+2025-04-04T12:53:33.415126+00:00 app[web.1]:   'biteall.js',
+2025-04-04T12:53:33.415126+00:00 app[web.1]:   'bonkall.js',
+2025-04-04T12:53:33.415126+00:00 app[web.1]:   'c-ai_arona.js',
+2025-04-04T12:53:33.415127+00:00 app[web.1]:   'c-ai_elaina.js',
+2025-04-04T12:53:33.415127+00:00 app[web.1]:   'c-ai_kujou.js',
+2025-04-04T12:53:33.415127+00:00 app[web.1]:   'c-ai_mahiru.js',
+2025-04-04T12:53:33.415127+00:00 app[web.1]:   'c-ai_nahida.js',
+2025-04-04T12:53:33.415127+00:00 app[web.1]:   'c-ai_plana.js',
+2025-04-04T12:53:33.415127+00:00 app[web.1]:   'change-language.js',
+2025-04-04T12:53:33.415128+00:00 app[web.1]:   'check-language.js',
+2025-04-04T12:53:33.415128+00:00 app[web.1]:   'cuddleall.js',
+2025-04-04T12:53:33.415128+00:00 app[web.1]:   'cum.js',
+2025-04-04T12:53:33.415128+00:00 app[web.1]:   'database-cmdDel.js',
+2025-04-04T12:53:33.415129+00:00 app[web.1]:   'database-cmdInfo.js',
+2025-04-04T12:53:33.415129+00:00 app[web.1]:   'database-cmdList.js',
+2025-04-04T12:53:33.415129+00:00 app[web.1]:   'database-cmdLock.js',
+2025-04-04T12:53:33.415129+00:00 app[web.1]:   ... 738 more items
+2025-04-04T12:53:33.415129+00:00 app[web.1]: ]
+2025-04-04T12:53:33.417096+00:00 app[web.1]: [HANDLER] No fixes needed to apply
+2025-04-04T12:53:33.438287+00:00 app[web.1]: [
+2025-04-04T12:53:33.438289+00:00 app[web.1]:   true,  true,
+2025-04-04T12:53:33.438289+00:00 app[web.1]:   true,  true,
+2025-04-04T12:53:33.438290+00:00 app[web.1]:   false, false,
+2025-04-04T12:53:33.438290+00:00 app[web.1]:   true
+2025-04-04T12:53:33.438290+00:00 app[web.1]: ]
+2025-04-04T12:53:33.439075+00:00 app[web.1]: INFO [Fri Apr 04 2025 12:53:33 GMT+0000 (Coordinated Universal Time)]: Quick Test Done
+2025-04-04T12:53:36.652750+00:00 app[web.1]: [CONNECTION] Using logo: blacksky-premium-gradient.svg
+2025-04-04T12:53:36.652908+00:00 app[web.1]: Converting SVG file: /app/blacksky-premium-gradient.svg
+2025-04-04T12:53:36.666343+00:00 app[web.1]: [❗] Beim Abrufen der Daten ist ein Fehler aufgetreten.
+2025-04-04T12:53:36.792412+00:00 app[web.1]: SVG successfully converted to PNG
+2025-04-04T12:53:36.792434+00:00 app[web.1]: [CONNECTION] Successfully converted logo SVG to PNG
+2025-04-04T12:53:36.800213+00:00 app[web.1]: [CONNECTION] Using logo: blacksky-premium-gradient.svg
+2025-04-04T12:53:36.800387+00:00 app[web.1]: Converting SVG file: /app/blacksky-premium-gradient.svg
+2025-04-04T12:53:36.802519+00:00 app[web.1]: [CONNECTION] Using logo: blacksky-premium-gradient.svg
+2025-04-04T12:53:36.802548+00:00 app[web.1]: Converting SVG file: /app/blacksky-premium-gradient.svg
+2025-04-04T12:53:36.802987+00:00 app[web.1]: 📱 Connection success message sent to owner
+2025-04-04T12:53:36.806943+00:00 app[web.1]: [CONNECTION] Could not send notification - missing connection or user
+2025-04-04T12:53:36.816703+00:00 app[web.1]: SVG successfully converted to PNG
+2025-04-04T12:53:36.816736+00:00 app[web.1]: [CONNECTION] Successfully converted logo SVG to PNG
+2025-04-04T12:53:36.838385+00:00 app[web.1]: SVG successfully converted to PNG
+2025-04-04T12:53:36.838407+00:00 app[web.1]: [CONNECTION] Successfully converted logo SVG to PNG
+2025-04-04T12:53:37.251816+00:00 app[web.1]: true
+2025-04-04T12:53:37.657564+00:00 app[web.1]: [CONNECTION] Error sending notification: Error: Connection Closed
+2025-04-04T12:53:37.657616+00:00 app[web.1]:     at sendRawMessage (/app/node_modules/@adiwajshing/baileys/lib/Socket/socket.js:57:19)
+2025-04-04T12:53:37.657617+00:00 app[web.1]:     at sendNode (/app/node_modules/@adiwajshing/baileys/lib/Socket/socket.js:76:16)
+2025-04-04T12:53:37.657618+00:00 app[web.1]:     at query (/app/node_modules/@adiwajshing/baileys/lib/Socket/socket.js:140:15)
+2025-04-04T12:53:37.657618+00:00 app[web.1]:     at Object.executeUSyncQuery (/app/node_modules/@adiwajshing/baileys/lib/Socket/usync.js:62:30)
+2025-04-04T12:53:37.657618+00:00 app[web.1]:     at getUSyncDevices (/app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:147:35)
+2025-04-04T12:53:37.657619+00:00 app[web.1]:     at /app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:371:57
+2025-04-04T12:53:37.657619+00:00 app[web.1]:     at Object.transaction (/app/node_modules/@adiwajshing/baileys/lib/Utils/auth-utils.js:135:32)
+2025-04-04T12:53:37.657619+00:00 app[web.1]:     at relayMessage (/app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:287:30)
+2025-04-04T12:53:37.657619+00:00 app[web.1]:     at Object.sendMessage (/app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:662:23)
+2025-04-04T12:53:37.657620+00:00 app[web.1]:     at sendConnectionMessage (/app/plugins/info-connection.js:125:13) {
+2025-04-04T12:53:37.657621+00:00 app[web.1]:   data: null,
+2025-04-04T12:53:37.657621+00:00 app[web.1]:   isBoom: true,
+2025-04-04T12:53:37.657621+00:00 app[web.1]:   isServer: false,
+2025-04-04T12:53:37.657622+00:00 app[web.1]:   output: {
+2025-04-04T12:53:37.657622+00:00 app[web.1]:     statusCode: 428,
+2025-04-04T12:53:37.657622+00:00 app[web.1]:     payload: {
+2025-04-04T12:53:37.657622+00:00 app[web.1]:       statusCode: 428,
+2025-04-04T12:53:37.657622+00:00 app[web.1]:       error: 'Precondition Required',
+2025-04-04T12:53:37.657623+00:00 app[web.1]:       message: 'Connection Closed'
+2025-04-04T12:53:37.657623+00:00 app[web.1]:     },
+2025-04-04T12:53:37.657623+00:00 app[web.1]:     headers: {}
+2025-04-04T12:53:37.657623+00:00 app[web.1]:   }
+2025-04-04T12:53:37.657623+00:00 app[web.1]: }
+2025-04-04T12:53:37.664279+00:00 app[web.1]: [CONNECTION] Error sending notification: Error: Connection Closed
+2025-04-04T12:53:37.664280+00:00 app[web.1]:     at sendRawMessage (/app/node_modules/@adiwajshing/baileys/lib/Socket/socket.js:57:19)
+2025-04-04T12:53:37.664281+00:00 app[web.1]:     at sendNode (/app/node_modules/@adiwajshing/baileys/lib/Socket/socket.js:76:16)
+2025-04-04T12:53:37.664281+00:00 app[web.1]:     at query (/app/node_modules/@adiwajshing/baileys/lib/Socket/socket.js:140:15)
+2025-04-04T12:53:37.664282+00:00 app[web.1]:     at Object.executeUSyncQuery (/app/node_modules/@adiwajshing/baileys/lib/Socket/usync.js:62:30)
+2025-04-04T12:53:37.664282+00:00 app[web.1]:     at getUSyncDevices (/app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:147:35)
+2025-04-04T12:53:37.664283+00:00 app[web.1]:     at /app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:371:57
+2025-04-04T12:53:37.664283+00:00 app[web.1]:     at Object.transaction (/app/node_modules/@adiwajshing/baileys/lib/Utils/auth-utils.js:135:32)
+2025-04-04T12:53:37.664283+00:00 app[web.1]:     at relayMessage (/app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:287:30)
+2025-04-04T12:53:37.664284+00:00 app[web.1]:     at Object.sendMessage (/app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:662:23)
+2025-04-04T12:53:37.664284+00:00 app[web.1]:     at sendConnectionMessage (/app/plugins/info-connection.js:125:13) {
+2025-04-04T12:53:37.664285+00:00 app[web.1]:   data: null,
+2025-04-04T12:53:37.664285+00:00 app[web.1]:   isBoom: true,
+2025-04-04T12:53:37.664286+00:00 app[web.1]:   isServer: false,
+2025-04-04T12:53:37.664286+00:00 app[web.1]:   output: {
+2025-04-04T12:53:37.664286+00:00 app[web.1]:     statusCode: 428,
+2025-04-04T12:53:37.664286+00:00 app[web.1]:     payload: {
+2025-04-04T12:53:37.664287+00:00 app[web.1]:       statusCode: 428,
+2025-04-04T12:53:37.664287+00:00 app[web.1]:       error: 'Precondition Required',
+2025-04-04T12:53:37.664288+00:00 app[web.1]:       message: 'Connection Closed'
+2025-04-04T12:53:37.664288+00:00 app[web.1]:     },
+2025-04-04T12:53:37.664288+00:00 app[web.1]:     headers: {}
+2025-04-04T12:53:37.664288+00:00 app[web.1]:   }
+2025-04-04T12:53:37.664288+00:00 app[web.1]: }
+2025-04-04T12:52:31.000000+00:00 app[api]: Build started by user martin2122007@gmail.com
