@@ -375,11 +375,45 @@ process.on('SIGINT', performGracefulShutdown);
 process.on('uncaughtException', (err) => {
     console.error('Uncaught Exception:', err);
     console.error('Stack trace:', err.stack);
+    
+    // If this is a connection error, try to recover
+    if (err.message && (
+        err.message.includes('Connection Closed') || 
+        err.message.includes('connection closed') ||
+        err.message.includes('Connection terminated') ||
+        err.message.includes('timed out')
+    )) {
+        console.log('🔄 Connection error detected. Attempting to recover...');
+        // Try to reconnect if this is a connection error
+        if (global.conn && typeof global.reloadHandler === 'function') {
+            setTimeout(() => {
+                console.log('🔄 Forcing connection refresh...');
+                global.reloadHandler(true);
+            }, 5000);
+        }
+    }
     // Don't exit, let the process continue
 });
 
 process.on('unhandledRejection', (reason, promise) => {
     console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    
+    // If this is a connection error, try to recover
+    if (reason && reason.message && (
+        reason.message.includes('Connection Closed') || 
+        reason.message.includes('connection closed') ||
+        reason.message.includes('Connection terminated') ||
+        reason.message.includes('timed out')
+    )) {
+        console.log('🔄 Connection rejection detected. Attempting to recover...');
+        // Try to reconnect if this is a connection error
+        if (global.conn && typeof global.reloadHandler === 'function') {
+            setTimeout(() => {
+                console.log('🔄 Forcing connection refresh after rejection...');
+                global.reloadHandler(true);
+            }, 5000);
+        }
+    }
     // Don't exit, let the process continue
 });
 

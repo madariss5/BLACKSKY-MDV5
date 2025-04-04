@@ -299,6 +299,49 @@ if (process.env.NODE_ENV === 'production' || process.env.HEROKU) {
     console.log('🔍 Health check server initialized for production environment');
 }
 
+// Setup reconnection system
+let reconnectInterval = null;
+let reconnectAttempts = 0;
+
+function setupReconnectionSystem() {
+    if (reconnectInterval) {
+        clearInterval(reconnectInterval);
+    }
+    
+    reconnectInterval = setInterval(() => {
+        // Check if connection is closed or disconnected
+        if (global.conn && (!global.conn.user || global.conn.ws.readyState !== 1)) {
+            reconnectAttempts++;
+            console.log(`⚠️ Connection appears to be closed. Attempt #${reconnectAttempts} to reconnect...`);
+            
+            try {
+                // Try to trigger built-in reconnection
+                if (global.conn.ev) {
+                    global.conn.ev.emit('connection.update', { connection: 'close' });
+                }
+                
+                // If more than 5 reconnection attempts, do a full reload
+                if (reconnectAttempts > 5 && typeof global.reloadHandler === 'function') {
+                    console.log('🔄 Multiple reconnection attempts failed. Forcing full reload...');
+                    reconnectAttempts = 0;
+                    global.reloadHandler(true);
+                }
+            } catch (e) {
+                console.error('Error during reconnection attempt:', e);
+            }
+        } else {
+            // Reset counter when connected
+            if (reconnectAttempts > 0) {
+                console.log('✅ Connection is stable again. Resetting reconnection counter.');
+                reconnectAttempts = 0;
+            }
+        }
+    }, 30000); // Check every 30 seconds
+}
+
+// Start the reconnection system
+setupReconnectionSystem();
+
 // Load our connection message function
 let connectionMessageSender = null;
 
