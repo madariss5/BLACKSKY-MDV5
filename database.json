@@ -33,7 +33,7 @@
       "waifu": "Belum Di Set",
       "husbu": "Belum Di Set",
       "pc": 0,
-      "exp": 22273,
+      "exp": 22394,
       "coin": 0,
       "atm": 0,
       "limit": 8,
@@ -297,7 +297,7 @@
       "lastgrab": 0,
       "lastngocok": 0,
       "lastturu": 0,
-      "lastseen": 1743808494874,
+      "lastseen": 1743808801613,
       "lastSetStatus": 0,
       "registered": true,
       "mangga": 0,
@@ -348,8 +348,8 @@
       "lastdate": 0,
       "lasttambang": 0,
       "lastngepet": 0,
-      "chat": 4188,
-      "chatTotal": 4188,
+      "chat": 4207,
+      "chatTotal": 4207,
       "glimit": 10,
       "pertambangan": 0,
       "lastbossbattle": 0,
@@ -384,9 +384,9 @@
       "bibitapel": 0,
       "bibitmangga": 0,
       "bibitjeruk": 0,
-      "command": 570,
-      "commandTotal": 570,
-      "lastCmd": 1743808151657,
+      "command": 575,
+      "commandTotal": 575,
+      "lastCmd": 1743808801474,
       "language": "de",
       "doctor": 0,
       "mining": 0,
@@ -49364,7 +49364,7 @@
       "waifu": "Not Set Yet",
       "husbu": "Not Set Yet",
       "pc": 0,
-      "exp": 214,
+      "exp": 221,
       "coin": 0,
       "atm": 0,
       "limit": 10,
@@ -49625,7 +49625,7 @@
       "lastgrab": 0,
       "lastngocok": 0,
       "lastturu": 0,
-      "lastseen": 1743808496130,
+      "lastseen": 1743808715448,
       "lastSetstatus": 0,
       "registered": false,
       "mango": 0,
@@ -49674,8 +49674,8 @@
       "lastcowboy": 0,
       "lastdate": 0,
       "lastshamanrite": 0,
-      "chat": 27,
-      "chatTotal": 27,
+      "chat": 28,
+      "chatTotal": 28,
       "language": "de",
       "expenses": 0,
       "hunger": 100,
@@ -92597,7 +92597,7 @@
       "waifu": "Not Set Yet",
       "husbu": "Not Set Yet",
       "pc": 0,
-      "exp": 52,
+      "exp": 100,
       "coin": 0,
       "atm": 0,
       "limit": 10,
@@ -92858,7 +92858,7 @@
       "lastgrab": 0,
       "lastngocok": 0,
       "lastturu": 0,
-      "lastseen": 1743791105537,
+      "lastseen": 1743808707803,
       "lastSetstatus": 0,
       "registered": false,
       "mango": 0,
@@ -92907,8 +92907,8 @@
       "lastcowboy": 0,
       "lastdate": 0,
       "lastshamanrite": 0,
-      "chat": null,
-      "chatTotal": null,
+      "chat": 8,
+      "chatTotal": 8,
       "language": "de",
       "expenses": 0,
       "hunger": 100,
@@ -99391,11 +99391,11 @@
           "blacklist": false,
           "banned": false,
           "bannedTime": 0,
-          "chat": 28,
-          "chatTotal": 28,
+          "chat": 29,
+          "chatTotal": 29,
           "command": 0,
           "commandTotal": 0,
-          "lastseen": 1743808496130
+          "lastseen": 1743808715448
         },
         "4917399203740@s.whatsapp.net": {
           "blacklist": false,
@@ -99694,11 +99694,11 @@
           "blacklist": false,
           "banned": false,
           "bannedTime": 0,
-          "chat": 8,
-          "chatTotal": 8,
+          "chat": 16,
+          "chatTotal": 16,
           "command": 0,
           "commandTotal": 0,
-          "lastseen": 1743791105537
+          "lastseen": 1743808707803
         }
       },
       "sWelcome": "*Welcome @user!*\n\n     To the group @subject\n\n╭─────「 *intro* 」\n│\n│─⪼ Name : \n│─⪼ Age :\n│─⪼ Location :\n│─⪼ Gender :\n╰─────────────\n\n> hope you enjoy your stay",
@@ -100031,12 +100031,12 @@
           "blacklist": false,
           "banned": false,
           "bannedTime": 0,
-          "chat": 35,
-          "chatTotal": 35,
-          "command": 8,
-          "commandTotal": 8,
-          "lastseen": 1743808152302,
-          "lastCmd": 1743808151657
+          "chat": 48,
+          "chatTotal": 48,
+          "command": 13,
+          "commandTotal": 13,
+          "lastseen": 1743808801613,
+          "lastCmd": 1743808801474
         }
       },
       "sWelcome": "*Welcome @user!*\n\n     To the group @subject\n\n╭─────「 *intro* 」\n│\n│─⪼ Name : \n│─⪼ Age :\n│─⪼ Location :\n│─⪼ Gender :\n╰─────────────\n\n> hope you enjoy your stay",
@@ -100459,10 +100459,10 @@
   },
   "stats": {
     "menu.js": {
-      "total": 240,
-      "success": 240,
-      "last": 1743807780259,
-      "lastSuccess": 1743807780259
+      "total": 243,
+      "success": 243,
+      "last": 1743808790376,
+      "lastSuccess": 1743808790376
     },
     "tools-profile.js": {
       "total": 26,
@@ -100753,10 +100753,10 @@
       "lastSuccess": 1743675357150
     },
     "reactions.js": {
-      "total": 170,
-      "success": 170,
-      "last": 1743808003392,
-      "lastSuccess": 1743808003392
+      "total": 171,
+      "success": 171,
+      "last": 1743808704997,
+      "lastSuccess": 1743808704997
     },
     "change-language.js": {
       "total": 12,
@@ -100771,10 +100771,10 @@
       "lastSuccess": 1743677286201
     },
     "rpg-gunshop.js": {
-      "total": 19,
-      "success": 14,
-      "last": 1743807215685,
-      "lastSuccess": 1743807215685
+      "total": 20,
+      "success": 15,
+      "last": 1743808801476,
+      "lastSuccess": 1743808801476
     },
     "downloader-ytmp3.js": {
       "total": 2,

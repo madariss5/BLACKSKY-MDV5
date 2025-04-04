@@ -1,2 +1,1 @@
-
-web: npm install -g pm2 && pm2 start ecosystem.config.js --no-daemon
+web: pm2-runtime start heroku-bot-starter.js --name BLACKSKY-MD -- --autocleartmp --autoread
