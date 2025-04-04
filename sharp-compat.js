@@ -2,7 +2,7 @@
  * Sharp compatibility layer using Jimp
  * For Termux environments where Sharp is difficult to install
  */
-const Jimp = require('jimp/dist/jimp.js');
+const Jimp = require('jimp');
 const fs = require('fs');
 const path = require('path');
 const { promisify } = require('util');
@@ -62,74 +62,6 @@ class SharpCompat {
     return this._image;
   }
 
-  // Apply all pending operations to the image
-  async _applyOperations() {
-    const image = await this._ensureImage();
-
-    // Apply resize if needed
-    if (this._options.resize) {
-      const { width, height, fit } = this._options.resize;
-
-      if (fit === 'contain') {
-        // Contain: Scale the image to the maximum size that fits within the width/height
-        image.contain(width || Jimp.AUTO, height || Jimp.AUTO);
-      } else if (fit === 'cover') {
-        // Cover: Scale the image to cover both width/height
-        image.cover(width || Jimp.AUTO, height || Jimp.AUTO);
-      } else {
-        // Default: Scale the image to width/height maintaining aspect ratio
-        image.resize(width || Jimp.AUTO, height || Jimp.AUTO);
-      }
-    }
-
-    // Apply other operations
-    if (this._options.greyscale || this._options.grayscale) {
-      image.greyscale();
-    }
-
-    if (this._options.flip) {
-      image.flip(true, false);
-    }
-
-    if (this._options.flop) {
-      image.flip(false, true);
-    }
-
-    if (this._options.rotate) {
-      image.rotate(this._options.rotate);
-    }
-
-    if (this._options.blur && this._options.blur > 0) {
-      image.blur(this._options.blur);
-    }
-
-    if (this._options.sharpen && this._options.sharpen > 0) {
-      image.convolute([
-        [-1, -1, -1],
-        [-1, this._options.sharpen + 8, -1],
-        [-1, -1, -1]
-      ]);
-    }
-
-    if (this._options.negate) {
-      image.invert();
-    }
-
-    if (this._options.extract) {
-      const { left, top, width, height } = this._options.extract;
-      image.crop(left, top, width, height);
-    }
-
-    if (this._options.tint) {
-      image.color([
-        { apply: 'mix', params: [this._options.tint, 50] }
-      ]);
-    }
-
-    return image;
-  }
-
-
   resize(width, height, options = {}) {
     this._options.resize = { width, height, fit: options.fit || 'cover' };
     return this;
@@ -151,7 +83,6 @@ class SharpCompat {
     return this;
   }
 
-  // Flip operations
   flip() {
     this._options.flip = true;
     return this;
@@ -162,13 +93,11 @@ class SharpCompat {
     return this;
   }
 
-  // Rotation
   rotate(angle) {
     this._options.rotate = angle;
     return this;
   }
 
-  // Color manipulations
   greyscale(greyscale = true) {
     this._options.greyscale = greyscale;
     return this;
@@ -184,7 +113,6 @@ class SharpCompat {
     return this;
   }
 
-  // Effects
   blur(sigma) {
     this._options.blur = sigma || 1;
     return this;
@@ -200,7 +128,6 @@ class SharpCompat {
     return this;
   }
 
-  // Format conversion methods
   toFormat(format, options = {}) {
     this._format = format;
     if (options.quality) {
@@ -222,30 +149,69 @@ class SharpCompat {
   }
 
   async toBuffer() {
-    const image = await this._applyOperations();
+    const image = await this._ensureImage();
+    let processedImage = image.clone();
+
+    if (this._options.resize) {
+      const { width, height, fit } = this._options.resize;
+      if (fit === 'contain') {
+        processedImage.contain(width || Jimp.AUTO, height || Jimp.AUTO);
+      } else if (fit === 'cover') {
+        processedImage.cover(width || Jimp.AUTO, height || Jimp.AUTO);
+      } else {
+        processedImage.resize(width || Jimp.AUTO, height || Jimp.AUTO);
+      }
+    }
+
+    if (this._options.greyscale || this._options.grayscale) {
+      processedImage.greyscale();
+    }
+
+    if (this._options.flip) {
+      processedImage.flip(true, false);
+    }
+
+    if (this._options.flop) {
+      processedImage.flip(false, true);
+    }
+
+    if (this._options.rotate) {
+      processedImage.rotate(this._options.rotate);
+    }
+
+    if (this._options.blur > 0) {
+      processedImage.blur(this._options.blur);
+    }
+
+    if (this._options.negate) {
+      processedImage.invert();
+    }
+
+    if (this._options.extract) {
+      const { left, top, width, height } = this._options.extract;
+      processedImage.crop(left, top, width, height);
+    }
+
+    processedImage.quality(this._quality);
 
     return new Promise((resolve, reject) => {
-      let mime;
-      switch (this._format) {
-        case 'jpeg': mime = Jimp.MIME_JPEG; break;
-        case 'png': mime = Jimp.MIME_PNG; break;
-        case 'webp': mime = Jimp.MIME_WEBP; break;
-        default: mime = Jimp.MIME_PNG;
-      }
-
-      image.quality(this._quality);
-      image.getBuffer(mime, (err, buffer) => {
-        if (err) reject(err);
-        else resolve(buffer);
-      });
+      processedImage.getBuffer(
+        this._format === 'jpeg' ? Jimp.MIME_JPEG :
+        this._format === 'png' ? Jimp.MIME_PNG :
+        this._format === 'webp' ? Jimp.MIME_WEBP :
+        Jimp.MIME_PNG,
+        (err, buffer) => {
+          if (err) reject(err);
+          else resolve(buffer);
+        }
+      );
     });
   }
 
   async toFile(outputPath) {
-    const image = await this._applyOperations();
-
-    image.quality(this._quality);
+    const image = await this._ensureImage();
     await image.writeAsync(outputPath);
+    const stats = fs.statSync(outputPath);
 
     return {
       format: this._format,
@@ -253,9 +219,10 @@ class SharpCompat {
       height: image.getHeight(),
       channels: 4,
       premultiplied: false,
-      size: fs.statSync(outputPath).size
+      size: stats.size
     };
   }
+
   // Metadata
   async metadata() {
     const image = await this._ensureImage();
@@ -270,22 +237,10 @@ class SharpCompat {
 }
 
 module.exports = (input) => new SharpCompat(input);
-
-// Provide compatibility for some common Sharp functions
-module.exports.cache = function(options) {
-  console.log('Sharp cache settings ignored in compatibility layer');
-  return module.exports;
-};
-
-module.exports.format = {
-  jpeg: 'jpeg',
-  png: 'png',
-  webp: 'webp',
-  raw: 'raw'
-};
-
-module.exports.versions = {
-  vips: '0.0.0 (compatibility mode)',
-};
-
+module.exports.cache = false;
 module.exports.simd = false;
+module.exports.format = {
+  jpeg: { id: 'jpeg', input: { file: true } },
+  png: { id: 'png', input: { file: true } },
+  webp: { id: 'webp', input: { file: true } }
+};
