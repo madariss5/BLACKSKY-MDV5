@@ -18,6 +18,46 @@ const simple = require('./lib/simple')
 const util = require('util')
 const events = require('events')
 const { getMessage } = require('./lib/languages')
+const perf = require('perf_hooks')
+
+// Setup memory optimization & monitoring
+global.memoryUsage = {
+    lastCheck: Date.now(),
+    heapUsed: 0,
+    threshold: 350 * 1024 * 1024 // 350MB threshold 
+}
+
+// Function to check and optimize memory
+function checkAndOptimizeMemory() {
+    const now = Date.now();
+    
+    // Only check every 5 minutes to reduce overhead
+    if (now - global.memoryUsage.lastCheck < 5 * 60 * 1000) return;
+    
+    // Get current memory usage
+    const memUsage = process.memoryUsage();
+    global.memoryUsage.heapUsed = memUsage.heapUsed;
+    global.memoryUsage.lastCheck = now;
+    
+    // If memory usage exceeds threshold, run garbage collection
+    if (memUsage.heapUsed > global.memoryUsage.threshold) {
+        console.log(`[MEMORY] High memory usage detected: ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB. Optimizing...`);
+        
+        // Clear some caches to free memory
+        if (global.messageCache && global.messageCache.size > 100) {
+            const oldEntries = [...global.messageCache.entries()].slice(0, 50);
+            for (const [key] of oldEntries) {
+                global.messageCache.delete(key);
+            }
+        }
+        
+        // Force garbage collection if exposed
+        if (global.gc) {
+            global.gc();
+            console.log('[MEMORY] Garbage collection completed');
+        }
+    }
+}
 
 // Increase EventEmitter max listeners to prevent memory leak warnings
 events.EventEmitter.defaultMaxListeners = 200; // Increased from 150 to 200 to handle all event listeners
@@ -1701,6 +1741,16 @@ module.exports = {
         if (!m) return
         
         try {
+            // Initialize global message cache if not exists
+            if (!global.messageCache) {
+                global.messageCache = new Map();
+                global.commandStats = {
+                    totalCommands: 0,
+                    cacheHits: 0,
+                    startTime: Date.now()
+                };
+            }
+            
             // Convert message to simplified format
             m = simple.smsg(this, m) || m
             if (!m) return
@@ -1711,6 +1761,53 @@ module.exports = {
             
             // Fast path for group messages - reuses most of the normal handling logic
             // but skips unnecessary initialization steps for better performance
+            
+            // Check if this is a command message that can be fast-tracked
+            const isCommand = m.text && m.text.startsWith('.');
+            
+            // Super fast command caching for common commands
+            if (isCommand) {
+                const commandKey = `${m.chat}:${m.text.split(' ')[0]}`;
+                
+                // Check if this exact command was recently processed
+                if (global.messageCache.has(commandKey)) {
+                    const cachedResponse = global.messageCache.get(commandKey);
+                    const now = Date.now();
+                    
+                    // Only use cache if it's fresh (less than 30 seconds old)
+                    if (now - cachedResponse.timestamp < 30000) {
+                        // Track cache usage statistics
+                        global.commandStats.cacheHits++;
+                        
+                        try {
+                            // Log the cache hit for monitoring
+                            console.log(`[FAST RESPONSE] Cache hit for ${m.text.split(' ')[0]} in ${m.chat}`);
+                            
+                            // Use the cached response
+                            if (cachedResponse.response) {
+                                await this.reply(m.chat, cachedResponse.response, m);
+                                return; // Skip further processing
+                            }
+                        } catch (e) {
+                            console.error('[CACHE ERROR]', e);
+                            // Continue with normal processing if cache fails
+                        }
+                    }
+                }
+                
+                // Track command statistics
+                global.commandStats.totalCommands++;
+                
+                // Log stats every 100 commands
+                if (global.commandStats.totalCommands % 100 === 0) {
+                    const uptime = Math.floor((Date.now() - global.commandStats.startTime) / 1000);
+                    const hitRate = ((global.commandStats.cacheHits / global.commandStats.totalCommands) * 100).toFixed(2);
+                    console.log(`[GROUP STATS] Commands: ${global.commandStats.totalCommands}, Cache hit rate: ${hitRate}%, Uptime: ${uptime}s`);
+                }
+            }
+            
+            // Check memory periodically
+            checkAndOptimizeMemory();
             
             // Initialize critical user properties only
             try {
@@ -1745,13 +1842,33 @@ module.exports = {
                     }
                 }
                 
+                // Intercept the reply method to capture responses for caching
+                if (isCommand) {
+                    const originalReply = m.reply;
+                    const commandKey = `${m.chat}:${m.text.split(' ')[0]}`;
+                    
+                    // Override reply method to capture responses
+                    m.reply = async (text, chatId, options) => {
+                        // Cache the response for future use
+                        global.messageCache.set(commandKey, {
+                            response: text,
+                            timestamp: Date.now()
+                        });
+                        
+                        // Call the original reply method
+                        return await originalReply.call(this, text, chatId, options);
+                    };
+                }
+                
                 // Continue with standard message processing
                 this._normalMessageProcessing(m, chatUpdate);
                 
                 // Log performance for group message processing
                 const endTime = performance.now();
                 const processTime = endTime - startTime;
-                if (processTime > 500) { // Only log slow operations
+                
+                // Only log slow operations
+                if (processTime > 500) {
                     console.log(`[GROUP OPTIMIZATION] Slow message processing: ${Math.round(processTime)}ms for message type: ${m.mtype} in ${m.chat}`);
                 }
                 
