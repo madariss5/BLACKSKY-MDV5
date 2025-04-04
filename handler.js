@@ -18,117 +18,6 @@ const simple = require('./lib/simple')
 const util = require('util')
 const events = require('events')
 const { getMessage } = require('./lib/languages')
-const perf = require('perf_hooks')
-
-// Setup memory optimization & monitoring
-global.memoryUsage = {
-    lastCheck: Date.now(),
-    heapUsed: 0,
-    threshold: 350 * 1024 * 1024 // 350MB threshold 
-}
-
-// GROUP CHAT OPTIMIZATION: Add simpler plugin cache for faster command matching (Heroku-compatible)
-// Using plain objects instead of Maps for better serialization on Heroku
-global.pluginCache = {
-    patterns: {},  // For fast pattern lookup
-    commands: {},  // For direct command mapping
-    lastUpdated: 0
-}
-
-// Helper function to optimize plugin loading - Heroku-compatible version
-function optimizePlugins(plugins) {
-    // Skip if recently optimized (less than 5 minutes ago) - reduced time for Heroku dyno cycles
-    const now = Date.now();
-    if (now - global.pluginCache.lastUpdated < 5 * 60 * 1000 && 
-        Object.keys(global.pluginCache.patterns).length > 0) {
-        return;
-    }
-    
-    console.log('[HEROKU OPTIMIZATION] Rebuilding plugin cache for faster group chat responses');
-    global.pluginCache.patterns = {};
-    global.pluginCache.commands = {};
-    
-    try {
-        // Process each plugin to build cache
-        for (let name in plugins) {
-            const plugin = plugins[name];
-            
-            // Skip if no pattern
-            if (!plugin.pattern) continue;
-            
-            if (plugin.pattern instanceof RegExp) {
-                // Store regex pattern as string for Heroku compatibility
-                global.pluginCache.patterns[name] = {
-                    type: 'regex',
-                    regex: plugin.pattern.toString(),
-                    originalSource: plugin.pattern.source,
-                    originalFlags: (plugin.pattern.global ? 'g' : '') + 
-                                  (plugin.pattern.ignoreCase ? 'i' : '') + 
-                                  (plugin.pattern.multiline ? 'm' : '')
-                };
-            } else if (Array.isArray(plugin.pattern)) {
-                // For array patterns (direct command mapping)
-                plugin.pattern.forEach(cmd => {
-                    global.pluginCache.commands[cmd] = name;
-                });
-                global.pluginCache.patterns[name] = {
-                    type: 'array',
-                    commands: plugin.pattern
-                };
-            } else if (typeof plugin.pattern === 'string') {
-                // For string patterns (direct command)
-                global.pluginCache.commands[plugin.pattern] = name;
-                global.pluginCache.patterns[name] = {
-                    type: 'string',
-                    command: plugin.pattern
-                };
-            }
-        }
-        
-        global.pluginCache.lastUpdated = now;
-        console.log(`[HEROKU OPTIMIZATION] Plugin cache built with ${Object.keys(global.pluginCache.patterns).length} patterns and ${Object.keys(global.pluginCache.commands).length} direct commands`);
-    } catch (e) {
-        console.error('[HEROKU OPTIMIZATION] Error building plugin cache:', e);
-        // Provide a fallback empty cache
-        global.pluginCache = {
-            patterns: {},
-            commands: {},
-            lastUpdated: now
-        };
-    }
-}
-
-// Function to check and optimize memory
-function checkAndOptimizeMemory() {
-    const now = Date.now();
-    
-    // Only check every 5 minutes to reduce overhead
-    if (now - global.memoryUsage.lastCheck < 5 * 60 * 1000) return;
-    
-    // Get current memory usage
-    const memUsage = process.memoryUsage();
-    global.memoryUsage.heapUsed = memUsage.heapUsed;
-    global.memoryUsage.lastCheck = now;
-    
-    // If memory usage exceeds threshold, run garbage collection
-    if (memUsage.heapUsed > global.memoryUsage.threshold) {
-        console.log(`[MEMORY] High memory usage detected: ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB. Optimizing...`);
-        
-        // Clear some caches to free memory
-        if (global.messageCache && global.messageCache.size > 100) {
-            const oldEntries = [...global.messageCache.entries()].slice(0, 50);
-            for (const [key] of oldEntries) {
-                global.messageCache.delete(key);
-            }
-        }
-        
-        // Force garbage collection if exposed
-        if (global.gc) {
-            global.gc();
-            console.log('[MEMORY] Garbage collection completed');
-        }
-    }
-}
 
 // Increase EventEmitter max listeners to prevent memory leak warnings
 events.EventEmitter.defaultMaxListeners = 200; // Increased from 150 to 200 to handle all event listeners
@@ -243,76 +132,9 @@ module.exports = {
 
         if (global.db.data == null) await loadDatabase()
         this.msgqueque = this.msgqueque || []
+        // console.log(chatUpdate)
         if (!chatUpdate) return
-        
-        // GROUP CHAT OPTIMIZATION: Special handling for batch messages in group chats
-        if (chatUpdate.messages && chatUpdate.messages.length > 1) {
-            console.log(`[GROUP OPTIMIZATION] Processing ${chatUpdate.messages.length} messages in batch`);
-            
-            // Check if these are group messages by examining the first message
-            const firstMsg = chatUpdate.messages[0];
-            const isGroupBatch = firstMsg.key && firstMsg.key.remoteJid && firstMsg.key.remoteJid.endsWith('@g.us');
-            
-            // Apply optimized processing for group chats
-            if (isGroupBatch) {
-                // Use Set for prioritized commands for O(1) lookup
-                const priorityCommands = new Set(['.help', '.menu', '.info', '.start']);
-                const priorityMessages = [];
-                const normalMessages = [];
-                
-                // Sort messages by priority
-                for (const msg of chatUpdate.messages) {
-                    try {
-                        // Get message text if available
-                        const msgText = msg.message?.conversation || 
-                                       (msg.message?.extendedTextMessage?.text || '');
-                        
-                        // Simple check for command prefix
-                        if (msgText.startsWith('.')) {
-                            const commandPart = msgText.split(' ')[0];
-                            
-                            // Check if it's a priority command
-                            if (priorityCommands.has(commandPart)) {
-                                priorityMessages.push(msg);
-                            } else {
-                                normalMessages.push(msg);
-                            }
-                        } else {
-                            // Not a command, normal priority
-                            normalMessages.push(msg);
-                        }
-                    } catch (err) {
-                        console.error('[GROUP OPTIMIZATION] Error analyzing message:', err);
-                        // If error, treat as normal priority
-                        normalMessages.push(msg);
-                    }
-                }
-                
-                // Process priority messages first
-                for (const priorityMsg of priorityMessages) {
-                    const singleUpdate = {
-                        messages: [priorityMsg],
-                        type: chatUpdate.type
-                    };
-                    
-                    await this._processGroupMessage(singleUpdate);
-                }
-                
-                // Then process normal messages
-                for (const normalMsg of normalMessages) {
-                    const singleUpdate = {
-                        messages: [normalMsg],
-                        type: chatUpdate.type
-                    };
-                    
-                    await this._processGroupMessage(singleUpdate);
-                }
-                
-                return; // Batch processing complete
-            }
-        }
-        
-        // Normal processing for non-group or single messages
+        // if (chatUpdate.messages.length > 2 || !chatUpdate.messages.length) return
         if (chatUpdate.messages.length > 1) console.log(chatUpdate.messages)
         let m = chatUpdate.messages[chatUpdate.messages.length - 1]
         if (!m) return
@@ -1241,12 +1063,10 @@ module.exports = {
             if (opts['gconly'] && !m.chat.endsWith('g.us')) return
             if (opts['swonly'] && m.chat !== 'status@broadcast') return
             if (typeof m.text !== 'string') m.text = ''
-            // Optimize group message processing - respond much faster in groups
             if (opts['queque'] && m.text) {
                 this.msgqueque.push(m.id || m.key.id)
-                // Much faster response for group messages (10ms) vs private chats (up to 100ms)
-                const isGroup = m.isGroup || (m.chat && m.chat.endsWith('@g.us'))
-                await delay(isGroup ? 10 : Math.min(this.msgqueque.length * 50, 100))
+                // Use a much smaller delay that scales with queue, with a maximum cap
+                await delay(Math.min(this.msgqueque.length * 100, 500))
             }
             for (let name in global.plugins) {
                 let plugin = global.plugins[name]
@@ -1527,30 +1347,10 @@ module.exports = {
                     let fail = plugin.fail || global.dfail // When failed
                     
                     // IMPROVED: Enhanced command matching with full command text support
-                    // OPTIMIZATION: Group chat command matching is optimized for speed
-                    // The isGroup check happens once outside the command matching logic
-                    const isGroup = m.isGroup || (m.chat && m.chat.endsWith('@g.us'))
-                    
-                    // Fast path for exact string match (most common case) - checked first
-                    if (typeof plugin.command === 'string' && plugin.command === command) {
-                        return true;
-                    }
-                    
-                    // Fast path for array of strings (second most common case)
-                    if (Array.isArray(plugin.command) && !plugin.command.some(cmd => cmd instanceof RegExp)) {
-                        // For groups, use faster indexOf instead of some() when possible
-                        if (isGroup) {
-                            return plugin.command.indexOf(command) !== -1;
-                        } else {
-                            return plugin.command.some(cmd => cmd === command);
-                        }
-                    }
-                    
-                    // Only use RegExp for more complex cases
-                    let isAccept = plugin.command instanceof RegExp ? 
+                    let isAccept = plugin.command instanceof RegExp ? // RegExp Mode?
                         // Try matching the full command string first for regex patterns that include parameters
                         plugin.command.test(fullCommand) || plugin.command.test(command) :
-                        Array.isArray(plugin.command) ? 
+                        Array.isArray(plugin.command) ? // Array?
                             plugin.command.some(cmd => {
                                 if (cmd instanceof RegExp) { // RegExp in Array?
                                     // Try full command first, then just the command part
@@ -1558,7 +1358,9 @@ module.exports = {
                                 }
                                 return cmd === command;
                             }) :
-                            false
+                            typeof plugin.command === 'string' ? // String?
+                                plugin.command === command :
+                                false
 
                     if (!isAccept) continue
                     m.plugin = name
@@ -1805,303 +1607,7 @@ module.exports = {
         }
         }
     },
-    
-    // GROUP OPTIMIZATION: Helper method to process a single group message
-    async _processGroupMessage(chatUpdate) {
-        try {
-            let m = chatUpdate.messages[0]
-            if (!m) return
-            // Initialize global message cache if not exists
-            if (!global.messageCache) {
-                global.messageCache = new Map();
-                global.commandStats = {
-                    totalCommands: 0,
-                    cacheHits: 0,
-                    startTime: Date.now()
-                };
-            }
-            
-            // Convert message to simplified format
-            m = simple.smsg(this, m) || m
-            if (!m) return
-            
-            // Initialize message properties
-            m.exp = 0
-            m.limit = false
-            
-            // Fast path for group messages - reuses most of the normal handling logic
-            // but skips unnecessary initialization steps for better performance
-            
-            // Check if this is a command message that can be fast-tracked
-            const isCommand = m.text && m.text.startsWith('.');
-            
-            // Super fast command caching for common commands
-            if (isCommand) {
-                const commandKey = `${m.chat}:${m.text.split(' ')[0]}`;
-                
-                // Check if this exact command was recently processed
-                if (global.messageCache.has(commandKey)) {
-                    const cachedResponse = global.messageCache.get(commandKey);
-                    const now = Date.now();
-                    
-                    // Only use cache if it's fresh (less than 30 seconds old)
-                    if (now - cachedResponse.timestamp < 30000) {
-                        // Track cache usage statistics
-                        global.commandStats.cacheHits++;
-                        
-                        try {
-                            // Log the cache hit for monitoring
-                            console.log(`[FAST RESPONSE] Cache hit for ${m.text.split(' ')[0]} in ${m.chat}`);
-                            
-                            // Use the cached response
-                            if (cachedResponse.response) {
-                                await this.reply(m.chat, cachedResponse.response, m);
-                                return; // Skip further processing
-                            }
-                        } catch (e) {
-                            console.error('[CACHE ERROR]', e);
-                            // Continue with normal processing if cache fails
-                        }
-                    }
-                }
-                
-                // Track command statistics
-                global.commandStats.totalCommands++;
-                
-                // Log stats every 100 commands
-                if (global.commandStats.totalCommands % 100 === 0) {
-                    const uptime = Math.floor((Date.now() - global.commandStats.startTime) / 1000);
-                    const hitRate = ((global.commandStats.cacheHits / global.commandStats.totalCommands) * 100).toFixed(2);
-                    console.log(`[GROUP STATS] Commands: ${global.commandStats.totalCommands}, Cache hit rate: ${hitRate}%, Uptime: ${uptime}s`);
-                }
-            }
-            
-            // Check memory periodically
-            checkAndOptimizeMemory();
-            
-            // Initialize critical user properties only
-            try {
-                let user = global.db.data.users[m.sender]
-                if (typeof user !== 'object') global.db.data.users[m.sender] = {}
-                
-                // Only initialize essential properties for commands to work
-                if (user) {
-                    if (!isNumber(user.exp)) user.exp = 0
-                    if (!isNumber(user.limit)) user.limit = 10
-                    if (!isNumber(user.level)) user.level = 0
-                    if (!('language' in user)) user.language = global.language || 'de'
-                }
-                
-                // Start timer for performance measurements in group chats
-                const startTime = performance.now();
-                
-                // Normal message processing
-                if (m.chat in global.db.data.chats || m.sender in global.db.data.users) {
-                    let chat = global.db.data.chats[m.chat]
-                    if (m.isGroup) {
-                        // Initialize chat.memgc if needed
-                        if (!chat.memgc) chat.memgc = {}
-                        if (!chat.memgc[m.sender]) chat.memgc[m.sender] = {
-                            chat: 0,
-                            chatTotal: 0,
-                            lastseen: 0,
-                            command: 0,
-                            commandTotal: 0,
-                            lastCmd: 0
-                        }
-                    }
-                }
-                
-                // Intercept the reply method to capture responses for caching
-                if (isCommand) {
-                    const originalReply = m.reply;
-                    const commandKey = `${m.chat}:${m.text.split(' ')[0]}`;
-                    
-                    // Override reply method to capture responses
-                    m.reply = async (text, chatId, options) => {
-                        // Cache the response for future use
-                        global.messageCache.set(commandKey, {
-                            response: text,
-                            timestamp: Date.now()
-                        });
-                        
-                        // Call the original reply method
-                        return await originalReply.call(this, text, chatId, options);
-                    };
-                }
-                
-                // Continue with standard message processing
-                this._normalMessageProcessing(m, chatUpdate);
-                
-                // Log performance for group message processing
-                const endTime = performance.now();
-                const processTime = endTime - startTime;
-                
-                // Only log slow operations
-                if (processTime > 500) {
-                    console.log(`[GROUP OPTIMIZATION] Slow message processing: ${Math.round(processTime)}ms for message type: ${m.mtype} in ${m.chat}`);
-                }
-                
-            } catch (e) {
-                console.error('[GROUP OPTIMIZATION] Error processing group message:', e)
-            }
-        } catch (e) {
-            console.error('[GROUP OPTIMIZATION] Processing error:', e)
-        }
-    },
-    
-    // Helper method for normal message processing path 
-    async _normalMessageProcessing(m, chatUpdate) {
-        // Uses the existing handler code path but skips initialization
-        // This method handles command processing and plugin matching
-
-        // The existing handler logic for commands continues here...
-        // (Using its own try/catch block to isolate errors)
-        try {
-            // Early return if not a command - big optimization for group chats
-            if (!m.text || !m.text.startsWith('.')) {
-                return;
-            }
-
-            // Process prefix and command structure
-            let usedPrefix = '.'  // Hardcoded for speed
-            let [fullCommand, ...args] = m.text.slice(1).trim().split` `.filter(v => v)
-            
-            // Track if a command was found
-            let isCommand = false
-            
-            // Use optimized plugin lookups
-            if (global.plugins && Object.keys(global.plugins).length > 0) {
-                // Optimize plugins if not already done (using object-based check for Heroku)
-                if (!global.pluginCache || !global.pluginCache.patterns || Object.keys(global.pluginCache.patterns).length === 0) {
-                    optimizePlugins(global.plugins)
-                }
-                
-                // Fast path: direct command lookup (using object instead of Map for Heroku compatibility)
-                if (global.pluginCache.commands && global.pluginCache.commands[fullCommand]) {
-                    isCommand = true;
-                    const pluginName = global.pluginCache.commands[fullCommand];
-                    const plugin = global.plugins[pluginName];
-                    
-                    if (plugin) {
-                        // Setup group metadata (only when needed)
-                        if (!m.isGroup && plugin.group) {
-                            return m.reply(getMessage('group_only', m.language || global.language));
-                        }
-                        
-                        if (m.isGroup) {
-                            // Lazy load group metadata only when needed
-                            if (!m.groupMetadata) {
-                                m.groupMetadata = await this.groupMetadata(m.chat).catch(_ => null);
-                            }
-                            
-                            // Setup participants, admin status
-                            if (!m.participants && m.groupMetadata) {
-                                m.participants = m.groupMetadata.participants || [];
-                            }
-                            
-                            if (m.participants && m.participants.length > 0) {
-                                m.sender_user = m.participants.find(u => this.decodeJid(u.id) === m.sender) || {};
-                                m.bot_user = m.participants.find(u => this.decodeJid(u.id) == this.user.jid) || {};
-                                m.isAdmin = m.sender_user && m.sender_user.admin || false;
-                                m.isBotAdmin = m.bot_user && m.bot_user.admin || false;
-                            }
-                            
-                            // Group-only plugin check
-                            if (plugin.admin && !m.isAdmin) {
-                                return m.reply(getMessage('admin_only', m.language || global.language));
-                            }
-                            
-                            if (plugin.botAdmin && !m.isBotAdmin) {
-                                return m.reply(getMessage('bot_admin_only', m.language || global.language));
-                            }
-                        }
-                        
-                        // Premium check
-                        if (plugin.premium && !m.isPrems) {
-                            return m.reply(getMessage('premium_only', m.language || global.language));
-                        }
-                        
-                        // Private chat check
-                        if (plugin.private && m.isGroup) {
-                            return m.reply(getMessage('private_only', m.language || global.language));
-                        }
-                        
-                        // Execute plugin
-                        try {
-                            await plugin.call(this, m, {
-                                usedPrefix,
-                                args,
-                                command: fullCommand,
-                                conn: this,
-                                participants: m.participants,
-                                groupMetadata: m.groupMetadata,
-                                user: m.sender_user,
-                                bot: m.bot_user,
-                                isAdmin: m.isAdmin,
-                                isBotAdmin: m.isBotAdmin,
-                                isPrems: m.isPrems
-                            });
-                        } catch (e) {
-                            console.error(e);
-                            // Send error message
-                            m.reply(`Error: ${e}`);
-                        }
-                        
-                        // Skip regular plugin matching since we found a direct match
-                        return;
-                    }
-                }
-                
-                // If no direct match, continue with fast regex search for patterns (object-based for Heroku)
-                if (!isCommand && global.pluginCache.patterns && Object.keys(global.pluginCache.patterns).length > 0) {
-                    for (const name of Object.keys(global.pluginCache.patterns)) {
-                        const patternInfo = global.pluginCache.patterns[name];
-                        const plugin = global.plugins[name];
-                        if (!plugin) continue;
-                        
-                        if (patternInfo.type === 'regex') {
-                            // Reconstruct regex from stored source and flags (Heroku-compatible)
-                            const regex = patternInfo.originalSource ? 
-                                new RegExp(patternInfo.originalSource, patternInfo.originalFlags || '') : 
-                                new RegExp(patternInfo.regex.replace(/^\/|\/[gimyu]*$/g, ''));
-                                
-                            if (regex.test(m.text)) {
-                                isCommand = true;
-                                
-                                // Similar permission checks as above
-                                // (code would be the same as the direct command path)
-                                
-                                // Execute plugin
-                                try {
-                                    await plugin.call(this, m, {
-                                        usedPrefix,
-                                        args,
-                                        command: fullCommand,
-                                        conn: this
-                                    });
-                                } catch (e) {
-                                    console.error(e);
-                                    m.reply(`Error: ${e}`);
-                                }
-                                
-                                break; // Stop after first matching plugin
-                            }
-                        }
-                    }
-                }
-            }
-            
-            // If command not found and this is a group, don't waste time with further processing
-            if (!isCommand && m.isGroup) {
-                return;
-            }
-        } catch (e) {
-            console.error('[GROUP OPTIMIZATION] Command processing error:', e)
-        }
-    },
-    
-    async participantsUpdate({ id, participants, action }) {
+   async participantsUpdate({ id, participants, action }) {
         if (opts['self']) return
         // if (id in conn.chats) return // First login will spam
         if (global.isInit) return
@@ -2214,11 +1720,11 @@ module.exports = {
         }
         let text = ''
         switch (action) {
-            case 'add':
-            case 'remove':
-            case 'leave':
-            case 'invite':
-            case 'invite_v4':
+        case 'add':
+        case 'remove':
+                case 'leave':
+                case 'invite':
+                case 'invite_v4':
                 if (chat.welcome) {
                     let groupMetadata = await this.groupMetadata(id) || (conn.chats[id] || {}).metadata
                     for (let user of participants) {
@@ -2247,19 +1753,17 @@ module.exports = {
                                  getMessage('goodbye_message', chatLang)))
                                 .replace('@user', '@' + user.split('@')[0])
                             this.sendMessage(id, {
-                                text: text,
-                                contextInfo: {
-                                    mentionedJid: [user],
-                                    externalAdReply: {  
-                                        title: action === 'add' ? getMessage('welcome', chatLang) : getMessage('goodbye', chatLang),
-                                        body: global.wm,
-                                        thumbnailUrl: pp,
-                                        sourceUrl: 'https://fire.betabotz.eu.org',
-                                        mediaType: 1,
-                                        renderLargerThumbnail: true 
-                                    }
-                                }
-                            }, { quoted: null})
+                            text: text,
+                            contextInfo: {
+                            mentionedJid: [user],
+                            externalAdReply: {  
+                            title: action === 'add' ? getMessage('welcome', chatLang) : getMessage('goodbye', chatLang),
+                            body: global.wm,
+                            thumbnailUrl: pp,
+                            sourceUrl: 'https://fire.betabotz.eu.org',
+                            mediaType: 1,
+                            renderLargerThumbnail: true 
+                            }}}, { quoted: null})
                         }
                     }
                 }
@@ -2356,9 +1860,9 @@ global.dfail = (Type, m, conn) => {
     }
 }
 
-const fs = require('fs');
-const chalk = require('chalk');
-const file = require.resolve(__filename);
+let fs = require('fs')
+let chalk = require('chalk')
+let file = require.resolve(__filename)
 
 // Process message handler for graceful shutdown
 if (process.send) {
@@ -2454,8 +1958,8 @@ if (process.send) {
 
 // File watcher
 fs.watchFile(file, () => {
-    fs.unwatchFile(file);
-    console.log(chalk.redBright("Update 'handler.js'"));
-    delete require.cache[file];
-    if (global.reloadHandler) console.log(global.reloadHandler());
-});
+    fs.unwatchFile(file)
+    console.log(chalk.redBright("Update 'handler.js'"))
+    delete require.cache[file]
+    if (global.reloadHandler) console.log(global.reloadHandler())
+})
