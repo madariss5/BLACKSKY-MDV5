@@ -22,26 +22,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "WhatsApp-Bot"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "WhatsApp-Bot-Optimized"
-
-[[workflows.workflow]]
-name = "WhatsApp-Bot"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "node replit-bot-starter.js"
-waitForPort = 5000
 
 [[workflows.workflow]]
 name = "WhatsApp-Bot-Optimized"
@@ -55,7 +36,8 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "NODE_OPTIONS=\"--expose-gc --max-old-space-size=512\" node index.js --autocleartmp --performance-mode"
+args = "NODE_OPTIONS=\"--expose-gc --max-old-space-size=512\" node index.js --performance-mode --autocleartmp"
+waitForPort = 5000
 
 [deployment]
 run = ["sh", "-c", "node index.js"]
@@ -67,7 +49,3 @@ externalPort = 80
 [[ports]]
 localPort = 5000
 externalPort = 5000
-
-[[ports]]
-localPort = 42573
-externalPort = 3000
