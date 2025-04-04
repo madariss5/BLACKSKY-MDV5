@@ -33,7 +33,7 @@
       "waifu": "Belum Di Set",
       "husbu": "Belum Di Set",
       "pc": 0,
-      "exp": 22394,
+      "exp": 22442,
       "coin": 0,
       "atm": 0,
       "limit": 8,
@@ -297,7 +297,7 @@
       "lastgrab": 0,
       "lastngocok": 0,
       "lastturu": 0,
-      "lastseen": 1743808827275,
+      "lastseen": 1743809111217,
       "lastSetStatus": 0,
       "registered": true,
       "mangga": 0,
@@ -348,8 +348,8 @@
       "lastdate": 0,
       "lasttambang": 0,
       "lastngepet": 0,
-      "chat": 4209,
-      "chatTotal": 4209,
+      "chat": 4215,
+      "chatTotal": 4215,
       "glimit": 10,
       "pertambangan": 0,
       "lastbossbattle": 0,
@@ -384,9 +384,9 @@
       "bibitapel": 0,
       "bibitmangga": 0,
       "bibitjeruk": 0,
-      "command": 575,
-      "commandTotal": 575,
-      "lastCmd": 1743808801474,
+      "command": 577,
+      "commandTotal": 577,
+      "lastCmd": 1743809111144,
       "language": "de",
       "doctor": 0,
       "mining": 0,
@@ -100031,12 +100031,12 @@
           "blacklist": false,
           "banned": false,
           "bannedTime": 0,
-          "chat": 48,
-          "chatTotal": 48,
-          "command": 13,
-          "commandTotal": 13,
-          "lastseen": 1743808801613,
-          "lastCmd": 1743808801474
+          "chat": 52,
+          "chatTotal": 52,
+          "command": 15,
+          "commandTotal": 15,
+          "lastseen": 1743809111217,
+          "lastCmd": 1743809111144
         }
       },
       "sWelcome": "*Welcome @user!*\n\n     To the group @subject\n\n╭─────「 *intro* 」\n│\n│─⪼ Name : \n│─⪼ Age :\n│─⪼ Location :\n│─⪼ Gender :\n╰─────────────\n\n> hope you enjoy your stay",
@@ -100459,10 +100459,10 @@
   },
   "stats": {
     "menu.js": {
-      "total": 243,
-      "success": 243,
-      "last": 1743808790376,
-      "lastSuccess": 1743808790376
+      "total": 244,
+      "success": 244,
+      "last": 1743809108509,
+      "lastSuccess": 1743809108509
     },
     "tools-profile.js": {
       "total": 26,
@@ -100771,10 +100771,10 @@
       "lastSuccess": 1743677286201
     },
     "rpg-gunshop.js": {
-      "total": 20,
-      "success": 15,
-      "last": 1743808801476,
-      "lastSuccess": 1743808801476
+      "total": 21,
+      "success": 16,
+      "last": 1743809111145,
+      "lastSuccess": 1743809111145
     },
     "downloader-ytmp3.js": {
       "total": 2,

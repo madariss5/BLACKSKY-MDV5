@@ -1,0 +1,29 @@
+2025-04-04T23:31:23.759616+00:00 app[web.1]: [HEROKU-KEEPER][INFO][2025-04-04T23:31:23.759Z] Performing graceful shutdown...
+2025-04-04T23:31:23.767158+00:00 app[web.1]: [HEROKU-KEEPER][SUCCESS][2025-04-04T23:31:23.767Z] Backed up 1 session files to /app/sessions-backup/backup-1743809483759
+2025-04-04T23:31:23.767571+00:00 app[web.1]: [HEROKU-KEEPER][INFO][2025-04-04T23:31:23.767Z] Removed old backup: /app/sessions-backup/backup-1743805672587
+2025-04-04T23:31:23.767839+00:00 app[web.1]: [HEROKU-KEEPER][INFO][2025-04-04T23:31:23.767Z] Health check server closed
+2025-04-04T23:31:23.767902+00:00 app[web.1]: [HEROKU-KEEPER][INFO][2025-04-04T23:31:23.767Z] Cleared heartbeat interval
+2025-04-04T23:31:23.767919+00:00 app[web.1]: [HEROKU-KEEPER][INFO][2025-04-04T23:31:23.767Z] Cleared connectionCheck interval
+2025-04-04T23:31:23.767948+00:00 app[web.1]: [HEROKU-KEEPER][INFO][2025-04-04T23:31:23.767Z] Cleared backup interval
+2025-04-04T23:31:23.767962+00:00 app[web.1]: [HEROKU-KEEPER][SUCCESS][2025-04-04T23:31:23.767Z] Graceful shutdown completed
+2025-04-04T23:31:23.857655+00:00 heroku[web.1]: Process exited with status 0
+2025-04-04T23:31:38.849692+00:00 heroku[web.1]: Starting process with command `pm2-runtime start heroku-bot-starter.js --name BLACKSKY-MD -- --autocleartmp --autoread`
+2025-04-04T23:31:39.378902+00:00 heroku[web.1]: Process exited with status 127
+2025-04-04T23:31:39.335419+00:00 app[web.1]: /bin/bash: line 1: pm2-runtime: command not found
+2025-04-04T23:31:39.398400+00:00 heroku[web.1]: State changed from starting to crashed
+2025-04-04T23:31:39.404642+00:00 heroku[web.1]: State changed from crashed to starting
+2025-04-04T23:31:56.743635+00:00 heroku[web.1]: Starting process with command `pm2-runtime start heroku-bot-starter.js --name BLACKSKY-MD -- --autocleartmp --autoread`
+2025-04-04T23:31:57.257446+00:00 heroku[web.1]: Process exited with status 127
+2025-04-04T23:31:57.223275+00:00 app[web.1]: /bin/bash: line 1: pm2-runtime: command not found
+2025-04-04T23:31:57.277661+00:00 heroku[web.1]: State changed from starting to crashed
+Disconnected from log stream. There may be events happening that you do not see here! Attempting to reconnect...
+2025-04-04T23:31:23.857655+00:00 heroku[web.1]: Process exited with status 0
+2025-04-04T23:31:38.849692+00:00 heroku[web.1]: Starting process with command `pm2-runtime start heroku-bot-starter.js --name BLACKSKY-MD -- --autocleartmp --autoread`
+2025-04-04T23:31:39.335419+00:00 app[web.1]: /bin/bash: line 1: pm2-runtime: command not found
+2025-04-04T23:31:39.378902+00:00 heroku[web.1]: Process exited with status 127
+2025-04-04T23:31:39.398400+00:00 heroku[web.1]: State changed from starting to crashed
+2025-04-04T23:31:39.404642+00:00 heroku[web.1]: State changed from crashed to starting
+2025-04-04T23:31:56.743635+00:00 heroku[web.1]: Starting process with command `pm2-runtime start heroku-bot-starter.js --name BLACKSKY-MD -- --autocleartmp --autoread`
+2025-04-04T23:31:57.223275+00:00 app[web.1]: /bin/bash: line 1: pm2-runtime: command not found
+2025-04-04T23:31:57.257446+00:00 heroku[web.1]: Process exited with status 127
+2025-04-04T23:31:57.277661+00:00 heroku[web.1]: State changed from starting to crashed
