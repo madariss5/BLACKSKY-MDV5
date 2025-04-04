@@ -5,19 +5,38 @@
  */
 const { initialize: initKeeper } = require('./heroku-connection-keeper.js');
 
-// Performance optimization support
+// Performance optimization support - initialize earlier for faster startup
 let optimizerInitialized = false;
 function initOptimizer() {
   if (optimizerInitialized) return;
   
   try {
-    // Just requiring the module will trigger the self-initialization code
-    console.log('🚀 Loading performance optimization system...');
+    // Pre-load RPG-specific optimizations
+    console.log('🚀 Loading RPG performance optimizations...');
+    
+    // Initialize response cache system
+    global.responseCache = require('./lib/response-cache.js');
+    console.log('✅ Response cache system loaded successfully');
+    
+    // Initialize group optimization system
+    global.groupOptimization = require('./lib/group-optimization.js');
+    console.log('✅ Group chat optimization system loaded successfully');
+    
+    // Load other optimizations via the main module
     require('./apply-optimizations.js');
+    
+    // Set up periodic cache cleanup
+    setInterval(() => {
+      if (global.responseCache && typeof global.responseCache.cleanup === 'function') {
+        global.responseCache.cleanup();
+      }
+    }, 5 * 60 * 1000); // Clean every 5 minutes
+    
     optimizerInitialized = true;
-    console.log('✅ Performance optimization system loaded successfully');
+    console.log('✅ Performance optimization system fully initialized');
   } catch (err) {
     console.error('⚠️ Failed to load performance optimizations:', err.message);
+    console.error(err);
   }
 }
 const express = require('express');

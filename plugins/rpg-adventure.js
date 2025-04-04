@@ -127,12 +127,12 @@ let handler = async (m, { conn, usedPrefix, owner }) => {
                     potion: potionText,
                     diamond: diamondText,
                     crates: crateText
-                 || {}});
+                });
                 
                 // Rare item message
                 let itemrand = [
-                    getMessage('rpg_adventure_rare_item', lang, { amount: mythic, item: 'Mythic'  || {}}),
-                    getMessage('rpg_adventure_rare_item', lang, { amount: legendary, item: 'Legendary'  || {}})
+                    getMessage('rpg_adventure_rare_item', lang, { amount: mythic, item: 'Mythic' }),
+                    getMessage('rpg_adventure_rare_item', lang, { amount: legendary, item: 'Legendary' })
                 ];
                 let rendem = itemrand[Math.floor(Math.random() * itemrand.length)];
 
@@ -184,13 +184,13 @@ let handler = async (m, { conn, usedPrefix, owner }) => {
                     conn.reply(m.chat, getMessage('rpg_adventure_broken_armor', lang), m);
                 }
             } else {
-                conn.reply(m.chat, getMessage('rpg_adventure_exhausted', lang, { time: timers  || {}}), m);
+                conn.reply(m.chat, getMessage('rpg_adventure_exhausted', lang, { time: timers }), m);
             }
         } else {
             conn.reply(m.chat, getMessage('rpg_adventure_need_health', lang, { 
                 amount: 80,
                 prefix: usedPrefix
-             || {}}), m);
+            }), m);
         }
     } catch (e) {
         console.log(e);
