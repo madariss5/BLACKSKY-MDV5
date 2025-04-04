@@ -22,10 +22,10 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "WhatsApp-Bot-Optimized"
+args = "Simple-Server-Test"
 
 [[workflows.workflow]]
-name = "WhatsApp-Bot-Optimized"
+name = "Simple-Server-Test"
 author = "agent"
 
 [workflows.workflow.metadata]
@@ -36,8 +36,8 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "NODE_OPTIONS=\"--expose-gc --max-old-space-size=512\" node index.js --performance-mode --autocleartmp"
-waitForPort = 5000
+args = "node simple-test.js"
+waitForPort = 5678
 
 [deployment]
 run = ["sh", "-c", "node index.js"]
@@ -49,3 +49,7 @@ externalPort = 80
 [[ports]]
 localPort = 5000
 externalPort = 5000
+
+[[ports]]
+localPort = 5678
+externalPort = 3000
