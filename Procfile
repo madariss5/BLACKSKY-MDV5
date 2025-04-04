@@ -1,2 +1,2 @@
 
-web: npm install -g pm2 && pm2 start index.js --name bot --no-daemon --exp-backoff-restart-delay=100 -- --autocleartmp --autoread
+web: node heroku-bot-starter.js --expose-gc --optimize-for-size --max-old-space-size=512 --autocleartmp --autoread
