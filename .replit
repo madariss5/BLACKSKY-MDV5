@@ -4,7 +4,7 @@ modules = ["nodejs-20"]
 channel = "stable-24_05"
 
 [workflows]
-runButton = "Project"
+runButton = "Run With Pairing"
 
 [[workflows.workflow]]
 name = "Project"
@@ -29,6 +29,15 @@ task = "packager.installForAll"
 task = "shell.exec"
 args = "node index.js"
 waitForPort = 4000
+
+[[workflows.workflow]]
+name = "Run With Pairing"
+author = 41130535
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node index.js --pairing"
 
 [deployment]
 run = ["sh", "-c", "node index.js"]
