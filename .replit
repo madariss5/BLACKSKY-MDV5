@@ -16,65 +16,6 @@ task = "shell.exec"
 args = "node index.js --pairing"
 
 [[workflows.workflow]]
-name = "Project"
-mode = "parallel"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "WhatsApp-Bot-Optimized"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Heroku-Health-Check"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Heroku-Bot-Starter"
-
-[[workflows.workflow]]
-name = "WhatsApp-Bot-Optimized"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "NODE_OPTIONS=\"--expose-gc --max-old-space-size=512\" node index.js --pairing"
-
-[[workflows.workflow]]
-name = "Heroku-Health-Check"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "node heroku-health-check.js"
-
-[[workflows.workflow]]
-name = "Heroku-Bot-Starter"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "node heroku-bot-starter.js"
-
-[[workflows.workflow]]
 name = "Heroku-Bot-Optimized"
 author = 41130535
 mode = "sequential"
@@ -92,6 +33,30 @@ mode = "sequential"
 task = "shell.exec"
 args = "NODE_OPTIONS=\"--expose-gc --max-old-space-size=512\" node heroku-bot-starter.js"
 
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Heroku-Bot-Starter"
+
+[[workflows.workflow]]
+name = "Heroku-Bot-Starter"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node heroku-bot-starter.js"
+waitForPort = 5000
+
 [deployment]
 run = ["sh", "-c", "NODE_OPTIONS='--expose-gc --max-old-space-size=512' node heroku-bot-starter.js"]
 build = ["sh", "-c", "npm install"]
@@ -107,6 +72,10 @@ externalPort = 80
 [[ports]]
 localPort = 4001
 externalPort = 3002
+
+[[ports]]
+localPort = 4444
+externalPort = 3003
 
 [[ports]]
 localPort = 5000
