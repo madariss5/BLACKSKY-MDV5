@@ -1,6 +1,33 @@
+/**
+ * Fixed gunshop command for BLACKSKY-MD
+ * Works with the gunshop-translations.js file
+ */
 const { getMessage } = require('../lib/languages');
 const gunshopTranslations = require('../gunshop-translations');
 const cooldown = 30000;
+
+// Custom getMessage function to handle gunshopTranslations object
+function getGunshopMessage(key, lang = 'en', replacements = {}) {
+    // Default to English if language not supported
+    if (!gunshopTranslations[lang]) {
+        lang = 'en';
+    }
+    
+    // Get the translation or fallback to English or the key itself
+    let message = 
+        (gunshopTranslations[lang] && gunshopTranslations[lang][key]) || 
+        (gunshopTranslations['en'] && gunshopTranslations['en'][key]) || 
+        key;
+    
+    // Process replacements
+    if (replacements && typeof message === 'string') {
+        for (const [placeholder, value] of Object.entries(replacements)) {
+            message = message.replace(new RegExp(`%${placeholder}%`, 'g'), value);
+        }
+    }
+    
+    return message;
+}
 
 
 const items = {
@@ -62,18 +89,18 @@ const handler = async (m, { conn, command, usedPrefix, args, text, isPrems }) =>
     const userLang = (user.language || conn.language || 'en').toLowerCase();
     
     if (user.jail === true) {
-        throw getMessage(gunshopTranslations, userLang, 'gunshop_jail_warning');
+        throw getGunshopMessage('gunshop_jail_warning', userLang);
     }
 
     if (new Date() - user.pekerjaantiga < cooldown) {
         const remainingTime = new Date(user.pekerjaantiga + cooldown) - new Date();
         const formattedTime = new Date(remainingTime).toISOString().substr(11, 8);
-        throw getMessage(gunshopTranslations, userLang, 'gunshop_recent_visit').replace('%time%', formattedTime);
+        throw getGunshopMessage('gunshop_recent_visit', userLang, { time: formattedTime });
     }
 
     if (command.toLowerCase() == 'gunshop') {
-    let gunshopTitle = getMessage(gunshopTranslations, userLang, 'gunshop_title');
-    let gunshopDesc = getMessage(gunshopTranslations, userLang, 'gunshop_description');
+    let gunshopTitle = getGunshopMessage('gunshop_title', userLang);
+    let gunshopDesc = getGunshopMessage('gunshop_description', userLang);
     
     let text = `
 *${gunshopTitle}*
@@ -94,9 +121,9 @@ const listItems = Object.fromEntries(Object.entries(items[command.toLowerCase()]
     }));
 
 const info = `
-*${getMessage(gunshopTranslations, userLang, 'gunshop_usage_example').replace('%prefix%', usedPrefix).replace('%command%', command)}*
+*${getGunshopMessage('gunshop_usage_example', userLang, {prefix: usedPrefix, command: command})}*
     
-*${getMessage(gunshopTranslations, userLang, 'gunshop_list_weapons')}* 
+*${getGunshopMessage('gunshop_list_weapons', userLang)}* 
 ${Object.keys(items[command.toLowerCase()]).map((v) => {
         let paymentMethod = Object.keys(items[command.toLowerCase()][v])[0];
         return `${emojis(v)}${capitalizeFirstLetter(v)} | ${toSimple(items[command.toLowerCase()][v][paymentMethod])} ${emojis(paymentMethod)}${capitalizeFirstLetter(paymentMethod)}`.trim();
@@ -122,11 +149,12 @@ if (command.toLowerCase() == 'buygun') {
     if (user[paymentMethod] < items[command.toLowerCase()][item][paymentMethod] * total) {
         const needed = (items[command.toLowerCase()][item][paymentMethod] * total) - user[paymentMethod];
         return m.reply(
-            getMessage(gunshopTranslations, userLang, 'gunshop_buy_not_enough')
-                .replace('%payment%', paymentMethod)
-                .replace('%amount%', toSimple(total))
-                .replace('%item%', `${emojis(item)}${capitalizeFirstLetter(item)}`)
-                .replace('%needed%', toSimple(needed))
+            getGunshopMessage('gunshop_buy_not_enough', userLang, {
+                payment: paymentMethod,
+                amount: toSimple(total),
+                item: `${emojis(item)}${capitalizeFirstLetter(item)}`,
+                needed: toSimple(needed)
+            })
         );
     }
 
@@ -135,10 +163,11 @@ if (command.toLowerCase() == 'buygun') {
     user.pekerjaantiga = new Date() * 1;
 
     return m.reply(
-        getMessage(gunshopTranslations, userLang, 'gunshop_buy_success')
-            .replace('%amount%', toSimple(total))
-            .replace('%item%', `${emojis(item)}${capitalizeFirstLetter(item)}`)
-            .replace('%payment%', `${emojis(paymentMethod)}${paymentMethod}`)
+        getGunshopMessage('gunshop_buy_success', userLang, {
+            amount: toSimple(total),
+            item: `${emojis(item)}${capitalizeFirstLetter(item)}`,
+            payment: `${emojis(paymentMethod)}${paymentMethod}`
+        })
     );
 } else if (command.toLowerCase() == 'sellgun') {
     if (isPrems && /all/i.test(args[1])) {
@@ -146,17 +175,19 @@ if (command.toLowerCase() == 'buygun') {
     }
     if (user[item] < total) {
         return m.reply(
-            getMessage(gunshopTranslations, userLang, 'gunshop_sell_not_enough')
-                .replace('%item%', `${emojis(item)}${capitalizeFirstLetter(item)}`)
-                .replace('%available%', toSimple(user[item]))
+            getGunshopMessage('gunshop_sell_not_enough', userLang, {
+                item: `${emojis(item)}${capitalizeFirstLetter(item)}`,
+                available: toSimple(user[item])
+            })
         );
     }
     const reward = items[command.toLowerCase()][item];
     const rewardKey = Object.keys(reward)[0];
     if (!(rewardKey in user)) {
         throw new Error(
-            getMessage(gunshopTranslations, userLang, 'gunshop_db_error')
-                .replace('%reward%', rewardKey)
+            getGunshopMessage('gunshop_db_error', userLang, {
+                reward: rewardKey
+            })
         );
     }
 
@@ -165,11 +196,12 @@ if (command.toLowerCase() == 'buygun') {
     user.pekerjaantiga = new Date() * 1;
 
     return m.reply(
-        getMessage(gunshopTranslations, userLang, 'gunshop_sell_success')
-            .replace('%amount%', toSimple(total))
-            .replace('%item%', `${emojis(item)}${capitalizeFirstLetter(item)}`)
-            .replace('%reward%', toSimple(items[command.toLowerCase()][item][rewardKey] * total))
-            .replace('%payment%', `${emojis(rewardKey)}${rewardKey}`)
+        getGunshopMessage('gunshop_sell_success', userLang, {
+            amount: toSimple(total),
+            item: `${emojis(item)}${capitalizeFirstLetter(item)}`,
+            reward: toSimple(items[command.toLowerCase()][item][rewardKey] * total),
+            payment: `${emojis(rewardKey)}${rewardKey}`
+        })
     );
 }
 return;
