@@ -30,18 +30,16 @@ async function sendNotificationWithRetry(conn, jid, content, options = {}) {
   // Initial attempt counter
   let attempts = 0;
   const maxAttempts = options.maxRetries || 5;
-  const initialDelay = options.initialDelay || 1000; // 1 second (reduced from 5 seconds)
-  const maxDelay = options.maxDelay || 30000; // 30 seconds (reduced from 5 minutes)
+  const initialDelay = options.initialDelay || 5000; // 5 seconds
+  const maxDelay = options.maxDelay || 300000; // 5 minutes
 
   // Process to attempt sending the message
   const attemptSend = async () => {
     try {
-      // Check if connection is ready - enhanced for Heroku deployment stability
-      if (!conn?.user?.id) {
-        console.log(`[CONNECTION] Could not send notification - waiting for connection to establish`);
-        // Connection not ready, queue for later processing with Heroku-optimized retry
+      // Check if connection is ready
+      if (!conn.user) {
+        // Connection not ready, queue for later processing
         if (!pendingNotifications.has(msgId) && attempts < maxAttempts) {
-          console.log(`[CONNECTION] Queuing message ${msgId} for later delivery (attempt ${attempts+1}/${maxAttempts})`);
           pendingNotifications.set(msgId, { 
             jid, 
             content, 
@@ -123,7 +121,7 @@ function processNotificationQueue(conn) {
   console.log(`[NOTIFICATION] Processing ${pendingNotifications.size} queued notifications`);
 
   const now = Date.now();
-  const maxAge = 1800000; // 30 minutes max age for notifications (reduced from 1 hour)
+  const maxAge = 3600000; // 1 hour max age for notifications
 
   // Process all pending notifications
   for (const [id, notification] of pendingNotifications.entries()) {
@@ -222,19 +220,19 @@ function setupNotificationQueue(conn) {
     const { connection } = update;
 
     if (connection === 'open') {
-      // Process queue immediately with minimal delay
+      // Wait a short while for connection to stabilize
       setTimeout(() => {
         processNotificationQueue(conn);
-      }, 500); // 0.5 second delay (reduced from 5 seconds)
+      }, 5000); // 5 second delay
     }
   });
 
-  // Frequently attempt to process the queue for faster response
+  // Periodically attempt to process the queue for messages stuck for a while
   setInterval(() => {
     if (conn.user && pendingNotifications.size > 0) {
       processNotificationQueue(conn);
     }
-  }, 5000); // Check every 5 seconds (reduced from 60 seconds)
+  }, 60000); // Check every minute
 
   console.log('[NOTIFICATION] Notification queue system initialized');
   return true;
@@ -247,7 +245,7 @@ let connectionCheckInterval = null;
 const initNotificationQueue = async () => {
   if (!global.conn?.user) {
     retryCount++;
-    const delay = Math.min(Math.pow(1.5, retryCount) * 1000, 60000); // Max 1 minute delay (reduced from 5 minutes and less aggressive backoff)
+    const delay = Math.min(Math.pow(2, retryCount) * 1000, 300000); // Max 5 minute delay
 
     if (retryCount <= maxRetries) {
       // Only log every 30 seconds to reduce spam
