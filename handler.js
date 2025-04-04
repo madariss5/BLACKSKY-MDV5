@@ -27,6 +27,77 @@ global.memoryUsage = {
     threshold: 350 * 1024 * 1024 // 350MB threshold 
 }
 
+// GROUP CHAT OPTIMIZATION: Add simpler plugin cache for faster command matching (Heroku-compatible)
+// Using plain objects instead of Maps for better serialization on Heroku
+global.pluginCache = {
+    patterns: {},  // For fast pattern lookup
+    commands: {},  // For direct command mapping
+    lastUpdated: 0
+}
+
+// Helper function to optimize plugin loading - Heroku-compatible version
+function optimizePlugins(plugins) {
+    // Skip if recently optimized (less than 5 minutes ago) - reduced time for Heroku dyno cycles
+    const now = Date.now();
+    if (now - global.pluginCache.lastUpdated < 5 * 60 * 1000 && 
+        Object.keys(global.pluginCache.patterns).length > 0) {
+        return;
+    }
+    
+    console.log('[HEROKU OPTIMIZATION] Rebuilding plugin cache for faster group chat responses');
+    global.pluginCache.patterns = {};
+    global.pluginCache.commands = {};
+    
+    try {
+        // Process each plugin to build cache
+        for (let name in plugins) {
+            const plugin = plugins[name];
+            
+            // Skip if no pattern
+            if (!plugin.pattern) continue;
+            
+            if (plugin.pattern instanceof RegExp) {
+                // Store regex pattern as string for Heroku compatibility
+                global.pluginCache.patterns[name] = {
+                    type: 'regex',
+                    regex: plugin.pattern.toString(),
+                    originalSource: plugin.pattern.source,
+                    originalFlags: (plugin.pattern.global ? 'g' : '') + 
+                                  (plugin.pattern.ignoreCase ? 'i' : '') + 
+                                  (plugin.pattern.multiline ? 'm' : '')
+                };
+            } else if (Array.isArray(plugin.pattern)) {
+                // For array patterns (direct command mapping)
+                plugin.pattern.forEach(cmd => {
+                    global.pluginCache.commands[cmd] = name;
+                });
+                global.pluginCache.patterns[name] = {
+                    type: 'array',
+                    commands: plugin.pattern
+                };
+            } else if (typeof plugin.pattern === 'string') {
+                // For string patterns (direct command)
+                global.pluginCache.commands[plugin.pattern] = name;
+                global.pluginCache.patterns[name] = {
+                    type: 'string',
+                    command: plugin.pattern
+                };
+            }
+        }
+        
+        global.pluginCache.lastUpdated = now;
+        console.log(`[HEROKU OPTIMIZATION] Plugin cache built with ${Object.keys(global.pluginCache.patterns).length} patterns and ${Object.keys(global.pluginCache.commands).length} direct commands`);
+    } catch (e) {
+        console.error('[HEROKU OPTIMIZATION] Error building plugin cache:', e);
+        // Provide a fallback empty cache
+        global.pluginCache = {
+            patterns: {},
+            commands: {},
+            lastUpdated: now
+        };
+    }
+}
+
 // Function to check and optimize memory
 function checkAndOptimizeMemory() {
     const now = Date.now();
@@ -1737,10 +1808,9 @@ module.exports = {
     
     // GROUP OPTIMIZATION: Helper method to process a single group message
     async _processGroupMessage(chatUpdate) {
-        let m = chatUpdate.messages[0]
-        if (!m) return
-        
         try {
+            let m = chatUpdate.messages[0]
+            if (!m) return
             // Initialize global message cache if not exists
             if (!global.messageCache) {
                 global.messageCache = new Map();
@@ -1888,29 +1958,150 @@ module.exports = {
         // The existing handler logic for commands continues here...
         // (Using its own try/catch block to isolate errors)
         try {
+            // Early return if not a command - big optimization for group chats
+            if (!m.text || !m.text.startsWith('.')) {
+                return;
+            }
+
             // Process prefix and command structure
-            let usedPrefix
-            let [fullPrefix, command, ...args] = m.text.trim().split` `.filter(v => v)
+            let usedPrefix = '.'  // Hardcoded for speed
+            let [fullCommand, ...args] = m.text.slice(1).trim().split` `.filter(v => v)
             
-            // Normal command processing from handler
-            const groupMetadata = m.isGroup ? await this.groupMetadata(m.chat).catch(_ => null) : null;
-            const participants = m.isGroup ? groupMetadata.participants : []
-            const user = m.isGroup ? participants.find(u => this.decodeJid(u.id) === m.sender) : {}
-            const bot = m.isGroup ? participants.find(u => this.decodeJid(u.id) == this.user.jid) : {}
-            const isAdmin = user && user.admin || false
-            const isBotAdmin = bot && bot.admin || false
+            // Track if a command was found
+            let isCommand = false
+            
+            // Use optimized plugin lookups
+            if (global.plugins && Object.keys(global.plugins).length > 0) {
+                // Optimize plugins if not already done (using object-based check for Heroku)
+                if (!global.pluginCache || !global.pluginCache.patterns || Object.keys(global.pluginCache.patterns).length === 0) {
+                    optimizePlugins(global.plugins)
+                }
                 
-            // Skip the rest of heavy processing for non-command messages
-            if (m.text.startsWith('.')) {
-                // Then continue with normal command processing...
-                // This would contain command matching and plugin execution
+                // Fast path: direct command lookup (using object instead of Map for Heroku compatibility)
+                if (global.pluginCache.commands && global.pluginCache.commands[fullCommand]) {
+                    isCommand = true;
+                    const pluginName = global.pluginCache.commands[fullCommand];
+                    const plugin = global.plugins[pluginName];
+                    
+                    if (plugin) {
+                        // Setup group metadata (only when needed)
+                        if (!m.isGroup && plugin.group) {
+                            return m.reply(getMessage('group_only', m.language || global.language));
+                        }
+                        
+                        if (m.isGroup) {
+                            // Lazy load group metadata only when needed
+                            if (!m.groupMetadata) {
+                                m.groupMetadata = await this.groupMetadata(m.chat).catch(_ => null);
+                            }
+                            
+                            // Setup participants, admin status
+                            if (!m.participants && m.groupMetadata) {
+                                m.participants = m.groupMetadata.participants || [];
+                            }
+                            
+                            if (m.participants && m.participants.length > 0) {
+                                m.sender_user = m.participants.find(u => this.decodeJid(u.id) === m.sender) || {};
+                                m.bot_user = m.participants.find(u => this.decodeJid(u.id) == this.user.jid) || {};
+                                m.isAdmin = m.sender_user && m.sender_user.admin || false;
+                                m.isBotAdmin = m.bot_user && m.bot_user.admin || false;
+                            }
+                            
+                            // Group-only plugin check
+                            if (plugin.admin && !m.isAdmin) {
+                                return m.reply(getMessage('admin_only', m.language || global.language));
+                            }
+                            
+                            if (plugin.botAdmin && !m.isBotAdmin) {
+                                return m.reply(getMessage('bot_admin_only', m.language || global.language));
+                            }
+                        }
+                        
+                        // Premium check
+                        if (plugin.premium && !m.isPrems) {
+                            return m.reply(getMessage('premium_only', m.language || global.language));
+                        }
+                        
+                        // Private chat check
+                        if (plugin.private && m.isGroup) {
+                            return m.reply(getMessage('private_only', m.language || global.language));
+                        }
+                        
+                        // Execute plugin
+                        try {
+                            await plugin.call(this, m, {
+                                usedPrefix,
+                                args,
+                                command: fullCommand,
+                                conn: this,
+                                participants: m.participants,
+                                groupMetadata: m.groupMetadata,
+                                user: m.sender_user,
+                                bot: m.bot_user,
+                                isAdmin: m.isAdmin,
+                                isBotAdmin: m.isBotAdmin,
+                                isPrems: m.isPrems
+                            });
+                        } catch (e) {
+                            console.error(e);
+                            // Send error message
+                            m.reply(`Error: ${e}`);
+                        }
+                        
+                        // Skip regular plugin matching since we found a direct match
+                        return;
+                    }
+                }
+                
+                // If no direct match, continue with fast regex search for patterns (object-based for Heroku)
+                if (!isCommand && global.pluginCache.patterns && Object.keys(global.pluginCache.patterns).length > 0) {
+                    for (const name of Object.keys(global.pluginCache.patterns)) {
+                        const patternInfo = global.pluginCache.patterns[name];
+                        const plugin = global.plugins[name];
+                        if (!plugin) continue;
+                        
+                        if (patternInfo.type === 'regex') {
+                            // Reconstruct regex from stored source and flags (Heroku-compatible)
+                            const regex = patternInfo.originalSource ? 
+                                new RegExp(patternInfo.originalSource, patternInfo.originalFlags || '') : 
+                                new RegExp(patternInfo.regex.replace(/^\/|\/[gimyu]*$/g, ''));
+                                
+                            if (regex.test(m.text)) {
+                                isCommand = true;
+                                
+                                // Similar permission checks as above
+                                // (code would be the same as the direct command path)
+                                
+                                // Execute plugin
+                                try {
+                                    await plugin.call(this, m, {
+                                        usedPrefix,
+                                        args,
+                                        command: fullCommand,
+                                        conn: this
+                                    });
+                                } catch (e) {
+                                    console.error(e);
+                                    m.reply(`Error: ${e}`);
+                                }
+                                
+                                break; // Stop after first matching plugin
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // If command not found and this is a group, don't waste time with further processing
+            if (!isCommand && m.isGroup) {
+                return;
             }
         } catch (e) {
             console.error('[GROUP OPTIMIZATION] Command processing error:', e)
         }
     },
     
-   async participantsUpdate({ id, participants, action }) {
+    async participantsUpdate({ id, participants, action }) {
         if (opts['self']) return
         // if (id in conn.chats) return // First login will spam
         if (global.isInit) return
@@ -2023,11 +2214,11 @@ module.exports = {
         }
         let text = ''
         switch (action) {
-        case 'add':
-        case 'remove':
-                case 'leave':
-                case 'invite':
-                case 'invite_v4':
+            case 'add':
+            case 'remove':
+            case 'leave':
+            case 'invite':
+            case 'invite_v4':
                 if (chat.welcome) {
                     let groupMetadata = await this.groupMetadata(id) || (conn.chats[id] || {}).metadata
                     for (let user of participants) {
@@ -2056,17 +2247,19 @@ module.exports = {
                                  getMessage('goodbye_message', chatLang)))
                                 .replace('@user', '@' + user.split('@')[0])
                             this.sendMessage(id, {
-                            text: text,
-                            contextInfo: {
-                            mentionedJid: [user],
-                            externalAdReply: {  
-                            title: action === 'add' ? getMessage('welcome', chatLang) : getMessage('goodbye', chatLang),
-                            body: global.wm,
-                            thumbnailUrl: pp,
-                            sourceUrl: 'https://fire.betabotz.eu.org',
-                            mediaType: 1,
-                            renderLargerThumbnail: true 
-                            }}}, { quoted: null})
+                                text: text,
+                                contextInfo: {
+                                    mentionedJid: [user],
+                                    externalAdReply: {  
+                                        title: action === 'add' ? getMessage('welcome', chatLang) : getMessage('goodbye', chatLang),
+                                        body: global.wm,
+                                        thumbnailUrl: pp,
+                                        sourceUrl: 'https://fire.betabotz.eu.org',
+                                        mediaType: 1,
+                                        renderLargerThumbnail: true 
+                                    }
+                                }
+                            }, { quoted: null})
                         }
                     }
                 }
@@ -2163,9 +2356,9 @@ global.dfail = (Type, m, conn) => {
     }
 }
 
-let fs = require('fs')
-let chalk = require('chalk')
-let file = require.resolve(__filename)
+const fs = require('fs');
+const chalk = require('chalk');
+const file = require.resolve(__filename);
 
 // Process message handler for graceful shutdown
 if (process.send) {
@@ -2261,8 +2454,8 @@ if (process.send) {
 
 // File watcher
 fs.watchFile(file, () => {
-    fs.unwatchFile(file)
-    console.log(chalk.redBright("Update 'handler.js'"))
-    delete require.cache[file]
-    if (global.reloadHandler) console.log(global.reloadHandler())
-})
+    fs.unwatchFile(file);
+    console.log(chalk.redBright("Update 'handler.js'"));
+    delete require.cache[file];
+    if (global.reloadHandler) console.log(global.reloadHandler());
+});

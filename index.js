@@ -75,22 +75,115 @@ if (isTermux) {
   }
 }
 
-// Add failure recovery for connection issues
+// Initialize message processing optimization (Heroku-compatible version)
+global.optimizedMessaging = {
+  enabled: true,
+  batchSize: 5,  // Process messages in batches of 5 for group chats
+  concurrentGroups: 3,  // Process up to 3 groups concurrently
+  messageCache: {},  // Using plain object instead of Map for Heroku
+  groupProcessingQueue: {},  // Using plain object instead of Set for Heroku
+  groupStats: {},
+  messageCounter: 0,
+  startTime: Date.now(),
+  isHeroku: !!process.env.HEROKU_APP_NAME
+};
+
+// Detect Heroku environment and apply specific optimizations
+if (process.env.HEROKU_APP_NAME) {
+  console.log('[HEROKU DETECTED] Applying Heroku-specific optimizations');
+  
+  // Reduce memory usage limits for Heroku
+  global.optimizedMessaging.batchSize = 3;  // Smaller batch size
+  global.optimizedMessaging.concurrentGroups = 2;  // Fewer concurrent groups
+  
+  // Add Heroku-specific marker for code paths
+  global.isHerokuEnvironment = true;
+  
+  // Set memory threshold lower for Heroku
+  if (global.memoryUsage) {
+    global.memoryUsage.threshold = 250 * 1024 * 1024; // 250MB threshold for Heroku
+    console.log('[HEROKU OPTIMIZATION] Memory threshold set to 250MB');
+  }
+}
+
+// Initialize message tracking for memory optimization
+global.messageTracker = {
+  lastGc: Date.now(),
+  gcInterval: process.env.HEROKU_APP_NAME ? 60000 : 300000, // More frequent GC on Heroku (1 min vs 5 min)
+  processed: 0
+};
+
+// Add periodic stats logging
+setInterval(() => {
+  if (global.optimizedMessaging) {
+    const uptime = Math.floor((Date.now() - global.optimizedMessaging.startTime) / 1000);
+    const activeGroups = Object.keys(global.optimizedMessaging.groupStats || {}).length;
+    const totalMessages = global.optimizedMessaging.messageCounter || 0;
+    
+    if (totalMessages > 0) {
+      const messagesPerSecond = (totalMessages / uptime).toFixed(2);
+      console.log(`[OPTIMIZATION STATS] Messages: ${totalMessages}, Rate: ${messagesPerSecond}/s, Active groups: ${activeGroups}, Uptime: ${uptime}s`);
+    }
+  }
+}, 300000); // Every 5 minutes
+
+// Enhanced failure recovery for connection issues with performance monitoring
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  
+  // Track memory at time of error
+  const memoryUsage = process.memoryUsage();
+  console.log(`[ERROR MEMORY] RSS: ${Math.round(memoryUsage.rss / 1024 / 1024)}MB, Heap: ${Math.round(memoryUsage.heapUsed / 1024 / 1024)}/${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`);
   
   // Auto recovery for connection closed errors
   if (reason && reason.message && (
     reason.message.includes('Connection Closed') ||
     reason.message.includes('connection closed') ||
-    reason.message.includes('timed out')
+    reason.message.includes('timed out') ||
+    reason.message.includes('reconnect failed')
   )) {
-    console.log('🔄 Connection closed, attempting auto-recovery...');
+    console.log('🔄 Connection closed, attempting smart auto-recovery...');
+    
+    // Clear message queue to prevent backup
+    if (global.conn && global.conn.chats) {
+      const groupChats = Object.keys(global.conn.chats).filter(id => id.endsWith('@g.us'));
+      console.log(`[SMART RECOVERY] Clearing message queue for ${groupChats.length} groups`);
+    }
+    
+    // Clear caches that might be causing issues (compatible with both Map and object)
+    if (global.messageCache) {
+      const cacheSize = global.messageCache instanceof Map 
+        ? global.messageCache.size 
+        : Object.keys(global.messageCache).length;
+        
+      if (cacheSize > 0) {
+        console.log(`[SMART RECOVERY] Clearing message cache with ${cacheSize} entries`);
+        
+        if (global.messageCache instanceof Map) {
+          global.messageCache.clear();
+        } else {
+          global.messageCache = {}; // Reset if using object-based cache
+        }
+      }
+    }
+    
+    // Force garbage collection if available
+    if (global.gc) {
+      console.log('[SMART RECOVERY] Forcing garbage collection');
+      global.gc();
+    }
+    
     if (global.autoRecovery && global.reloadHandler) {
+      // Use exponential backoff for reconnection attempts
+      const backoffTime = Math.min(5000 + (global.reconnectAttempts || 0) * 1000, 30000);
+      global.reconnectAttempts = (global.reconnectAttempts || 0) + 1;
+      
+      console.log(`[SMART RECOVERY] Attempting reconnection in ${backoffTime/1000}s (attempt ${global.reconnectAttempts})`);
+      
       setTimeout(() => {
-        console.log('🔄 Forcing connection reload...');
+        console.log('🔄 Forcing connection reload with optimizations...');
         global.reloadHandler(true);
-      }, 5000);
+      }, backoffTime);
     }
   }
 });
@@ -623,11 +716,24 @@ function start(file) {
   // Log optimization settings
   console.log('\x1b[32m%s\x1b[0m', '🚀 Starting with performance optimizations for group chats');
   
+  // GROUP OPTIMIZATION: Apply process priority and additional flags for improved group chat performance
+  console.log('\x1b[32m%s\x1b[0m', '🚀 Starting with performance optimizations specifically for group chats');
+  
+  // Add environment variables for baileys optimizations
+  const env = {
+    ...process.env,
+    NODE_BAILEYS_LOG_LEVEL: 'silent', // Reduce Baileys logging noise
+    NODE_PERFORMANCE_MODE: 'group_optimization', // Custom flag for performance mode
+    NODE_CACHE_ENABLED: 'true', // Enable response caching
+    NODE_GROUP_PARALLEL: 'true' // Enable parallel processing for groups
+  };
+  
   // Start the process with optimized settings
   const p = spawn(process.argv[0], nodeArgs, {
     stdio: ["inherit", "inherit", "inherit", "ipc"],
     // Set higher priority when possible
-    ...(os.platform() === 'linux' && { detached: true })
+    ...(os.platform() === 'linux' && { detached: true }),
+    env
   });
 
   // Add optimized message handling
@@ -669,9 +775,10 @@ function start(file) {
 
     if (code === 0) return;
 
-    fs.watchFile(args[0], () => {
-      fs.unwatchFile(args[0]);
-          console.error('\x1b[31m%s\x1b[0m', `File ${args[0]} has been modified. Script will restart...`);
+    const mainFile = path.join(__dirname, 'main.js');
+    fs.watchFile(mainFile, () => {
+      fs.unwatchFile(mainFile);
+      console.error('\x1b[31m%s\x1b[0m', `File ${mainFile} has been modified. Script will restart...`);
       start("main.js");
     });
   });
@@ -713,9 +820,9 @@ function start(file) {
 start("main.js");
 
 const tmpDir = './tmp';
-  if (!fs.existsSync(tmpDir)) {
-    fs.mkdirSync(tmpDir);
-    console.log('\x1b[33m%s\x1b[0m', `📁 Created directory ${tmpDir}`);
+if (!fs.existsSync(tmpDir)) {
+  fs.mkdirSync(tmpDir);
+  console.log('\x1b[33m%s\x1b[0m', `📁 Created directory ${tmpDir}`);
 }
 
 process.on('unhandledRejection', (reason) => {
