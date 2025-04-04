@@ -82,6 +82,11 @@
       "description": "Flag to enable Heroku-specific optimizations",
       "value": "true",
       "required": false
+    },
+    "HEROKU_APP_URL": {
+      "description": "Your Heroku app URL (e.g. https://your-app-name.herokuapp.com) - Required for anti-idle functionality",
+      "value": "",
+      "required": false
     }
   },
   "addons": [

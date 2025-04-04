@@ -1,27 +1,37 @@
 /**
- * Enhanced Connection Handler Patch
- * This code adds a connection success handler that sends a premium notification
- * with the BLACKSKY-MD logo when the bot successfully connects.
+ * BLACKSKY-MD Premium - Connection Patch
  * 
- * It also sets up a health check HTTP server for Heroku deployments
- * to prevent auto-restarts from failing due to health check failures.
- * 
- * Additional Heroku-specific optimizations and fixes are included.
+ * This module patches the standard WhatsApp connection with:
+ * 1. Enhanced error handling
+ * 2. Automatic reconnection with exponential backoff
+ * 3. Connection status monitoring and recovery
+ * 4. Graceful shutdown handling
+ * 5. Health check endpoint
  */
 
-// Import required modules
+// Initialize Express for the health endpoint
 const express = require('express');
 const app = express();
-const os = require('os');
-const fs = require('fs');
-const path = require('path');
-const { promisify } = require('util');
-const { exec } = require('child_process');
-const execAsync = promisify(exec);
-const sharp = require('sharp');
+let healthCheckServer = null; // Reference to the server
 
-// Initialize health check server and Heroku compatibility layer
+// Initialize standard modules
+const { spawn } = require('child_process');
+const path = require('path');
+const fs = require('fs');
+
+// Initialize global variables
+let reconnectTimer = null;
+
+// Track if health check server has been initialized
+let healthCheckServerInitialized = false;
+
 function setupHealthCheckServer() {
+    // Skip if already initialized to prevent port conflicts
+    if (healthCheckServerInitialized) {
+        console.log('Health check server already initialized, skipping duplicate initialization');
+        return;
+    }
+    
     const PORT = process.env.PORT || 5000;
 
     // Basic info route
@@ -67,16 +77,6 @@ function setupHealthCheckServer() {
                     color: #0f6;
                     font-weight: bold;
                 }
-                .stats {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 10px;
-                }
-                .stat-card {
-                    background: #2a2a2a;
-                    padding: 15px;
-                    border-radius: 5px;
-                }
                 footer {
                     text-align: center;
                     margin-top: 20px;
@@ -87,29 +87,15 @@ function setupHealthCheckServer() {
         </head>
         <body>
             <div class="container">
-                <h1>BLACKSKY-MD Bot Server</h1>
+                <h1>BLACKSKY-MD Bot</h1>
                 <div class="status">
-                    Status: <span class="online">ONLINE</span><br>
-                    WhatsApp Connection: ${global.conn?.user ? "Connected" : "Waiting for connection"}
+                    <p>Status: <span class="online">ONLINE</span></p>
+                    <p>Uptime: ${formatUptime(process.uptime())}</p>
+                    <p>Environment: ${process.env.NODE_ENV || 'development'}</p>
+                    <p>Last Updated: ${new Date().toLocaleString()}</p>
                 </div>
-
-                <div class="stats">
-                    <div class="stat-card">
-                        <h3>System Info</h3>
-                        <p>Platform: ${os.platform()} ${os.arch()}</p>
-                        <p>Node.js: ${process.version}</p>
-                        <p>Memory: ${Math.round(process.memoryUsage().rss / 1024 / 1024)} MB</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Bot Info</h3>
-                        <p>Bot Name: ${process.env.BOT_NAME || global.wm || "BLACKSKY-MD"}</p>
-                        <p>Uptime: ${formatUptime(process.uptime())}</p>
-                        <p>Environment: ${process.env.NODE_ENV || "development"}</p>
-                    </div>
-                </div>
-
                 <footer>
-                    BLACKSKY-MD Bot &copy; 2025
+                    BLACKSKY-MD Premium Bot
                 </footer>
             </div>
         </body>
@@ -117,170 +103,60 @@ function setupHealthCheckServer() {
         `);
     });
 
-    // Health check endpoint
-    app.get('/health', (req, res) => {
-        res.status(200).json({
-            status: 'ok',
-            timestamp: new Date().toISOString(),
-            uptime: process.uptime(),
-            memory: process.memoryUsage(),
-            connection: {
-                connected: !!global.conn?.user,
-                user: global.conn?.user?.name || null
-            }
-        });
-    });
-
-    // Logo endpoint for fetching the BLACKSKY-MD logo
-    app.get('/logo', async (req, res) => {
-        try {
-            // Prioritize logo files in order
-            const logoFiles = [
-                'blacksky-premium-gradient.svg',
-                'blacksky-premium-logo.svg', 
-                'blacksky-logo-cosmic.svg',
-                'blacksky-logo.svg',
-                'blacksky-logo-simple.svg'
-            ];
-
-            let logoFile = null;
-            for (const file of logoFiles) {
-                const filePath = path.join(process.cwd(), file);
-                if (fs.existsSync(filePath)) {
-                    logoFile = filePath;
-                    break;
-                }
-            }
-
-            if (!logoFile) {
-                res.status(404).send('Logo not found');
-                return;
-            }
-
-            // Convert SVG to PNG for better compatibility
-            try {
-                console.log('[CONNECTION] Using logo:', path.basename(logoFile));
-                console.log('Converting SVG file:', logoFile);
-
-                const pngBuffer = await sharp(logoFile)
-                    .resize(300)
-                    .png()
-                    .toBuffer();
-
-                res.setHeader('Content-Type', 'image/png');
-                res.send(pngBuffer);
-                console.log('[CONNECTION] Successfully converted logo SVG to PNG');
-            } catch (err) {
-                console.error('Error converting SVG to PNG:', err);
-
-                // Fallback to sending the raw SVG
-                res.setHeader('Content-Type', 'image/svg+xml');
-                res.send(fs.readFileSync(logoFile));
-            }
-        } catch (error) {
-            console.error('Error serving logo:', error);
-            res.status(500).send('Error loading logo');
-        }
-    });
-
-    // Session status endpoint
+    // More detailed status endpoint in JSON format
     app.get('/status', (req, res) => {
-        const sessionStatus = {
-            connected: !!global.conn?.user,
-            user: global.conn?.user ? {
-                name: global.conn.user.name,
-                phone: global.conn.user.id.split('@')[0]
-            } : null,
-            uptime: formatUptime(process.uptime()),
-            memory: Math.round(process.memoryUsage().rss / 1024 / 1024) + ' MB',
+        const uptime = process.uptime();
+        
+        const herokuInfo = {
+            status: 'online',
+            uptime: formatUptime(uptime),
             timestamp: new Date().toISOString(),
             environment: process.env.NODE_ENV || 'development',
-            version: '2.5.0 Premium'
-        };
-
-        res.json(sessionStatus);
-    });
-
-    // Metric monitoring endpoint for external monitoring tools
-    app.get('/metrics', (req, res) => {
-        const metrics = {
-            'bot_uptime_seconds': process.uptime(),
-            'bot_memory_usage_bytes': process.memoryUsage().rss,
-            'bot_heap_total_bytes': process.memoryUsage().heapTotal,
-            'bot_heap_used_bytes': process.memoryUsage().heapUsed,
-            'bot_external_bytes': process.memoryUsage().external,
-            'bot_connection_status': global.conn?.user ? 1 : 0,
-            'system_total_memory_bytes': os.totalmem(),
-            'system_free_memory_bytes': os.freemem(),
-            'system_load_average': os.loadavg()[0]
-        };
-
-        // Format as Prometheus metrics
-        let output = '';
-        for (const [key, value] of Object.entries(metrics)) {
-            output += `# HELP ${key} Metric for BLACKSKY-MD bot\n`;
-            output += `# TYPE ${key} gauge\n`;
-            output += `${key} ${value}\n`;
-        }
-
-        res.setHeader('Content-Type', 'text/plain');
-        res.send(output);
-    });
-
-    // Session info endpoint
-    app.get('/session', (req, res) => {
-        const sessionDir = path.join(process.cwd(), 'sessions');
-
-        try {
-            if (!fs.existsSync(sessionDir)) {
-                return res.json({
-                    status: 'error',
-                    message: 'No sessions directory found'
-                });
+            memory: {
+                rss: Math.round(process.memoryUsage().rss / 1024 / 1024) + ' MB',
+                heapTotal: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + ' MB',
+                heapUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB'
+            },
+            bot: {
+                connected: global.conn && global.conn.user ? true : false,
+                user: global.conn && global.conn.user ? global.conn.user.name || 'Unknown' : 'Not connected'
             }
-
-            const sessionId = process.env.SESSION_ID || 'BLACKSKY-MD';
-            const sessionFiles = fs.readdirSync(sessionDir)
-                .filter(file => file.startsWith(sessionId))
-                .map(file => ({
-                    name: file,
-                    path: path.join(sessionDir, file),
-                    size: fs.statSync(path.join(sessionDir, file)).size,
-                    modified: fs.statSync(path.join(sessionDir, file)).mtime,
-                }));
-
-            res.json({
-                status: 'success',
-                sessionId,
-                connected: !!global.conn?.user,
-                files: sessionFiles
-            });
-        } catch (error) {
-            res.json({
-                status: 'error',
-                message: error.message
-            });
-        }
-    });
-
-    // Heroku-specific information endpoint
-    app.get('/heroku', (req, res) => {
-        const herokuInfo = {
-            dyno: process.env.DYNO || 'Not running on Heroku',
-            appName: process.env.HEROKU_APP_NAME || 'Unknown',
-            region: process.env.HEROKU_REGION || 'Unknown',
-            releaseVersion: process.env.HEROKU_RELEASE_VERSION || 'Unknown',
-            slugId: process.env.HEROKU_SLUG_ID || 'Unknown',
-            dynoSize: process.env.HEROKU_DYNO_SIZE || 'eco'
         };
 
         res.json(herokuInfo);
     });
 
-    // Start server
-    app.listen(PORT, () => {
-        console.log(`⚡ Health check server running on port ${PORT}`);
-    });
+    // Start server with error handling
+    try {
+        // Close any existing server
+        if (healthCheckServer) {
+            try {
+                healthCheckServer.close();
+            } catch (err) {
+                console.log('Error closing existing health check server:', err.message);
+            }
+        }
+        
+        healthCheckServer = app.listen(PORT, () => {
+            console.log(`⚡ Health check server running on port ${PORT}`);
+            healthCheckServerInitialized = true;
+        });
+        
+        healthCheckServer.on('error', (err) => {
+            console.error(`Failed to start health check server on port ${PORT}:`, err.message);
+            // Try another port if this one is in use
+            if (err.code === 'EADDRINUSE') {
+                const newPort = Math.floor(Math.random() * 10000) + 50000;
+                console.log(`Port ${PORT} already in use, trying port ${newPort} instead`);
+                healthCheckServer = app.listen(newPort, () => {
+                    console.log(`⚡ Health check server running on alternate port ${newPort}`);
+                    healthCheckServerInitialized = true;
+                });
+            }
+        });
+    } catch (err) {
+        console.error('Failed to initialize health check server:', err);
+    }
 }
 
 // Helper function to format uptime
@@ -381,94 +257,82 @@ if (typeof connectionMessageSender === 'function') {
                     console.log('📱 Connection success message sent to owner');
                 }
             }
-        } catch (error) {
-            console.error('❌ Error sending connection message:', error);
+        } catch (e) {
+            console.log('Error sending connection message:', e);
         }
-    }, 5000); // Wait 5 seconds for everything to load
-} else {
-    console.log('⚠️ Connection message function not found');
+    }, 15000);
 }
 
 /**
  * Perform graceful shutdown, saving data and closing connections
  */
 async function performGracefulShutdown() {
-    console.log('🔄 Received shutdown signal, performing graceful shutdown...');
-
-    try {
-        // Save session if it exists
-        if (global.conn?.user) {
-            console.log('💾 Saving WhatsApp session before shutdown...');
-
-            // Try to log out properly
-            try {
-                await global.conn.logout();
-                console.log('👋 Successfully logged out from WhatsApp');
-            } catch (logoutError) {
-                console.error('Error during logout:', logoutError.message);
-            }
-        }
-
-        // Save database if it exists
-        if (global.db) {
-            console.log('💾 Saving database before shutdown...');
-            try {
-                await global.db.write();
-                console.log('✅ Database saved successfully');
-            } catch (dbError) {
-                console.error('Error saving database:', dbError.message);
-            }
-        }
-
-        // Perform any other cleanup tasks here
-        // ...
-
-        console.log('👍 Graceful shutdown completed');
-    } catch (e) {
-        console.error('❌ Error during graceful shutdown:', e);
-    } finally {
-        // Force exit after some time if hanging
-        setTimeout(() => {
-            console.log('⚠️ Forcing exit after grace period');
-            process.exit(0);
-        }, 3000);
+    console.log('🛑 Performing graceful shutdown...');
+    
+    // Clear reconnection timer if it exists
+    if (reconnectInterval) {
+        clearInterval(reconnectInterval);
+        console.log('✅ Cleared reconnection interval');
     }
+    
+    // Close health check server if it exists
+    if (healthCheckServer) {
+        try {
+            healthCheckServer.close();
+            console.log('✅ Closed health check server');
+        } catch (err) {
+            console.log('❌ Error closing health check server:', err.message);
+        }
+    }
+    
+    // Save session state if possible
+    if (global.conn && global.conn.authState && typeof global.conn.authState.saveState === 'function') {
+        try {
+            await global.conn.authState.saveState();
+            console.log('✅ Saved auth state');
+        } catch (err) {
+            console.log('❌ Error saving auth state:', err.message);
+        }
+    }
+    
+    // Close WhatsApp connection if it exists
+    if (global.conn && global.conn.ws) {
+        try {
+            global.conn.ws.close();
+            console.log('✅ Closed WhatsApp connection');
+        } catch (err) {
+            console.log('❌ Error closing WhatsApp connection:', err.message);
+        }
+    }
+    
+    // Save database if it exists
+    if (global.db && typeof global.db.write === 'function') {
+        try {
+            await global.db.write();
+            console.log('✅ Saved database');
+        } catch (err) {
+            console.log('❌ Error saving database:', err.message);
+        }
+    }
+    
+    console.log('✅ Graceful shutdown complete');
 }
 
-// Register the shutdown handler for different signals
-process.on('SIGTERM', performGracefulShutdown);
-process.on('SIGINT', performGracefulShutdown);
-
-// Also handle uncaught exceptions to prevent crashes
-process.on('uncaughtException', (err) => {
-    console.error('Uncaught Exception:', err);
-    console.error('Stack trace:', err.stack);
-    // Don't exit, let the process continue
+// Register global handlers for clean shutdown
+process.on('SIGTERM', async () => {
+    console.log('🛑 Received SIGTERM signal');
+    await performGracefulShutdown();
+    process.exit(0);
 });
 
-process.on('unhandledRejection', async (reason, promise) => {
-    console.error('Unhandled Promise Rejection:', reason);
-
-    // Handle decryption errors by forcing session refresh
-    if (reason?.message?.includes('Unsupported state') || 
-        reason?.message?.includes('unable to authenticate')) {
-        console.log('Detected authentication error, attempting session refresh...');
-
-        try {
-            // Clear problematic session files
-            if (global.conn?.authState) {
-                await global.conn.authState.saveCreds();
-            }
-
-            // Force reconnection
-            if (typeof global.reloadHandler === 'function') {
-                global.reloadHandler(true);
-            }
-        } catch (err) {
-            console.error(`Session refresh failed: ${err.message}`);
-        }
-    }
+process.on('SIGINT', async () => {
+    console.log('🛑 Received SIGINT signal');
+    await performGracefulShutdown();
+    process.exit(0);
 });
 
-// Log the patch loading
-console.log('🔧 Connection success patch and health check loaded');
+// Export the graceful shutdown function
+module.exports = {
+    performGracefulShutdown,
+    setupHealthCheckServer
+};

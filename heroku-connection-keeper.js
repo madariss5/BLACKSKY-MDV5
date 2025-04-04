@@ -615,9 +615,20 @@ function setupAntiIdle() {
 /**
  * Set up health check endpoint for Heroku
  */
+// Track if health check server has been initialized
+let healthCheckServerInitialized = false;
+let healthCheckServer = null;
+
 function setupHealthCheck() {
+  // Skip if already initialized to prevent port conflicts
+  if (healthCheckServerInitialized) {
+    log('Health check server already initialized, skipping duplicate initialization', 'INFO');
+    return;
+  }
+  
   try {
     const app = express();
+    const PORT = Math.floor(Math.random() * 10000) + 20000; // Use a random high port to avoid conflicts
     
     // Basic health check endpoint
     app.get('/health', (req, res) => {
@@ -803,10 +814,41 @@ function setupHealthCheck() {
       res.send(html);
     });
     
-    // Start the server
-    STATE.healthCheckServer = app.listen(CONFIG.healthCheckPort, () => {
-      log(`Health check server started on port ${CONFIG.healthCheckPort}`, 'SUCCESS');
-    });
+    // Start the server with error handling
+    try {
+      // Close existing server if it exists
+      if (STATE.healthCheckServer) {
+        try {
+          STATE.healthCheckServer.close();
+        } catch (err) {
+          log(`Error closing existing health check server: ${err.message}`, 'WARN');
+        }
+      }
+      
+      // Start new server
+      STATE.healthCheckServer = app.listen(PORT, () => {
+        log(`Health check server started on port ${PORT}`, 'SUCCESS');
+        healthCheckServerInitialized = true;
+      });
+      
+      // Handle server errors
+      STATE.healthCheckServer.on('error', (err) => {
+        log(`Failed to start health check server on port ${PORT}: ${err.message}`, 'ERROR');
+        
+        // Try another port if this one is in use
+        if (err.code === 'EADDRINUSE') {
+          const newPort = Math.floor(Math.random() * 10000) + 30000;
+          log(`Port ${PORT} already in use, trying port ${newPort} instead`, 'WARN');
+          
+          STATE.healthCheckServer = app.listen(newPort, () => {
+            log(`Health check server running on alternate port ${newPort}`, 'SUCCESS');
+            healthCheckServerInitialized = true;
+          });
+        }
+      });
+    } catch (err) {
+      log(`Fatal error starting health check server: ${err.message}`, 'ERROR');
+    }
   } catch (err) {
     log(`Error setting up health check: ${err.message}`, 'ERROR');
   }

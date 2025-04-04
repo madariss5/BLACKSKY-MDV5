@@ -122,6 +122,10 @@ After deployment, follow these steps to connect your WhatsApp account:
    - Check for memory errors in logs: `heroku logs --tail -a your-app-name | grep "memory"`
    - Solution: Scale dyno to higher specs: `heroku dyno:resize basic -a your-app-name`
 
+5. **Port Conflicts (EADDRINUSE Errors)**
+   - This is now automatically handled by the latest version
+   - The app will automatically select alternative ports if conflicts occur
+
 ## 🌟 Advanced Configuration for Best Performance
 
 For optimal performance and stability, we recommend:
