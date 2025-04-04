@@ -4,7 +4,7 @@
 const { initialize: initKeeper } = require('./heroku-connection-keeper.js');
 const express = require('express');
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 0; // Using port 0 lets the OS assign an available port
 
 // Initialize connection keeper
 const keeper = initKeeper();
