@@ -4,7 +4,7 @@ modules = ["nodejs-20"]
 channel = "stable-24_05"
 
 [workflows]
-runButton = "Heroku-Bot-Optimized"
+runButton = "24-7-Heroku-Bot"
 
 [[workflows.workflow]]
 name = "Run With Pairing"
@@ -84,8 +84,17 @@ mode = "sequential"
 task = "shell.exec"
 args = "NODE_OPTIONS=\"--expose-gc --max-old-space-size=512\" node heroku-bot-starter.js"
 
+[[workflows.workflow]]
+name = "24-7-Heroku-Bot"
+author = 41130535
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "NODE_OPTIONS=\"--expose-gc --max-old-space-size=512\" node heroku-bot-starter.js"
+
 [deployment]
-run = ["sh", "-c", "NODE_OPTIONS='--expose-gc --max-old-space-size=512' node heroku-connection-keeper.js"]
+run = ["sh", "-c", "NODE_OPTIONS='--expose-gc --max-old-space-size=512' node heroku-bot-starter.js"]
 build = ["sh", "-c", "npm install"]
 
 [[ports]]

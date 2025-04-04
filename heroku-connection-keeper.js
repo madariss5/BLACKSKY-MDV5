@@ -22,8 +22,8 @@ const crypto = require('crypto');
 // Configuration
 const CONFIG = {
   // Connection check intervals
-  heartbeatInterval: 3 * 60 * 1000, // 3 minutes
-  connectionCheckInterval: 60 * 1000, // 1 minute
+  heartbeatInterval: 45 * 1000, // 45 seconds
+  connectionCheckInterval: 30 * 1000, // 30 seconds
   
   // Exponential backoff settings
   initialBackoffDelay: 3000, // 3 seconds
