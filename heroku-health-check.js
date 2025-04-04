@@ -180,7 +180,7 @@ app.get('/', (req, res) => {
   `);
 });
 
-// Health check endpoint
+// Health check endpoint (integrated from edited code)
 app.get('/health', (req, res) => {
   // Update last health check time
   STATE.lastHealthCheck = Date.now();
@@ -215,6 +215,7 @@ app.get('/health', (req, res) => {
     }
   });
 });
+
 
 // Metrics endpoint (JSON format) for monitoring tools
 app.get('/metrics', (req, res) => {

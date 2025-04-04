@@ -1,2 +1,2 @@
 
-web: NODE_OPTIONS="--expose-gc --max-old-space-size=512" node heroku-connection-keeper.js
+web: npm install -g pm2 && pm2 start ecosystem.config.js --no-daemon
