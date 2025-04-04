@@ -4,7 +4,7 @@ modules = ["nodejs-20"]
 channel = "stable-24_05"
 
 [workflows]
-runButton = "24-7-Heroku-Bot"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Run With Pairing"
@@ -22,29 +22,15 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "WhatsApp-Bot-Optimized"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "Heroku-Health-Check"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "Heroku-Bot-Starter"
 
-[[workflows.workflow]]
-name = "WhatsApp-Bot-Optimized"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
 [[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "NODE_OPTIONS=\"--expose-gc --max-old-space-size=512\" node index.js --pairing"
+task = "workflow.run"
+args = "WhatsApp-Bot-Optimized"
 
 [[workflows.workflow]]
 name = "Heroku-Health-Check"
@@ -58,7 +44,7 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "node heroku-health-check.js"
+args = "NODE_OPTIONS=\"--expose-gc --max-old-space-size=512\" node heroku-health-check.js"
 waitForPort = 5000
 
 [[workflows.workflow]]
@@ -93,6 +79,21 @@ mode = "sequential"
 task = "shell.exec"
 args = "NODE_OPTIONS=\"--expose-gc --max-old-space-size=512\" node heroku-bot-starter.js"
 
+[[workflows.workflow]]
+name = "WhatsApp-Bot-Optimized"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "NODE_OPTIONS=\"--expose-gc --max-old-space-size=1024\" node index.js --memory-optimized"
+waitForPort = 5000
+
 [deployment]
 run = ["sh", "-c", "NODE_OPTIONS='--expose-gc --max-old-space-size=512' node heroku-bot-starter.js"]
 build = ["sh", "-c", "npm install"]
@@ -112,3 +113,7 @@ externalPort = 5000
 [[ports]]
 localPort = 38535
 externalPort = 3001
+
+[[ports]]
+localPort = 39857
+externalPort = 3002
