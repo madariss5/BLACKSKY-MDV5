@@ -1,8 +1,103 @@
+// Detect if running in Termux and handle Sharp compatibility
+const os = require('os');
+const isTermux = os.platform() === 'android' || process.env.TERMUX === 'true';
+const fs = require('fs');
+const path = require('path');
+
+// Initialize auto recovery flag
+global.autoRecovery = true;
+
+// Load environment variables and API keys
+require('./load-env')();
+require('./config');
+
+// Check if we need to fix session issues
+const needsSessionFix = () => {
+  try {
+    const sessionsDir = path.join(__dirname, 'sessions');
+    if (!fs.existsSync(sessionsDir)) return false;
+    
+    // Check for creds.json, which should exist in a proper session
+    const credsPath = path.join(sessionsDir, 'creds.json');
+    if (!fs.existsSync(credsPath)) return true;
+    
+    // Check if creds.json is valid
+    try {
+      const credsData = JSON.parse(fs.readFileSync(credsPath, 'utf8'));
+      if (!credsData || !credsData.me || !credsData.noiseKey) return true;
+    } catch (e) {
+      return true; // JSON parse error means corrupted file
+    }
+    
+    return false;
+  } catch (e) {
+    console.error('Error checking sessions:', e);
+    return false;
+  }
+};
+
+// Run session fix if needed
+if (needsSessionFix()) {
+  console.log('📢 Session issues detected, attempting auto-repair...');
+  try {
+    // Execute session fix script
+    require('./replit-session-fix.js');
+    console.log('✅ Session repair complete');
+  } catch (e) {
+    console.error('❌ Failed to repair sessions:', e);
+  }
+}
+
+// Use Sharp compatibility layer in Termux
+if (isTermux) {
+  console.log('📱 Running in Termux environment, using Jimp-based Sharp compatibility layer');
+  global.sharp = require('./sharp-compat.js');
+} else {
+  try {
+    global.sharp = require('sharp');
+  } catch (err) {
+    console.error('Failed to load Sharp, falling back to compatibility layer:', err);
+    global.sharp = require('./sharp-compat.js');
+  }
+}
+
+// Set environment variable for Termux
+if (isTermux) {
+  console.log('📱 Running in Termux environment, using Termux-compatible connection patch');
+  process.env.TERMUX = 'true';
+  require('./connection-patch-termux.js');
+} else {
+  console.log('💻 Running in standard environment, using normal connection patch');
+  try {
+    require('./connection-patch.js');
+  } catch (err) {
+    console.error('Failed to load connection patch:', err);
+  }
+}
+
+// Add failure recovery for connection issues
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  
+  // Auto recovery for connection closed errors
+  if (reason && reason.message && (
+    reason.message.includes('Connection Closed') ||
+    reason.message.includes('connection closed') ||
+    reason.message.includes('timed out')
+  )) {
+    console.log('🔄 Connection closed, attempting auto-recovery...');
+    if (global.autoRecovery && global.reloadHandler) {
+      setTimeout(() => {
+        console.log('🔄 Forcing connection reload...');
+        global.reloadHandler(true);
+      }, 5000);
+    }
+  }
+});
+
 const cluster = require('cluster');
 const { spawn } = require('child_process');
-const path = require('path');
-const fs = require('fs');
-const os = require('os');
+// path and fs are already required above
 const express = require('express');
 const app = express();
 

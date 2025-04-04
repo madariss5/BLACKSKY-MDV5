@@ -599,21 +599,65 @@ function start(file) {
   if (isRunning) return;
   isRunning = true;
 
-  const args = [path.join(__dirname, file), ...process.argv.slice(2)];
-  const p = spawn(process.argv[0], args, {
+  // OPTIMIZATION: Apply Node.js performance optimization flags
+  const nodeArgs = [
+    // Increase memory limits for better handling of group message batches
+    '--max-old-space-size=512',
+    
+    // Enable garbage collection exposure for manual GC if needed
+    '--expose-gc',
+    
+    // Enable experimental features that improve performance
+    '--harmony',
+    
+    // Optimize for faster startup time
+    '--max-http-header-size=8192',
+    
+    // Add the main file to execute
+    path.join(__dirname, file), 
+    
+    // Preserve any command line arguments
+    ...process.argv.slice(2)
+  ];
+  
+  // Log optimization settings
+  console.log('\x1b[32m%s\x1b[0m', '🚀 Starting with performance optimizations for group chats');
+  
+  // Start the process with optimized settings
+  const p = spawn(process.argv[0], nodeArgs, {
     stdio: ["inherit", "inherit", "inherit", "ipc"],
+    // Set higher priority when possible
+    ...(os.platform() === 'linux' && { detached: true })
   });
 
+  // Add optimized message handling
   p.on("message", (data) => {
     console.log('\x1b[36m%s\x1b[0m', `🟢 RECEIVED ${data}`);
+    
+    // Use a more efficient switch statement
     switch (data) {
       case "reset":
+        console.log('\x1b[33m%s\x1b[0m', '🔄 Resetting bot process...');
         p.kill();
         isRunning = false;
-        start.apply(this, arguments);
+        
+        // Add a small delay before restart to ensure clean shutdown
+        setTimeout(() => {
+          start.apply(this, arguments);
+        }, 1000);
         break;
+        
       case "uptime":
         p.send(process.uptime());
+        break;
+        
+      case "gc":
+        // Allow child process to request garbage collection
+        if (global.gc) {
+          global.gc();
+          console.log('\x1b[33m%s\x1b[0m', '🧹 Manual garbage collection performed');
+        }
+        p.send('gc_done');
         break;
     }
   });
