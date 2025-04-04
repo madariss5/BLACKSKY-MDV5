@@ -161,7 +161,7 @@
   },
   "cron": [
     {
-      "command": "node index.js --backup-sessions",
+      "command": "node backup-sessions.js",
       "schedule": "*/15 * * * *"
     }
   ]
