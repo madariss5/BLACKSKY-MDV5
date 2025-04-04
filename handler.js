@@ -1065,7 +1065,8 @@ module.exports = {
             if (typeof m.text !== 'string') m.text = ''
             if (opts['queque'] && m.text) {
                 this.msgqueque.push(m.id || m.key.id)
-                await delay(this.msgqueque.length * 1000)
+                // Use a much smaller delay that scales with queue, with a maximum cap
+                await delay(Math.min(this.msgqueque.length * 100, 500))
             }
             for (let name in global.plugins) {
                 let plugin = global.plugins[name]

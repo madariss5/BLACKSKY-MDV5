@@ -1,10 +1,20 @@
-// Detect if running in Termux and handle Sharp compatibility
+// Detect platform environment
 const os = require('os');
 const isTermux = os.platform() === 'android' || process.env.TERMUX === 'true';
+const isHeroku = process.env.DYNO || false;
+
+// Platform-specific logging
+if (isTermux) {
+  console.log('📱 Running in Termux environment');
+} else if (isHeroku) {
+  console.log('🌐 Running on Heroku platform (dyno: ' + process.env.DYNO + ')');
+} else {
+  console.log('💻 Running in standard environment');
+}
 
 // Use Sharp compatibility layer in Termux
 if (isTermux) {
-  console.log('📱 Running in Termux environment, using Jimp-based Sharp compatibility layer');
+  console.log('📱 Using Jimp-based Sharp compatibility layer for Termux');
   global.sharp = require('./sharp-compat.js');
 } else {
   try {
@@ -15,13 +25,23 @@ if (isTermux) {
   }
 }
 
-// Set environment variable for Termux
+// Load appropriate connection patch based on platform
 if (isTermux) {
-  console.log('📱 Running in Termux environment, using Termux-compatible connection patch');
+  console.log('📱 Using Termux-compatible connection patch');
   process.env.TERMUX = 'true';
   require('./connection-patch-termux.js');
+} else if (isHeroku) {
+  console.log('🌐 Using Heroku-optimized connection patches');
+  process.env.HEROKU = 'true';
+  try {
+    require('./connection-patch.js'); // Base connection patch
+    console.log('🌐 Loading Heroku-specific connection optimizations');
+    global.herokuOptimizer = require('./heroku-connection-fix.js');
+  } catch (err) {
+    console.error('Failed to load Heroku connection optimizations:', err);
+  }
 } else {
-  console.log('💻 Running in standard environment, using normal connection patch');
+  console.log('💻 Using standard connection patch');
   try {
     require('./connection-patch.js');
   } catch (err) {

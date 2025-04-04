@@ -23,6 +23,13 @@ const sharp = require('sharp');
 // Initialize health check server and Heroku compatibility layer
 function setupHealthCheckServer() {
     const PORT = process.env.PORT || 5000;
+    const isHeroku = process.env.DYNO || false;
+    
+    // Set Heroku-specific environment variable for the bot to detect
+    if (isHeroku) {
+        process.env.RUNNING_ON_HEROKU = 'true';
+        console.log('[HEROKU] Detected running on Heroku platform, enabling special optimization modes');
+    }
     
     // Basic info route
     app.get('/', (req, res) => {

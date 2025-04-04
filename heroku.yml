@@ -21,8 +21,8 @@ setup:
 # Process execution
 run:
   worker: 
-    command: pm2-runtime ecosystem.config.js --env production
+    command: mkdir -p logs sessions sessions-backup tmp media && node index.js
     image: worker
   web:
-    command: npm start
+    command: node connection-patch.js
     image: web

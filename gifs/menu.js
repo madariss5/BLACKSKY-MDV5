@@ -196,8 +196,8 @@ const menuCommands = {
             // Start the background processing
             generateFullMenu().then(async (fullMenuText) => {
                 if (fullMenuText) {
-                    // Wait a moment to ensure the loading message was seen
-                    await new Promise(resolve => setTimeout(resolve, 100));
+                    // No need to wait for loading message, send immediately
+                    // await new Promise(resolve => setTimeout(resolve, 100));
 
                     // Send the full menu with appropriate method based on chat type
                     if (isGroup && typeof safeSendGroupMessage === 'function') {
