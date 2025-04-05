@@ -161,6 +161,48 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
         }
       },
       
+      // Make sure this is a real function and not just a property
+      get getMemoryUsage() {
+        // Return a proper function wrapped in another function to maintain 'this' context
+        return () => {
+          // If the original has getMemoryUsage, use it
+          if (typeof memoryManager.getMemoryUsage === 'function') {
+            return memoryManager.getMemoryUsage();
+          }
+          
+          // Otherwise, create our own implementation
+          const memoryUsage = process.memoryUsage();
+          const totalMemory = require('os').totalmem();
+          const freeMemory = require('os').freemem();
+          const usedMemory = totalMemory - freeMemory;
+          
+          // Format memory values to MB
+          const formatted = {
+            heapUsed: Math.round(memoryUsage.heapUsed / (1024 * 1024)),
+            heapTotal: Math.round(memoryUsage.heapTotal / (1024 * 1024)),
+            rss: Math.round(memoryUsage.rss / (1024 * 1024)),
+            external: Math.round((memoryUsage.external || 0) / (1024 * 1024)),
+            arrayBuffers: Math.round((memoryUsage.arrayBuffers || 0) / (1024 * 1024)),
+            systemTotal: Math.round(totalMemory / (1024 * 1024)),
+            systemFree: Math.round(freeMemory / (1024 * 1024)),
+            systemUsed: Math.round(usedMemory / (1024 * 1024))
+          };
+          
+          // Calculate percentages
+          const percentages = {
+            heapUsage: Math.round((memoryUsage.heapUsed / memoryUsage.heapTotal) * 100),
+            systemUsage: Math.round((usedMemory / totalMemory) * 100)
+          };
+          
+          return {
+            raw: memoryUsage,
+            formatted,
+            percentages,
+            time: Date.now()
+          };
+        };
+      },
+      
       // Basic cleanup implementation for fallback
       performBasicCleanup: function() {
         console.log('[MEMORY-MANAGER] Running basic cleanup...');

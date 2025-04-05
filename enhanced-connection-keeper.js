@@ -14,8 +14,53 @@
  * - Robust recovery from connection issues
  */
 
-const { delay, DisconnectReason } = require('@adiwajshing/baileys');
-const { Boom } = require('@hapi/boom');
+// Safely import Baileys dependencies with fallbacks
+let delay, DisconnectReason, Boom;
+
+try {
+  // Try to load from Baileys
+  const baileys = require('@adiwajshing/baileys');
+  delay = baileys.delay;
+  DisconnectReason = baileys.DisconnectReason;
+  
+  // Log what codes are available for debugging
+  console.log('Loaded DisconnectReason codes:', Object.keys(DisconnectReason || {}));
+} catch (baileyError) {
+  console.error('Error loading Baileys:', baileyError.message);
+  // Provide fallbacks
+  delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+  DisconnectReason = {
+    loggedOut: 401,
+    restartRequired: 500,
+    connectionClosed: 428,
+    timedOut: 408,
+    connectionLost: 503
+  };
+}
+
+try {
+  // Try to load Boom
+  const hapiModule = require('@hapi/boom');
+  Boom = hapiModule.Boom;
+} catch (boomErr) {
+  console.error('Error loading @hapi/boom:', boomErr.message);
+  // Create a simple Boom-like class as fallback
+  Boom = class FakeBoom extends Error {
+    constructor(message, options = {}) {
+      super(message);
+      this.statusCode = options.statusCode || 500;
+      this.output = {
+        statusCode: options.statusCode || 500,
+        payload: {
+          error: 'Boom Error',
+          message: message
+        }
+      };
+      this.data = options.data || {};
+    }
+  };
+}
+
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
@@ -80,6 +125,7 @@ const connectionState = {
   maxSocketErrors: 5,
   socketErrorResetTime: 60000, // 1 minute
   lastSocketErrorTime: null,
+  isReconnecting: false, // Flag to prevent concurrent reconnection attempts
 };
 
 /**
@@ -308,56 +354,144 @@ async function checkConnection(conn) {
  * @param {Object} conn - Baileys connection object
  */
 async function handleReconnection(conn) {
-  // Check if we've exceeded max attempts
-  if (connectionState.reconnectAttempts >= connectionState.maxReconnectAttempts) {
-    log('Maximum reconnection attempts reached', 'ERROR');
-    connectionEvents.emit('reconnect.failed');
+  // Check if already attempting to reconnect to avoid duplicate reconnections
+  if (connectionState.isReconnecting) {
+    log('Already attempting to reconnect, skipping duplicate reconnection', 'INFO');
     return;
   }
   
-  // Calculate delay with exponential backoff
-  const delay = Math.min(
-    connectionState.reconnectDelay * Math.pow(1.5, connectionState.reconnectAttempts),
-    connectionState.maxReconnectDelay
-  );
-  
-  connectionState.reconnectAttempts++;
-  log(`Attempting reconnection ${connectionState.reconnectAttempts}/${connectionState.maxReconnectAttempts} in ${delay}ms`, 'INFO');
-  
-  // Wait for the calculated delay
-  await new Promise(resolve => setTimeout(resolve, delay));
+  // Mark that we're trying to reconnect
+  connectionState.isReconnecting = true;
   
   try {
-    // If global.reloadHandler exists, use it for reconnection
-    if (global.reloadHandler) {
-      log('Using global reloadHandler for reconnection', 'INFO');
-      global.reloadHandler(true);
-    } else {
-      // Otherwise try to force socket reconnection
-      log('Forcing socket reconnection', 'INFO');
-      if (conn.ws) {
-        conn.ws.close();
+    // Check if we've exceeded max attempts
+    if (connectionState.reconnectAttempts >= connectionState.maxReconnectAttempts) {
+      log('Maximum reconnection attempts reached, trying final recovery options', 'ERROR');
+      
+      // Try final recovery option - full reload if we have the function
+      if (typeof global.restartConnection === 'function') {
+        log('Attempting full bot restart via global.restartConnection', 'INFO');
+        global.restartConnection();
+        // Reset state after attempting restart
+        connectionState.reconnectAttempts = 0;
+        connectionState.isReconnecting = false;
+        return;
       }
-      // Attempt to trigger Baileys' auto-reconnect
-      conn.ev.emit('connection.update', {
-        connection: 'close',
-        lastDisconnect: {
-          error: new Boom('Forced reconnection by connection keeper', {
-            statusCode: DisconnectReason.restartRequired,
-            data: {
-              forceReconnect: true,
-              isTransient: true
-            }
-          })
-        }
-      });
+      
+      // If we can't restart the whole bot, reset the counter and continue trying
+      log('No restart function available, resetting counter and continuing to try', 'WARN');
+      connectionState.reconnectAttempts = 0;
+      connectionEvents.emit('reconnect.maxattempts');
     }
     
-    log('Reconnection initiated', 'INFO');
-  } catch (error) {
-    log(`Reconnection error: ${error.message}`, 'ERROR');
-    // Schedule another attempt
-    setTimeout(() => handleReconnection(conn), 5000);
+    // Calculate delay with exponential backoff and some jitter
+    const baseDelay = connectionState.reconnectDelay * Math.pow(1.5, connectionState.reconnectAttempts);
+    const jitter = Math.random() * 1000; // Add up to 1 second of random jitter
+    const delay = Math.min(baseDelay + jitter, connectionState.maxReconnectDelay);
+    
+    connectionState.reconnectAttempts++;
+    console.log(`⚠️ Connection appears to be closed. Attempt #${connectionState.reconnectAttempts} to reconnect...`);
+    log(`Attempting reconnection ${connectionState.reconnectAttempts}/${connectionState.maxReconnectAttempts} in ${Math.round(delay)}ms`, 'INFO');
+    
+    // Wait for the calculated delay
+    await new Promise(resolve => setTimeout(resolve, delay));
+    
+    // Check if the connection has already recovered on its own
+    if (conn.ws && conn.ws.readyState === 1 && conn.user) {
+      log('Connection appears to have recovered while waiting to reconnect', 'SUCCESS');
+      connectionState.isConnected = true;
+      connectionState.isReconnecting = false;
+      connectionState.reconnectAttempts = 0;
+      return;
+    }
+    
+    // First try to restore credentials if available and connection seems corrupted
+    let usedCredRestore = false;
+    if (connectionState.reconnectAttempts > 2 && !conn.authState?.creds?.me) {
+      try {
+        log('Connection credentials appear corrupted, attempting to restore', 'WARN');
+        
+        // Try different methods of credential restoration
+        if (global.authFolder && global.loadAuthFromFolder) {
+          log('Attempting to restore credentials from auth folder', 'INFO');
+          global.loadAuthFromFolder();
+          usedCredRestore = true;
+        } else if (typeof global.authState?.saveCreds === 'function') {
+          log('Attempting to reload auth state', 'INFO');
+          await global.authState.saveCreds();
+          usedCredRestore = true;
+        }
+      } catch (credError) {
+        log(`Credential restoration error: ${credError.message}`, 'ERROR');
+      }
+    }
+    
+    // Try different reconnection strategies based on attempt number
+    try {
+      // If global.reloadHandler exists and this is one of the early attempts, use it
+      if (global.reloadHandler && connectionState.reconnectAttempts < 5) {
+        log('Using global.reloadHandler for reconnection', 'INFO');
+        global.reloadHandler(true);
+      } 
+      // If we have a custom restart function and we're on a higher attempt, use it
+      else if (typeof global.restartWhatsApp === 'function' && connectionState.reconnectAttempts >= 5) {
+        log('Using global.restartWhatsApp for deeper reconnection', 'INFO');
+        global.restartWhatsApp();
+      }
+      // Otherwise, use our own reconnection logic
+      else {
+        log('Using manual socket reconnection', 'INFO');
+        
+        // Close socket if it exists
+        if (conn.ws) {
+          try {
+            conn.ws.close();
+          } catch (closeErr) {
+            log(`Error closing socket: ${closeErr.message}`, 'WARN');
+          }
+        }
+        
+        // Wait a bit after closing the socket
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Try to force Baileys to reconnect by emitting a connection.update event
+        try {
+          // Use Baileys' restart required reason code
+          const restartCode = typeof DisconnectReason !== 'undefined' ? 
+                             DisconnectReason.restartRequired : 
+                             500;
+                             
+          conn.ev.emit('connection.update', {
+            connection: 'close',
+            lastDisconnect: {
+              error: new Boom('Forced reconnection by enhanced connection keeper', {
+                statusCode: restartCode,
+                data: {
+                  forceReconnect: true,
+                  isTransient: true
+                }
+              })
+            }
+          });
+        } catch (emitErr) {
+          log(`Error emitting connection update: ${emitErr.message}`, 'ERROR');
+        }
+      }
+      
+      log('Reconnection initiated', 'INFO');
+    } catch (error) {
+      log(`Reconnection error: ${error.message}`, 'ERROR');
+      // Schedule another attempt with a short delay
+      setTimeout(() => {
+        connectionState.isReconnecting = false;
+        handleReconnection(conn);
+      }, 3000);
+    }
+  } finally {
+    // Reset reconnecting flag after a delay to allow reconnection to happen
+    setTimeout(() => {
+      connectionState.isReconnecting = false;
+    }, 10000);
   }
 }
 
@@ -562,9 +696,9 @@ function applyConnectionPatch(conn) {
           // Mark as disconnected immediately
           connectionState.isConnected = false;
           
-          // Handle Baileys specific codes
-          if (statusCode === DisconnectReason.loggedOut) {
-            console.log('⛔ Account logged out, reconnection canceled');
+          // Handle Baileys specific codes - loggedOut is usually code 401
+          if (statusCode === 401 || (typeof DisconnectReason !== 'undefined' && statusCode === DisconnectReason.loggedOut)) {
+            console.log('⛔ Account logged out (status code 401), reconnection canceled');
             // Don't attempt to reconnect if logged out
             return;
           }
