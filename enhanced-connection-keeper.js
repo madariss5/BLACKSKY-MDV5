@@ -534,10 +534,40 @@ function applyConnectionPatch(conn) {
   log('Applied connection patch for improved error handling', 'SUCCESS');
 }
 
+/**
+ * Initialize with a delayed connection check if conn isn't ready yet
+ * @param {Object} conn - Baileys connection object (can be null for delayed initialization)
+ */
+function safeInitialize(conn = null) {
+  if (conn) {
+    // If we have a connection, initialize directly
+    return initializeConnectionKeeper(conn);
+  } else {
+    // Otherwise set up a polling system to wait for global.conn
+    console.log('🕒 Connection not ready, setting up delayed initialization...');
+    
+    const checkAndInit = () => {
+      if (global.conn) {
+        console.log('🔄 Connection now available, initializing connection keeper...');
+        clearInterval(checkInterval);
+        return initializeConnectionKeeper(global.conn);
+      }
+      return false;
+    };
+    
+    // Check every 5 seconds
+    const checkInterval = setInterval(checkAndInit, 5000);
+    
+    // Also try immediately in case conn is available
+    return checkAndInit();
+  }
+}
+
 module.exports = {
   initializeConnectionKeeper,
   forceReconnect,
   getConnectionState,
   applyConnectionPatch,
-  connectionEvents
+  connectionEvents,
+  safeInitialize
 };

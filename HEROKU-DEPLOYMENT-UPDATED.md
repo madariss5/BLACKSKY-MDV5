@@ -48,6 +48,7 @@ heroku config:set HEROKU=true
 heroku config:set HEROKU_APP_URL=https://your-app-name.herokuapp.com
 heroku config:set ENABLE_HEALTH_CHECK=true
 heroku config:set ENABLE_SESSION_BACKUP=true
+heroku config:set ENABLE_MEMORY_OPTIMIZATION=true
 
 # Push to Heroku
 git push heroku main

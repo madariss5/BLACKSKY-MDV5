@@ -1,0 +1,317 @@
+2025-04-04T23:41:32.690755+00:00 app[web.1]:     at process.<anonymous> (/app/index.js:728:28)
+2025-04-04T23:41:32.690756+00:00 app[web.1]:     at process.emit (node:events:530:35)
+2025-04-04T23:41:32.690756+00:00 app[web.1]:     at process.exit (node:internal/process/per_thread:184:15)
+2025-04-04T23:41:32.690757+00:00 app[web.1]:     at process.<anonymous> (/app/heroku-bot-starter.js:394:11)
+2025-04-04T23:41:32.690757+00:00 app[web.1]:     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-04-04T23:41:32.690778+00:00 app[web.1]: [MEMORY-MANAGER] Emergency cleanup completed
+2025-04-04T23:41:32.690800+00:00 app[web.1]: 🧹 Performing final garbage collection...
+2025-04-04T23:41:32.690823+00:00 app[web.1]: Script will restart...
+2025-04-04T23:41:32.747694+00:00 heroku[web.1]: Process exited with status 1
+2025-04-04T23:41:32.774558+00:00 heroku[web.1]: State changed from up to crashed
+2025-04-04T23:42:03.037640+00:00 heroku[web.1]: State changed from crashed to starting
+2025-04-04T23:42:17.058797+00:00 heroku[web.1]: Starting process with command `node heroku-bot-starter.js --autocleartmp --autoread`
+2025-04-04T23:42:17.808510+00:00 app[web.1]: [HEROKU-KEEPER][INFO][2025-04-04T23:42:17.808Z] Initializing Heroku connection keeper...
+2025-04-04T23:42:17.808763+00:00 app[web.1]: [HEROKU-KEEPER][WARN][2025-04-04T23:42:17.808Z] No DATABASE_URL environment variable found, PostgreSQL backup disabled
+2025-04-04T23:42:17.810789+00:00 app[web.1]: [HEROKU-KEEPER][INFO][2025-04-04T23:42:17.810Z] No HEROKU_APP_URL set, anti-idle disabled
+2025-04-04T23:42:17.811160+00:00 app[web.1]: [HEROKU-KEEPER][SUCCESS][2025-04-04T23:42:17.811Z] Heroku connection keeper initialized
+2025-04-04T23:42:17.811478+00:00 app[web.1]: 🔄 Attempting to restore sessions from database...
+2025-04-04T23:42:17.812397+00:00 app[web.1]: [HEROKU-KEEPER][SUCCESS][2025-04-04T23:42:17.812Z] Health check server started on port 41615
+2025-04-04T23:42:17.813139+00:00 app[web.1]: Server error: Error: listen EADDRINUSE: address already in use 0.0.0.0:41615
+2025-04-04T23:42:17.813139+00:00 app[web.1]:     at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+2025-04-04T23:42:17.813140+00:00 app[web.1]:     at listenInCluster (node:net:1994:12)
+2025-04-04T23:42:17.813140+00:00 app[web.1]:     at node:net:2203:7
+2025-04-04T23:42:17.813140+00:00 app[web.1]:     at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+2025-04-04T23:42:17.813141+00:00 app[web.1]:   code: 'EADDRINUSE',
+2025-04-04T23:42:17.813141+00:00 app[web.1]:   errno: -98,
+2025-04-04T23:42:17.813141+00:00 app[web.1]:   syscall: 'listen',
+2025-04-04T23:42:17.813141+00:00 app[web.1]:   address: '0.0.0.0',
+2025-04-04T23:42:17.813142+00:00 app[web.1]:   port: 41615
+2025-04-04T23:42:17.813142+00:00 app[web.1]: }
+2025-04-04T23:42:17.813236+00:00 app[web.1]: Port 41615 is already in use. Trying another port...
+2025-04-04T23:42:17.813696+00:00 app[web.1]: ⚡ Server running on a random port
+2025-04-04T23:42:17.813895+00:00 app[web.1]: 🚀 Initializing performance optimization system...
+2025-04-04T23:42:17.813975+00:00 app[web.1]: 🚀 Loading RPG performance optimizations...
+2025-04-04T23:42:17.814397+00:00 app[web.1]: ✅ Response cache system loaded successfully
+2025-04-04T23:42:17.814813+00:00 app[web.1]: ✅ Response cache loaded for group optimization
+2025-04-04T23:42:17.814872+00:00 app[web.1]: ✅ Group chat optimization system loaded successfully
+2025-04-04T23:42:17.815192+00:00 app[web.1]: [OPTIMIZE] Setting up global connection watcher for automatic optimization
+2025-04-04T23:42:17.815267+00:00 app[web.1]: [OPTIMIZE] Loading performance optimization modules...
+2025-04-04T23:42:17.815282+00:00 app[web.1]: [OPTIMIZE] ✅ Response cache system loaded
+2025-04-04T23:42:17.815295+00:00 app[web.1]: [OPTIMIZE] ✅ Group chat optimization system loaded
+2025-04-04T23:42:17.815451+00:00 app[web.1]: ✅ Performance optimization system fully initialized
+2025-04-04T23:42:17.818948+00:00 app[web.1]: ❌ Error creating session table: Error: connect ECONNREFUSED 127.0.0.1:5432
+2025-04-04T23:42:17.818949+00:00 app[web.1]:     at /app/node_modules/pg-pool/index.js:45:11
+2025-04-04T23:42:17.818949+00:00 app[web.1]:     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-04-04T23:42:17.818950+00:00 app[web.1]:     at async createSessionTable (/app/heroku-bot-starter.js:60:5) {
+2025-04-04T23:42:17.818950+00:00 app[web.1]:   errno: -111,
+2025-04-04T23:42:17.818951+00:00 app[web.1]:   code: 'ECONNREFUSED',
+2025-04-04T23:42:17.818951+00:00 app[web.1]:   syscall: 'connect',
+2025-04-04T23:42:17.818951+00:00 app[web.1]:   address: '127.0.0.1',
+2025-04-04T23:42:17.818951+00:00 app[web.1]:   port: 5432
+2025-04-04T23:42:17.818952+00:00 app[web.1]: }
+2025-04-04T23:42:17.819181+00:00 app[web.1]: ❌ Error in restoreSessionFromDatabase: Error: connect ECONNREFUSED 127.0.0.1:5432
+2025-04-04T23:42:17.819181+00:00 app[web.1]:     at /app/node_modules/pg-pool/index.js:45:11
+2025-04-04T23:42:17.819181+00:00 app[web.1]:     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-04-04T23:42:17.819181+00:00 app[web.1]:     at async restoreSessionFromDatabase (/app/heroku-bot-starter.js:241:20) {
+2025-04-04T23:42:17.819182+00:00 app[web.1]:   errno: -111,
+2025-04-04T23:42:17.819182+00:00 app[web.1]:   code: 'ECONNREFUSED',
+2025-04-04T23:42:17.819182+00:00 app[web.1]:   syscall: 'connect',
+2025-04-04T23:42:17.819182+00:00 app[web.1]:   address: '127.0.0.1',
+2025-04-04T23:42:17.819182+00:00 app[web.1]:   port: 5432
+2025-04-04T23:42:17.819183+00:00 app[web.1]: }
+2025-04-04T23:42:17.819248+00:00 app[web.1]: ⚠️ No sessions restored from database
+2025-04-04T23:42:18.165054+00:00 heroku[web.1]: State changed from starting to up
+2025-04-04T23:42:18.820739+00:00 app[web.1]: 🧠 Initializing memory management systems...
+2025-04-04T23:42:18.820772+00:00 app[web.1]: ⚠️ Running without exposed garbage collection. For optimal memory management, start with NODE_OPTIONS="--expose-gc"
+2025-04-04T23:42:18.821379+00:00 app[web.1]: [MEMORY-MANAGER] Memory management timers started
+2025-04-04T23:42:18.821632+00:00 app[web.1]: ✅ Memory management initialized
+2025-04-04T23:42:18.821639+00:00 app[web.1]: 🧠 Memory management system activated
+2025-04-04T23:42:18.844278+00:00 app[web.1]: 🔍 Health check server initialized for production environment
+2025-04-04T23:42:18.847439+00:00 app[web.1]: ✅ Connection patch loaded successfully
+2025-04-04T23:42:18.847548+00:00 app[web.1]: 🔧 Connection success patch and health check loaded
+2025-04-04T23:42:18.847577+00:00 app[web.1]: ✅ Connection patch loaded successfully
+2025-04-04T23:42:18.847828+00:00 app[web.1]: 💻 Running in standard environment, using normal connection patch
+2025-04-04T23:42:18.851303+00:00 app[web.1]: 🖥️ [33mLinux[0m, [33m5.15.0-1077-aws[0m - [33mx64[0m
+2025-04-04T23:42:18.851357+00:00 app[web.1]: 💾 [33mTotal RAM: 61.79 GB[0m
+2025-04-04T23:42:18.851386+00:00 app[web.1]: 💽 [33mFree RAM: 45.42 GB[0m
+2025-04-04T23:42:18.851401+00:00 app[web.1]: [33m📃 Script by BETABOTZ[0m
+2025-04-04T23:42:18.851503+00:00 app[web.1]: [33m📁 Created directory ./tmp[0m
+2025-04-04T23:42:18.851528+00:00 app[web.1]: ✅ Bot started successfully on random port
+2025-04-04T23:42:18.851810+00:00 app[web.1]: [HEROKU-KEEPER][ERROR][2025-04-04T23:42:18.851Z] Uncaught exception: listen EADDRINUSE: address already in use :::41615
+2025-04-04T23:42:18.852100+00:00 app[web.1]: [HEROKU-KEEPER][ERROR][2025-04-04T23:42:18.852Z] Error: listen EADDRINUSE: address already in use :::41615
+2025-04-04T23:42:18.852101+00:00 app[web.1]:     at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+2025-04-04T23:42:18.852101+00:00 app[web.1]:     at listenInCluster (node:net:1994:12)
+2025-04-04T23:42:18.852101+00:00 app[web.1]:     at Server.listen (node:net:2099:7)
+2025-04-04T23:42:18.852101+00:00 app[web.1]:     at Function.listen (/app/node_modules/express/lib/application.js:635:24)
+2025-04-04T23:42:18.852101+00:00 app[web.1]:     at setupHealthCheckServer (/app/connection-patch.js:281:9)
+2025-04-04T23:42:18.852102+00:00 app[web.1]:     at Object.<anonymous> (/app/connection-patch.js:298:5)
+2025-04-04T23:42:18.852102+00:00 app[web.1]:     at Module._compile (node:internal/modules/cjs/loader:1554:14)
+2025-04-04T23:42:18.852102+00:00 app[web.1]:     at Object..js (node:internal/modules/cjs/loader:1706:10)
+2025-04-04T23:42:18.852102+00:00 app[web.1]:     at Module.load (node:internal/modules/cjs/loader:1289:32)
+2025-04-04T23:42:18.852103+00:00 app[web.1]:     at Function._load (node:internal/modules/cjs/loader:1108:12)
+2025-04-04T23:42:18.852378+00:00 app[web.1]: ❌ Uncaught exception: Error: listen EADDRINUSE: address already in use :::41615
+2025-04-04T23:42:18.852378+00:00 app[web.1]:     at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+2025-04-04T23:42:18.852378+00:00 app[web.1]:     at listenInCluster (node:net:1994:12)
+2025-04-04T23:42:18.852378+00:00 app[web.1]:     at Server.listen (node:net:2099:7)
+2025-04-04T23:42:18.852378+00:00 app[web.1]:     at Function.listen (/app/node_modules/express/lib/application.js:635:24)
+2025-04-04T23:42:18.852378+00:00 app[web.1]:     at setupHealthCheckServer (/app/connection-patch.js:281:9)
+2025-04-04T23:42:18.852379+00:00 app[web.1]:     at Object.<anonymous> (/app/connection-patch.js:298:5)
+2025-04-04T23:42:18.852379+00:00 app[web.1]:     at Module._compile (node:internal/modules/cjs/loader:1554:14)
+2025-04-04T23:42:18.852379+00:00 app[web.1]:     at Object..js (node:internal/modules/cjs/loader:1706:10)
+2025-04-04T23:42:18.852379+00:00 app[web.1]:     at Module.load (node:internal/modules/cjs/loader:1289:32)
+2025-04-04T23:42:18.852379+00:00 app[web.1]:     at Function._load (node:internal/modules/cjs/loader:1108:12) {
+2025-04-04T23:42:18.852379+00:00 app[web.1]:   code: 'EADDRINUSE',
+2025-04-04T23:42:18.852380+00:00 app[web.1]:   errno: -98,
+2025-04-04T23:42:18.852380+00:00 app[web.1]:   syscall: 'listen',
+2025-04-04T23:42:18.852380+00:00 app[web.1]:   address: '::',
+2025-04-04T23:42:18.852380+00:00 app[web.1]:   port: 41615
+2025-04-04T23:42:18.852380+00:00 app[web.1]: }
+2025-04-04T23:42:18.852433+00:00 app[web.1]: 🛑 Shutting down gracefully...
+2025-04-04T23:42:18.852445+00:00 app[web.1]: 💾 Backing up sessions to PostgreSQL...
+2025-04-04T23:42:18.852550+00:00 app[web.1]: 🚫 No active connection to backup
+2025-04-04T23:42:18.852711+00:00 app[web.1]: Uncaught Exception: Error: listen EADDRINUSE: address already in use :::41615
+2025-04-04T23:42:18.852711+00:00 app[web.1]:     at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+2025-04-04T23:42:18.852711+00:00 app[web.1]:     at listenInCluster (node:net:1994:12)
+2025-04-04T23:42:18.852712+00:00 app[web.1]:     at Server.listen (node:net:2099:7)
+2025-04-04T23:42:18.852712+00:00 app[web.1]:     at Function.listen (/app/node_modules/express/lib/application.js:635:24)
+2025-04-04T23:42:18.852712+00:00 app[web.1]:     at setupHealthCheckServer (/app/connection-patch.js:281:9)
+2025-04-04T23:42:18.852712+00:00 app[web.1]:     at Object.<anonymous> (/app/connection-patch.js:298:5)
+2025-04-04T23:42:18.852713+00:00 app[web.1]:     at Module._compile (node:internal/modules/cjs/loader:1554:14)
+2025-04-04T23:42:18.852713+00:00 app[web.1]:     at Object..js (node:internal/modules/cjs/loader:1706:10)
+2025-04-04T23:42:18.852713+00:00 app[web.1]:     at Module.load (node:internal/modules/cjs/loader:1289:32)
+2025-04-04T23:42:18.852713+00:00 app[web.1]:     at Function._load (node:internal/modules/cjs/loader:1108:12) {
+2025-04-04T23:42:18.852713+00:00 app[web.1]:   code: 'EADDRINUSE',
+2025-04-04T23:42:18.852713+00:00 app[web.1]:   errno: -98,
+2025-04-04T23:42:18.852714+00:00 app[web.1]:   syscall: 'listen',
+2025-04-04T23:42:18.852714+00:00 app[web.1]:   address: '::',
+2025-04-04T23:42:18.852714+00:00 app[web.1]:   port: 41615
+2025-04-04T23:42:18.852714+00:00 app[web.1]: }
+2025-04-04T23:42:18.852723+00:00 app[web.1]: Stack trace: Error: listen EADDRINUSE: address already in use :::41615
+2025-04-04T23:42:18.852723+00:00 app[web.1]:     at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+2025-04-04T23:42:18.852724+00:00 app[web.1]:     at listenInCluster (node:net:1994:12)
+2025-04-04T23:42:18.852724+00:00 app[web.1]:     at Server.listen (node:net:2099:7)
+2025-04-04T23:42:18.852724+00:00 app[web.1]:     at Function.listen (/app/node_modules/express/lib/application.js:635:24)
+2025-04-04T23:42:18.852724+00:00 app[web.1]:     at setupHealthCheckServer (/app/connection-patch.js:281:9)
+2025-04-04T23:42:18.852724+00:00 app[web.1]:     at Object.<anonymous> (/app/connection-patch.js:298:5)
+2025-04-04T23:42:18.852724+00:00 app[web.1]:     at Module._compile (node:internal/modules/cjs/loader:1554:14)
+2025-04-04T23:42:18.852724+00:00 app[web.1]:     at Object..js (node:internal/modules/cjs/loader:1706:10)
+2025-04-04T23:42:18.852724+00:00 app[web.1]:     at Module.load (node:internal/modules/cjs/loader:1289:32)
+2025-04-04T23:42:18.852724+00:00 app[web.1]:     at Function._load (node:internal/modules/cjs/loader:1108:12)
+2025-04-04T23:42:18.852925+00:00 app[web.1]: [33m🟡 Found 841 plugins in folder /app/plugins[0m
+2025-04-04T23:42:18.853169+00:00 app[web.1]: [33m🟡 Baileys library version 6.7.16 is installed[0m
+2025-04-04T23:42:18.853654+00:00 app[web.1]: [HEROKU-KEEPER][SUCCESS][2025-04-04T23:42:18.853Z] Backed up 1 session files to /app/sessions-backup/backup-1743810138853
+2025-04-04T23:42:18.855451+00:00 app[web.1]: [HEROKU-KEEPER][INFO][2025-04-04T23:42:18.855Z] Removed old backup: /app/sessions-backup/backup-1743806713546
+2025-04-04T23:42:18.855455+00:00 app[web.1]: 🔌 Closing database connection...
+2025-04-04T23:42:18.855555+00:00 app[web.1]: 👋 Shutdown complete. Goodbye!
+2025-04-04T23:42:18.855777+00:00 app[web.1]: 🧹 Cleaning up memory manager on exit...
+2025-04-04T23:42:18.855860+00:00 app[web.1]: Exited with code: 1
+2025-04-04T23:42:18.855872+00:00 app[web.1]: 🧹 Performing final memory cleanup...
+2025-04-04T23:42:18.855985+00:00 app[web.1]: [MEMORY-MANAGER] Running EMERGENCY cleanup
+2025-04-04T23:42:18.856032+00:00 app[web.1]: [MEMORY-MANAGER] Cleared 3 caches during emergency cleanup
+2025-04-04T23:42:18.856334+00:00 app[web.1]: [MEMORY-MANAGER] Error forcing garbage collection: TypeError: global.gc is not a function
+2025-04-04T23:42:18.856335+00:00 app[web.1]:     at Object.runEmergencyCleanup (/app/lib/advanced-memory-manager.js:453:18)
+2025-04-04T23:42:18.856335+00:00 app[web.1]:     at process.<anonymous> (/app/index.js:728:28)
+2025-04-04T23:42:18.856335+00:00 app[web.1]:     at process.emit (node:events:530:35)
+2025-04-04T23:42:18.856336+00:00 app[web.1]:     at process.exit (node:internal/process/per_thread:184:15)
+2025-04-04T23:42:18.856336+00:00 app[web.1]:     at process.<anonymous> (/app/heroku-bot-starter.js:394:11)
+2025-04-04T23:42:18.856336+00:00 app[web.1]:     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-04-04T23:42:18.856354+00:00 app[web.1]: [MEMORY-MANAGER] Emergency cleanup completed
+2025-04-04T23:42:18.856369+00:00 app[web.1]: 🧹 Performing final garbage collection...
+2025-04-04T23:42:18.856381+00:00 app[web.1]: Script will restart...
+2025-04-04T23:42:18.906194+00:00 heroku[web.1]: Process exited with status 1
+2025-04-04T23:42:18.933613+00:00 heroku[web.1]: State changed from up to crashed
+2025-04-04T23:42:18.936630+00:00 heroku[web.1]: State changed from crashed to starting
+2025-04-04T23:41:12.837238+00:00 app[api]: Release v30 created by user martin2122007@gmail.com
+2025-04-04T23:41:12.837238+00:00 app[api]: Deploy 0d26a937 by user martin2122007@gmail.com
+2025-04-04T23:42:31.499813+00:00 heroku[web.1]: Starting process with command `node heroku-bot-starter.js --autocleartmp --autoread`
+2025-04-04T23:41:16.000000+00:00 app[api]: Build succeeded
+2025-04-04T23:42:32.320266+00:00 app[web.1]: [HEROKU-KEEPER][INFO][2025-04-04T23:42:32.319Z] Initializing Heroku connection keeper...
+2025-04-04T23:42:32.320518+00:00 app[web.1]: [HEROKU-KEEPER][WARN][2025-04-04T23:42:32.320Z] No DATABASE_URL environment variable found, PostgreSQL backup disabled
+2025-04-04T23:42:32.322552+00:00 app[web.1]: [HEROKU-KEEPER][INFO][2025-04-04T23:42:32.322Z] No HEROKU_APP_URL set, anti-idle disabled
+2025-04-04T23:42:32.322923+00:00 app[web.1]: [HEROKU-KEEPER][SUCCESS][2025-04-04T23:42:32.322Z] Heroku connection keeper initialized
+2025-04-04T23:42:32.323229+00:00 app[web.1]: 🔄 Attempting to restore sessions from database...
+2025-04-04T23:42:32.324104+00:00 app[web.1]: [HEROKU-KEEPER][SUCCESS][2025-04-04T23:42:32.324Z] Health check server started on port 35448
+2025-04-04T23:42:32.324859+00:00 app[web.1]: Server error: Error: listen EADDRINUSE: address already in use 0.0.0.0:35448
+2025-04-04T23:42:32.324859+00:00 app[web.1]:     at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+2025-04-04T23:42:32.324860+00:00 app[web.1]:     at listenInCluster (node:net:1994:12)
+2025-04-04T23:42:32.324860+00:00 app[web.1]:     at node:net:2203:7
+2025-04-04T23:42:32.324861+00:00 app[web.1]:     at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+2025-04-04T23:42:32.324861+00:00 app[web.1]:   code: 'EADDRINUSE',
+2025-04-04T23:42:32.324861+00:00 app[web.1]:   errno: -98,
+2025-04-04T23:42:32.324861+00:00 app[web.1]:   syscall: 'listen',
+2025-04-04T23:42:32.324862+00:00 app[web.1]:   address: '0.0.0.0',
+2025-04-04T23:42:32.324862+00:00 app[web.1]:   port: 35448
+2025-04-04T23:42:32.324862+00:00 app[web.1]: }
+2025-04-04T23:42:32.324959+00:00 app[web.1]: Port 35448 is already in use. Trying another port...
+2025-04-04T23:42:32.325460+00:00 app[web.1]: ⚡ Server running on a random port
+2025-04-04T23:42:32.325749+00:00 app[web.1]: 🚀 Initializing performance optimization system...
+2025-04-04T23:42:32.325844+00:00 app[web.1]: 🚀 Loading RPG performance optimizations...
+2025-04-04T23:42:32.326255+00:00 app[web.1]: ✅ Response cache system loaded successfully
+2025-04-04T23:42:32.326667+00:00 app[web.1]: ✅ Response cache loaded for group optimization
+2025-04-04T23:42:32.326731+00:00 app[web.1]: ✅ Group chat optimization system loaded successfully
+2025-04-04T23:42:32.327048+00:00 app[web.1]: [OPTIMIZE] Setting up global connection watcher for automatic optimization
+2025-04-04T23:42:32.327109+00:00 app[web.1]: [OPTIMIZE] Loading performance optimization modules...
+2025-04-04T23:42:32.327125+00:00 app[web.1]: [OPTIMIZE] ✅ Response cache system loaded
+2025-04-04T23:42:32.327137+00:00 app[web.1]: [OPTIMIZE] ✅ Group chat optimization system loaded
+2025-04-04T23:42:32.327305+00:00 app[web.1]: ✅ Performance optimization system fully initialized
+2025-04-04T23:42:32.330719+00:00 app[web.1]: ❌ Error creating session table: Error: connect ECONNREFUSED 127.0.0.1:5432
+2025-04-04T23:42:32.330720+00:00 app[web.1]:     at /app/node_modules/pg-pool/index.js:45:11
+2025-04-04T23:42:32.330720+00:00 app[web.1]:     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-04-04T23:42:32.330720+00:00 app[web.1]:     at async createSessionTable (/app/heroku-bot-starter.js:60:5) {
+2025-04-04T23:42:32.330720+00:00 app[web.1]:   errno: -111,
+2025-04-04T23:42:32.330721+00:00 app[web.1]:   code: 'ECONNREFUSED',
+2025-04-04T23:42:32.330721+00:00 app[web.1]:   syscall: 'connect',
+2025-04-04T23:42:32.330721+00:00 app[web.1]:   address: '127.0.0.1',
+2025-04-04T23:42:32.330722+00:00 app[web.1]:   port: 5432
+2025-04-04T23:42:32.330722+00:00 app[web.1]: }
+2025-04-04T23:42:32.330967+00:00 app[web.1]: ❌ Error in restoreSessionFromDatabase: Error: connect ECONNREFUSED 127.0.0.1:5432
+2025-04-04T23:42:32.330967+00:00 app[web.1]:     at /app/node_modules/pg-pool/index.js:45:11
+2025-04-04T23:42:32.330967+00:00 app[web.1]:     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-04-04T23:42:32.330968+00:00 app[web.1]:     at async restoreSessionFromDatabase (/app/heroku-bot-starter.js:241:20) {
+2025-04-04T23:42:32.330968+00:00 app[web.1]:   errno: -111,
+2025-04-04T23:42:32.330968+00:00 app[web.1]:   code: 'ECONNREFUSED',
+2025-04-04T23:42:32.330968+00:00 app[web.1]:   syscall: 'connect',
+2025-04-04T23:42:32.330969+00:00 app[web.1]:   address: '127.0.0.1',
+2025-04-04T23:42:32.330969+00:00 app[web.1]:   port: 5432
+2025-04-04T23:42:32.330969+00:00 app[web.1]: }
+2025-04-04T23:42:32.331039+00:00 app[web.1]: ⚠️ No sessions restored from database
+2025-04-04T23:42:32.654545+00:00 heroku[web.1]: State changed from starting to up
+2025-04-04T23:42:33.332484+00:00 app[web.1]: 🧠 Initializing memory management systems...
+2025-04-04T23:42:33.332510+00:00 app[web.1]: ⚠️ Running without exposed garbage collection. For optimal memory management, start with NODE_OPTIONS="--expose-gc"
+2025-04-04T23:42:33.333100+00:00 app[web.1]: [MEMORY-MANAGER] Memory management timers started
+2025-04-04T23:42:33.333354+00:00 app[web.1]: ✅ Memory management initialized
+2025-04-04T23:42:33.333366+00:00 app[web.1]: 🧠 Memory management system activated
+2025-04-04T23:42:33.356396+00:00 app[web.1]: 🔍 Health check server initialized for production environment
+2025-04-04T23:42:33.359678+00:00 app[web.1]: ✅ Connection patch loaded successfully
+2025-04-04T23:42:33.359777+00:00 app[web.1]: 🔧 Connection success patch and health check loaded
+2025-04-04T23:42:33.359806+00:00 app[web.1]: ✅ Connection patch loaded successfully
+2025-04-04T23:42:33.360016+00:00 app[web.1]: 💻 Running in standard environment, using normal connection patch
+2025-04-04T23:42:33.363844+00:00 app[web.1]: 🖥️ [33mLinux[0m, [33m5.15.0-1077-aws[0m - [33mx64[0m
+2025-04-04T23:42:33.363903+00:00 app[web.1]: 💾 [33mTotal RAM: 61.79 GB[0m
+2025-04-04T23:42:33.363935+00:00 app[web.1]: 💽 [33mFree RAM: 43.33 GB[0m
+2025-04-04T23:42:33.363936+00:00 app[web.1]: [33m📃 Script by BETABOTZ[0m
+2025-04-04T23:42:33.364062+00:00 app[web.1]: [33m📁 Created directory ./tmp[0m
+2025-04-04T23:42:33.364095+00:00 app[web.1]: ✅ Bot started successfully on random port
+2025-04-04T23:42:33.364362+00:00 app[web.1]: [HEROKU-KEEPER][ERROR][2025-04-04T23:42:33.364Z] Uncaught exception: listen EADDRINUSE: address already in use :::35448
+2025-04-04T23:42:33.364574+00:00 app[web.1]: [HEROKU-KEEPER][ERROR][2025-04-04T23:42:33.364Z] Error: listen EADDRINUSE: address already in use :::35448
+2025-04-04T23:42:33.364575+00:00 app[web.1]:     at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+2025-04-04T23:42:33.364575+00:00 app[web.1]:     at listenInCluster (node:net:1994:12)
+2025-04-04T23:42:33.364575+00:00 app[web.1]:     at Server.listen (node:net:2099:7)
+2025-04-04T23:42:33.364576+00:00 app[web.1]:     at Function.listen (/app/node_modules/express/lib/application.js:635:24)
+2025-04-04T23:42:33.364583+00:00 app[web.1]:     at setupHealthCheckServer (/app/connection-patch.js:281:9)
+2025-04-04T23:42:33.364583+00:00 app[web.1]:     at Object.<anonymous> (/app/connection-patch.js:298:5)
+2025-04-04T23:42:33.364584+00:00 app[web.1]:     at Module._compile (node:internal/modules/cjs/loader:1554:14)
+2025-04-04T23:42:33.364584+00:00 app[web.1]:     at Object..js (node:internal/modules/cjs/loader:1706:10)
+2025-04-04T23:42:33.364594+00:00 app[web.1]:     at Module.load (node:internal/modules/cjs/loader:1289:32)
+2025-04-04T23:42:33.364595+00:00 app[web.1]:     at Function._load (node:internal/modules/cjs/loader:1108:12)
+2025-04-04T23:42:33.364905+00:00 app[web.1]: ❌ Uncaught exception: Error: listen EADDRINUSE: address already in use :::35448
+2025-04-04T23:42:33.364906+00:00 app[web.1]:     at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+2025-04-04T23:42:33.364906+00:00 app[web.1]:     at listenInCluster (node:net:1994:12)
+2025-04-04T23:42:33.364907+00:00 app[web.1]:     at Server.listen (node:net:2099:7)
+2025-04-04T23:42:33.364907+00:00 app[web.1]:     at Function.listen (/app/node_modules/express/lib/application.js:635:24)
+2025-04-04T23:42:33.364907+00:00 app[web.1]:     at setupHealthCheckServer (/app/connection-patch.js:281:9)
+2025-04-04T23:42:33.364908+00:00 app[web.1]:     at Object.<anonymous> (/app/connection-patch.js:298:5)
+2025-04-04T23:42:33.364908+00:00 app[web.1]:     at Module._compile (node:internal/modules/cjs/loader:1554:14)
+2025-04-04T23:42:33.364909+00:00 app[web.1]:     at Object..js (node:internal/modules/cjs/loader:1706:10)
+2025-04-04T23:42:33.364909+00:00 app[web.1]:     at Module.load (node:internal/modules/cjs/loader:1289:32)
+2025-04-04T23:42:33.364909+00:00 app[web.1]:     at Function._load (node:internal/modules/cjs/loader:1108:12) {
+2025-04-04T23:42:33.364910+00:00 app[web.1]:   code: 'EADDRINUSE',
+2025-04-04T23:42:33.364911+00:00 app[web.1]:   errno: -98,
+2025-04-04T23:42:33.364911+00:00 app[web.1]:   syscall: 'listen',
+2025-04-04T23:42:33.364911+00:00 app[web.1]:   address: '::',
+2025-04-04T23:42:33.364911+00:00 app[web.1]:   port: 35448
+2025-04-04T23:42:33.364911+00:00 app[web.1]: }
+2025-04-04T23:42:33.364975+00:00 app[web.1]: 🛑 Shutting down gracefully...
+2025-04-04T23:42:33.364990+00:00 app[web.1]: 💾 Backing up sessions to PostgreSQL...
+2025-04-04T23:42:33.365105+00:00 app[web.1]: 🚫 No active connection to backup
+2025-04-04T23:42:33.365277+00:00 app[web.1]: Uncaught Exception: Error: listen EADDRINUSE: address already in use :::35448
+2025-04-04T23:42:33.365278+00:00 app[web.1]:     at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+2025-04-04T23:42:33.365278+00:00 app[web.1]:     at listenInCluster (node:net:1994:12)
+2025-04-04T23:42:33.365278+00:00 app[web.1]:     at Server.listen (node:net:2099:7)
+2025-04-04T23:42:33.365279+00:00 app[web.1]:     at Function.listen (/app/node_modules/express/lib/application.js:635:24)
+2025-04-04T23:42:33.365279+00:00 app[web.1]:     at setupHealthCheckServer (/app/connection-patch.js:281:9)
+2025-04-04T23:42:33.365280+00:00 app[web.1]:     at Object.<anonymous> (/app/connection-patch.js:298:5)
+2025-04-04T23:42:33.365280+00:00 app[web.1]:     at Module._compile (node:internal/modules/cjs/loader:1554:14)
+2025-04-04T23:42:33.365280+00:00 app[web.1]:     at Object..js (node:internal/modules/cjs/loader:1706:10)
+2025-04-04T23:42:33.365280+00:00 app[web.1]:     at Module.load (node:internal/modules/cjs/loader:1289:32)
+2025-04-04T23:42:33.365281+00:00 app[web.1]:     at Function._load (node:internal/modules/cjs/loader:1108:12) {
+2025-04-04T23:42:33.365281+00:00 app[web.1]:   code: 'EADDRINUSE',
+2025-04-04T23:42:33.365282+00:00 app[web.1]:   errno: -98,
+2025-04-04T23:42:33.365282+00:00 app[web.1]:   syscall: 'listen',
+2025-04-04T23:42:33.365282+00:00 app[web.1]:   address: '::',
+2025-04-04T23:42:33.365282+00:00 app[web.1]:   port: 35448
+2025-04-04T23:42:33.365283+00:00 app[web.1]: }
+2025-04-04T23:42:33.365288+00:00 app[web.1]: Stack trace: Error: listen EADDRINUSE: address already in use :::35448
+2025-04-04T23:42:33.365289+00:00 app[web.1]:     at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+2025-04-04T23:42:33.365289+00:00 app[web.1]:     at listenInCluster (node:net:1994:12)
+2025-04-04T23:42:33.365289+00:00 app[web.1]:     at Server.listen (node:net:2099:7)
+2025-04-04T23:42:33.365289+00:00 app[web.1]:     at Function.listen (/app/node_modules/express/lib/application.js:635:24)
+2025-04-04T23:42:33.365290+00:00 app[web.1]:     at setupHealthCheckServer (/app/connection-patch.js:281:9)
+2025-04-04T23:42:33.365290+00:00 app[web.1]:     at Object.<anonymous> (/app/connection-patch.js:298:5)
+2025-04-04T23:42:33.365290+00:00 app[web.1]:     at Module._compile (node:internal/modules/cjs/loader:1554:14)
+2025-04-04T23:42:33.365290+00:00 app[web.1]:     at Object..js (node:internal/modules/cjs/loader:1706:10)
+2025-04-04T23:42:33.365291+00:00 app[web.1]:     at Module.load (node:internal/modules/cjs/loader:1289:32)
+2025-04-04T23:42:33.365291+00:00 app[web.1]:     at Function._load (node:internal/modules/cjs/loader:1108:12)
+2025-04-04T23:42:33.365518+00:00 app[web.1]: [33m🟡 Found 841 plugins in folder /app/plugins[0m
+2025-04-04T23:42:33.365777+00:00 app[web.1]: [33m🟡 Baileys library version 6.7.16 is installed[0m
+2025-04-04T23:42:33.366288+00:00 app[web.1]: [HEROKU-KEEPER][SUCCESS][2025-04-04T23:42:33.366Z] Backed up 1 session files to /app/sessions-backup/backup-1743810153365
+2025-04-04T23:42:33.368331+00:00 app[web.1]: [HEROKU-KEEPER][INFO][2025-04-04T23:42:33.368Z] Removed old backup: /app/sessions-backup/backup-1743806713546
+2025-04-04T23:42:33.368331+00:00 app[web.1]: 🔌 Closing database connection...
+2025-04-04T23:42:33.368453+00:00 app[web.1]: 👋 Shutdown complete. Goodbye!
+2025-04-04T23:42:33.368672+00:00 app[web.1]: 🧹 Cleaning up memory manager on exit...
+2025-04-04T23:42:33.368772+00:00 app[web.1]: Exited with code: 1
+2025-04-04T23:42:33.368785+00:00 app[web.1]: 🧹 Performing final memory cleanup...
+2025-04-04T23:42:33.368914+00:00 app[web.1]: [MEMORY-MANAGER] Running EMERGENCY cleanup
+2025-04-04T23:42:33.368972+00:00 app[web.1]: [MEMORY-MANAGER] Cleared 3 caches during emergency cleanup
+2025-04-04T23:42:33.369307+00:00 app[web.1]: [MEMORY-MANAGER] Error forcing garbage collection: TypeError: global.gc is not a function
+2025-04-04T23:42:33.369307+00:00 app[web.1]:     at Object.runEmergencyCleanup (/app/lib/advanced-memory-manager.js:453:18)
+2025-04-04T23:42:33.369307+00:00 app[web.1]:     at process.<anonymous> (/app/index.js:728:28)
+2025-04-04T23:42:33.369308+00:00 app[web.1]:     at process.emit (node:events:530:35)
+2025-04-04T23:42:33.369308+00:00 app[web.1]:     at process.exit (node:internal/process/per_thread:184:15)
+2025-04-04T23:42:33.369308+00:00 app[web.1]:     at process.<anonymous> (/app/heroku-bot-starter.js:394:11)
+2025-04-04T23:42:33.369308+00:00 app[web.1]:     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-04-04T23:42:33.369330+00:00 app[web.1]: [MEMORY-MANAGER] Emergency cleanup completed
+2025-04-04T23:42:33.369346+00:00 app[web.1]: 🧹 Performing final garbage collection...
+2025-04-04T23:42:33.369359+00:00 app[web.1]: Script will restart...
+2025-04-04T23:42:33.421986+00:00 heroku[web.1]: Process exited with status 1
+2025-04-04T23:42:33.447352+00:00 heroku[web.1]: State changed from up to crashed

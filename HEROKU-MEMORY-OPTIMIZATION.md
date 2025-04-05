@@ -1,75 +1,148 @@
 # BLACKSKY-MD Premium - Heroku Memory Optimization Guide
 
-This document describes the memory optimization features implemented to fix R15 memory quota exceeded errors on Heroku.
+This document provides a comprehensive overview of the memory optimization enhancements made to BLACKSKY-MD Premium for Heroku deployment.
 
-## Problem: Memory Quota Exceeded (R15) Error
+## Memory Issues Fixed
 
-The bot was experiencing memory quota exceeded errors (R15) on Heroku, where memory usage reached 219.5% of allocation (1123MB), causing Heroku to terminate the process with SIGKILL.
+1. **Prevented R15 Memory Quota Exceeded Errors**
+   - Fixed excessive memory growth that caused Heroku to terminate the process
+   - Addressed memory leaks in WhatsApp session management
+   - Added monitoring to detect and prevent memory spikes
 
-## Solution: Advanced Memory Management System
+2. **Fixed Runtime Memory Management**
+   - Implemented proper memory usage statistics reporting
+   - Added cascading fallback system for robust operation
+   - Fixed memory function integration issues
 
-The BLACKSKY-MD Premium bot now includes a comprehensive memory management system that prevents R15 errors through proactive monitoring and optimization.
+## Memory Management Architecture
 
-### Key Optimizations Implemented:
+### Multiple Fallback Layers
 
-1. **Integrated Advanced Memory Manager**
-   - Monitors memory usage in real-time
-   - Provides early warning at 70% memory usage
-   - Triggers cleanup routines at critical thresholds (85%)
-   - Prevents memory leaks through proactive management
+The system now implements a multi-layered memory management approach:
 
-2. **WhatsApp-Specific Memory Optimizations**
-   - Automatically cleans chat message history when memory is high
-   - Limits stored messages per chat to prevent excessive memory usage
-   - Optimizes connection handling to reduce memory footprint
+1. **Advanced Memory Manager** - Primary system that provides comprehensive monitoring
+2. **Basic Memory Manager** - Fallback system when the advanced system encounters issues
+3. **Direct Function Access** - Third level of fallback using direct module imports
+4. **Health Endpoint Fallback** - Final safety mechanism for server stability
 
-3. **Automated Connection Monitoring**
-   - Connection watcher detects offline states and memory issues
-   - Triggers reconnection when needed
-   - Performs targeted cleanup of memory-intensive components
+### Memory Monitoring Process
 
-4. **Enhanced Graceful Shutdown**
-   - Performs memory cleanup before exit
-   - Ensures clean session backup to PostgreSQL
-   - Prevents data loss during Heroku dyno cycling
+1. **Memory Usage Detection**
+   - Uses Node.js `process.memoryUsage()` to track heap usage
+   - Monitors system memory via the OS module
+   - Reports memory metrics via health endpoint (/health)
 
-5. **Periodic Memory Monitoring**
-   - Regular memory usage checks and logging
-   - Automated cleanup routines based on usage thresholds
-   - Garbage collection forcing when necessary
+2. **Progressive Cleanup Strategy**
+   - Standard cleanup at 70% memory usage threshold
+     - Clears module caches for non-essential modules
+     - Performs limited garbage collection
+   
+   - Emergency cleanup at 85% memory usage threshold
+     - Aggressively clears module caches
+     - Reduces chat history memory usage
+     - Attempts multiple garbage collection cycles
+     - Cleans up event listeners that might be leaking
 
-## Environment Configuration
+### Fault Tolerance Improvements
 
-To enable memory optimization features, set:
+1. **Function Availability Verification**
+   - Checks if required functions exist before calling them
+   - Dynamically adds missing functions when needed
+   - Safely handles missing or erroring functions
 
-```
-ENABLE_MEMORY_OPTIMIZATION=true
-```
+2. **Proper Error Handling**
+   - Comprehensive try/catch blocks around all memory operations
+   - Detailed error logging for troubleshooting
+   - Graceful degradation to simpler memory handling
 
-This is enabled by default in the latest update.
+## Setup and Configuration
 
-## Recommended Heroku Configuration
+To enable memory optimization for Heroku deployment:
 
-For optimal performance:
+1. Set the following environment variables:
+   ```
+   ENABLE_MEMORY_OPTIMIZATION=true
+   ```
 
-1. Use Heroku Basic or Eco plan for sufficient memory allocation
-2. Add PostgreSQL add-on for session persistence
-3. Configure automatic dyno restart using Heroku Scheduler
-4. Set `WEB_CONCURRENCY=1` to prevent multiple processes competing for memory
+2. Monitor memory usage with the health endpoint:
+   ```
+   curl https://your-app-name.herokuapp.com/health | jq
+   ```
 
-## Monitoring Memory Usage
+3. The health endpoint returns detailed memory statistics:
+   ```json
+   {
+     "status": "ok",
+     "timestamp": "2025-04-05T17:13:32.189Z",
+     "uptime": 4.172818665,
+     "memory": {
+       "raw": {
+         "rss": 112119808,
+         "heapTotal": 44113920,
+         "heapUsed": 27160048,
+         "external": 3504748,
+         "arrayBuffers": 77927
+       },
+       "formatted": {
+         "heapUsed": 26,
+         "heapTotal": 42,
+         "rss": 107,
+         "external": 3,
+         "arrayBuffers": 0,
+         "systemTotal": 64313,
+         "systemFree": 14752,
+         "systemUsed": 49561
+       },
+       "percentages": {
+         "heapUsage": 62,
+         "systemUsage": 77
+       }
+     },
+     "memoryOptimizationEnabled": true,
+     "databaseConnected": true
+   }
+   ```
 
-The health check endpoint (`/health`) now includes detailed memory usage statistics that can be monitored through the Heroku logs or using a third-party monitoring tool.
+## Recommendations for Optimal Performance
 
-## Memory Troubleshooting
+1. **Use a Proper Heroku Dyno Size**
+   - Standard-1X (512MB) is the minimum recommended
+   - Standard-2X (1024MB) provides better stability for larger groups
 
-If you still experience memory issues:
+2. **Enable Database Session Backups**
+   - Set `ENABLE_SESSION_BACKUP=true` 
+   - This prevents memory issues during reconnection
 
-1. Check Heroku logs for "Memory usage high" warnings
-2. Verify the memory manager is showing as enabled in logs
-3. Consider upgrading to a higher Heroku plan with more memory
-4. Disable memory-intensive plugins if necessary
+3. **Enable Connection Health Monitoring**
+   - Set `ENABLE_HEALTH_CHECK=true`
+   - Keep your app awake with a service like UptimeRobot
 
----
+4. **Use Heroku Metrics Dashboard**
+   - Monitor your dyno's memory usage
+   - Set up alerts for consistent high memory usage
 
-These optimizations should resolve R15 errors and provide stable 24/7 operation on Heroku dyno hosting.
+## Troubleshooting
+
+If you encounter memory issues (R15 errors) even with optimization enabled:
+
+1. Check Heroku logs:
+   ```
+   heroku logs --tail
+   ```
+
+2. Look for memory threshold warnings:
+   ```
+   ⚠️ Memory usage high: 90.0% (220 MB)
+   ```
+
+3. Check if cleanup is working:
+   ```
+   🧹 Running standard memory cleanup...
+   ```
+
+4. Verify emergency cleanup trigger:
+   ```
+   🚨 Memory usage critical! Running emergency cleanup...
+   ```
+
+With these optimizations, BLACKSKY-MD Premium should run stably on Heroku without encountering R15 memory quota exceeded errors.

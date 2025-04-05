@@ -1,0 +1,135 @@
+modules = ["nodejs-20"]
+
+[nix]
+channel = "stable-24_05"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Run With Pairing"
+author = 41130535
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node index.js --pairing"
+
+[[workflows.workflow]]
+name = "Heroku-Bot-Optimized"
+author = 41130535
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "NODE_OPTIONS=\"--expose-gc --max-old-space-size=512\" node heroku-bot-starter.js"
+
+[[workflows.workflow]]
+name = "24-7-Heroku-Bot"
+author = 41130535
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "NODE_OPTIONS=\"--expose-gc --max-old-space-size=512\" node heroku-bot-starter.js"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Heroku-Bot-Starter"
+
+[[workflows.workflow]]
+name = "Heroku-Bot-Starter"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node heroku-bot-starter.js"
+waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Heroku-Bot-Production"
+author = 41149162
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "NODE_ENV=production NODE_OPTIONS=\"--expose-gc --max-old-space-size=512\" node heroku-combined-runner.js"
+
+[deployment]
+run = ["sh", "-c", "NODE_OPTIONS='--expose-gc --max-old-space-size=512' node heroku-bot-starter.js"]
+build = ["sh", "-c", "npm install"]
+
+[[ports]]
+localPort = 3000
+externalPort = 3000
+
+[[ports]]
+localPort = 4000
+externalPort = 80
+
+[[ports]]
+localPort = 4001
+externalPort = 3002
+
+[[ports]]
+localPort = 4444
+externalPort = 3003
+
+[[ports]]
+localPort = 5000
+externalPort = 5000
+
+[[ports]]
+localPort = 26097
+externalPort = 5173
+
+[[ports]]
+localPort = 26694
+externalPort = 4200
+
+[[ports]]
+localPort = 26972
+externalPort = 6000
+
+[[ports]]
+localPort = 28111
+externalPort = 6800
+
+[[ports]]
+localPort = 30461
+externalPort = 8099
+
+[[ports]]
+localPort = 31837
+externalPort = 8081
+
+[[ports]]
+localPort = 31840
+externalPort = 8008
+
+[[ports]]
+localPort = 32526
+externalPort = 8000
+
+[[ports]]
+localPort = 34775
+externalPort = 8080
+
+[[ports]]
+localPort = 34887
+externalPort = 9000
+
+[[ports]]
+localPort = 38535
+externalPort = 3001

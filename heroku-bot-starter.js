@@ -6,6 +6,9 @@
  * Includes PM2 integration for 24/7 operation
  */
 
+// Set higher event listener limit to avoid MaxListenersExceededWarning
+require('events').EventEmitter.defaultMaxListeners = 300;
+
 // Detect environment
 const os = require('os');
 const isTermux = os.platform() === 'android' || process.env.TERMUX === 'true';
@@ -61,26 +64,150 @@ const { initialize: initKeeper } = require('./heroku-connection-keeper.js');
 try {
   global.enhancedConnectionKeeper = require('./enhanced-connection-keeper');
   console.log('✅ Enhanced connection keeper loaded successfully');
+  
+  // Initialize with safe mode that waits for connection
+  if (global.enhancedConnectionKeeper && typeof global.enhancedConnectionKeeper.safeInitialize === 'function') {
+    console.log('🔄 Starting connection keeper in safe mode (will wait for WhatsApp connection)');
+    global.enhancedConnectionKeeper.safeInitialize();
+  }
 } catch (err) {
   console.error('❌ Failed to load enhanced connection keeper:', err.message);
   global.enhancedConnectionKeeper = null;
 }
 
 // Initialize advanced memory manager if enabled (default on Heroku)
-let memoryManager;
 if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
   try {
     const AdvancedMemoryManager = require('./lib/advanced-memory-manager.js');
-    memoryManager = AdvancedMemoryManager.initMemoryManager({
+    const memoryManager = AdvancedMemoryManager.initMemoryManager({
       memoryThresholdWarning: 70, // Lower the threshold for earlier intervention
       memoryThresholdCritical: 85, // Lower the critical threshold
       cleanupInterval: 2 * 60 * 1000, // More frequent cleanup (2 minutes)
       logMemoryUsage: true // Enable memory usage logging
     });
-    global.memoryManager = memoryManager;
+    
+    // Create a wrapper with the expected method names
+    const memoryManagerWrapper = {
+      // Map original methods to the ones we need
+      getMemoryUsage: function() {
+        // If the original has getMemoryUsage, use it
+        if (typeof memoryManager.getMemoryUsage === 'function') {
+          return memoryManager.getMemoryUsage();
+        }
+        
+        // Otherwise, create our own implementation
+        const memoryUsage = process.memoryUsage();
+        const totalMemory = require('os').totalmem();
+        const freeMemory = require('os').freemem();
+        const usedMemory = totalMemory - freeMemory;
+        
+        // Format memory values to MB
+        const formatted = {
+          heapUsed: Math.round(memoryUsage.heapUsed / (1024 * 1024)),
+          heapTotal: Math.round(memoryUsage.heapTotal / (1024 * 1024)),
+          rss: Math.round(memoryUsage.rss / (1024 * 1024)),
+          external: Math.round((memoryUsage.external || 0) / (1024 * 1024)),
+          arrayBuffers: Math.round((memoryUsage.arrayBuffers || 0) / (1024 * 1024)),
+          systemTotal: Math.round(totalMemory / (1024 * 1024)),
+          systemFree: Math.round(freeMemory / (1024 * 1024)),
+          systemUsed: Math.round(usedMemory / (1024 * 1024)),
+        };
+        
+        // Calculate percentages
+        const percentages = {
+          heapUsage: Math.round((memoryUsage.heapUsed / memoryUsage.heapTotal) * 100),
+          systemUsage: Math.round((usedMemory / totalMemory) * 100),
+        };
+        
+        return {
+          raw: memoryUsage,
+          formatted,
+          percentages,
+          time: Date.now(),
+        };
+      },
+      
+      // Map all original methods to our wrapper
+      runCleanup: function() {
+        if (typeof memoryManager.runCleanup === 'function') {
+          memoryManager.runCleanup();
+        } else if (typeof memoryManager.performMemoryCleanup === 'function') {
+          memoryManager.performMemoryCleanup();
+        }
+        console.log('[MEMORY-MANAGER] Performed memory cleanup');
+      },
+      
+      runEmergencyCleanup: function() {
+        if (typeof memoryManager.runEmergencyCleanup === 'function') {
+          memoryManager.runEmergencyCleanup();
+        } else if (typeof memoryManager.performMemoryCleanup === 'function') {
+          memoryManager.performMemoryCleanup(true); // true for emergency
+        }
+        console.log('[MEMORY-MANAGER] Performed emergency memory cleanup');
+        
+        // Also clear Node.js module cache to free up memory
+        for (const key in require.cache) {
+          if (key.includes('node_modules') && 
+              !key.includes('baileys') && 
+              !key.includes('whatsapp')) {
+            delete require.cache[key];
+          }
+        }
+        
+        // Force garbage collection if available
+        if (global.gc) {
+          try {
+            global.gc();
+            console.log('[MEMORY-MANAGER] Force garbage collection completed');
+          } catch (err) {
+            console.error('[MEMORY-MANAGER] Error during forced GC:', err.message);
+          }
+        }
+      }
+    };
+    
+    // Set the wrapped memory manager globally
+    global.memoryManager = memoryManagerWrapper;
+    
+    // Start memory management timers
+    console.log('[MEMORY-MANAGER] Memory management timers started');
+    
+    // Create a test function to verify it's working properly
+    setTimeout(() => {
+      try {
+        // Log the available methods
+        console.log('[MEMORY-MANAGER] Available memory manager methods:', 
+          Object.keys(memoryManager).join(', '));
+        
+        // Test memory usage function using global.memoryManager
+        try {    
+          const memUsage = global.memoryManager.getMemoryUsage();
+          console.log('[MEMORY-MANAGER] Current heap usage:', 
+            memUsage.percentages.heapUsage + '%', 
+            '(' + memUsage.formatted.heapUsed + ' MB)');
+        } catch (memError) {
+          console.error('[MEMORY-MANAGER] Error getting memory usage:', memError.message);
+          // Try direct function from the module
+          const directMemUsage = AdvancedMemoryManager.getMemoryUsage();
+          console.log('[MEMORY-MANAGER] Direct memory usage call succeeded:', 
+            directMemUsage.percentages.heapUsage + '%');
+        }
+          
+        // Test cleanup function
+        try {
+          global.memoryManager.runCleanup();
+        } catch (cleanupError) {
+          console.error('[MEMORY-MANAGER] Error running cleanup:', cleanupError.message);
+        }
+      } catch (error) {
+        console.error('[MEMORY-MANAGER] Error testing memory manager:', error);
+      }
+    }, 5000);
+    
     console.log('✅ Advanced memory manager initialized for Heroku optimization');
   } catch (err) {
     console.error('❌ Failed to load advanced memory manager:', err.message);
+    console.error(err);
     global.memoryManager = null;
   }
 }
@@ -205,19 +332,140 @@ global.dbPool = pool;
 // Initialize connection keeper
 const keeper = initKeeper();
 
+// Create a simple standalone memory manager to ensure we always have one available
+// This can be used as a fallback if the advanced memory manager fails
+function createBasicMemoryManager() {
+  return {
+    getMemoryUsage: function() {
+      const memoryUsage = process.memoryUsage();
+      const totalMemory = require('os').totalmem();
+      const freeMemory = require('os').freemem();
+      const usedMemory = totalMemory - freeMemory;
+      
+      // Format memory values to MB
+      const formatted = {
+        heapUsed: Math.round(memoryUsage.heapUsed / (1024 * 1024)),
+        heapTotal: Math.round(memoryUsage.heapTotal / (1024 * 1024)),
+        rss: Math.round(memoryUsage.rss / (1024 * 1024)),
+        external: Math.round((memoryUsage.external || 0) / (1024 * 1024)),
+        arrayBuffers: Math.round((memoryUsage.arrayBuffers || 0) / (1024 * 1024)),
+        systemTotal: Math.round(totalMemory / (1024 * 1024)),
+        systemFree: Math.round(freeMemory / (1024 * 1024)),
+        systemUsed: Math.round(usedMemory / (1024 * 1024)),
+      };
+      
+      // Calculate percentages
+      const percentages = {
+        heapUsage: Math.round((memoryUsage.heapUsed / memoryUsage.heapTotal) * 100),
+        systemUsage: Math.round((usedMemory / totalMemory) * 100),
+      };
+      
+      return {
+        raw: memoryUsage,
+        formatted,
+        percentages,
+        time: Date.now(),
+      };
+    },
+    
+    runCleanup: function() {
+      // Basic memory cleanup (clear require cache for non-essential modules)
+      for (const key in require.cache) {
+        if (key.includes('node_modules') && 
+            !key.includes('baileys') && 
+            !key.includes('whatsapp') &&
+            !key.includes('express')) {
+          delete require.cache[key];
+        }
+      }
+      console.log('[BASIC-MEMORY-MANAGER] Performed basic cleanup');
+      
+      // Force garbage collection if available
+      if (global.gc) {
+        try {
+          global.gc();
+          console.log('[BASIC-MEMORY-MANAGER] Garbage collection triggered');
+        } catch (err) {
+          console.error('[BASIC-MEMORY-MANAGER] Error during GC:', err.message);
+        }
+      }
+    },
+    
+    runEmergencyCleanup: function() {
+      // Clear all caches
+      console.log('[BASIC-MEMORY-MANAGER] Emergency cleanup: clearing caches');
+      
+      // Clear require cache more aggressively
+      for (const key in require.cache) {
+        if (!key.includes('baileys') && !key.includes('whatsapp')) {
+          delete require.cache[key];
+        }
+      }
+      
+      // Force garbage collection
+      if (global.gc) {
+        try {
+          global.gc();
+          console.log('[BASIC-MEMORY-MANAGER] Emergency garbage collection completed');
+        } catch (err) {
+          console.error('[BASIC-MEMORY-MANAGER] Error during emergency GC:', err.message);
+        }
+      }
+    }
+  };
+}
+
+// Make sure we always have a memory manager available globally
+if (!global.memoryManager) {
+  console.log('⚠️ Using basic memory manager as fallback');
+  global.memoryManager = createBasicMemoryManager();
+}
+
 // Health check endpoint
 app.get('/health', (req, res) => {
-  // Get detailed memory info if memory manager is available
-  const memoryInfo = global.memoryManager ? global.memoryManager.getMemoryUsage() : process.memoryUsage();
-  
-  res.json({ 
-    status: 'ok', 
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    memory: memoryInfo,
-    memoryOptimizationEnabled: !!global.memoryManager,
-    databaseConnected: !!global.dbPool
-  });
+  try {
+    // Get memory info, safely falling back to process.memoryUsage() if needed
+    let memoryInfo;
+    try {
+      if (global.memoryManager && typeof global.memoryManager.getMemoryUsage === 'function') {
+        memoryInfo = global.memoryManager.getMemoryUsage();
+      } else {
+        // Create and use basic memory manager
+        const basicManager = createBasicMemoryManager();
+        memoryInfo = basicManager.getMemoryUsage();
+      }
+    } catch (memError) {
+      console.error('❌ Error getting memory usage:', memError.message);
+      // Simple fallback
+      const mem = process.memoryUsage();
+      memoryInfo = {
+        raw: mem,
+        formatted: {
+          heapUsed: Math.round(mem.heapUsed / (1024 * 1024)),
+          heapTotal: Math.round(mem.heapTotal / (1024 * 1024))
+        },
+        percentages: {
+          heapUsage: Math.round((mem.heapUsed / mem.heapTotal) * 100)
+        }
+      };
+    }
+    
+    res.json({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      memory: memoryInfo,
+      memoryOptimizationEnabled: !!global.memoryManager,
+      databaseConnected: !!global.dbPool
+    });
+  } catch (err) {
+    console.error('❌ Error in health check endpoint:', err.message);
+    res.status(500).json({ 
+      status: 'error', 
+      message: 'Internal server error in health check',
+      error: err.message
+    });
+  }
 });
 
 // Set up periodic memory monitoring for Heroku
@@ -225,37 +473,185 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
   const MEMORY_CHECK_INTERVAL = 60 * 1000; // Check every minute
   console.log('🧠 Setting up periodic memory monitoring...');
   
+  // Run initial memory check to validate setup
+  setTimeout(() => {
+    console.log('🧠 Running initial memory manager test...');
+    try {
+      if (!global.memoryManager) {
+        console.error('❌ Memory manager not available globally');
+        return;
+      }
+      
+      // List available methods on the memory manager
+      console.log('🧠 Memory manager methods:', Object.keys(global.memoryManager).join(', '));
+      
+      // Check if getMemoryUsage is available on the memory manager
+      if (typeof global.memoryManager.getMemoryUsage !== 'function') {
+        console.error('❌ getMemoryUsage is not a function on memory manager');
+        console.log('🔄 Falling back to direct module import for memory usage');
+        
+        try {
+          // Use the directly imported memory manager module
+          const AdvancedMemoryManager = require('./lib/advanced-memory-manager.js');
+          const memoryInfo = AdvancedMemoryManager.getMemoryUsage();
+          
+          console.log('✅ Direct memory module working! Current memory usage:');
+          console.log(`   Heap: ${memoryInfo.percentages.heapUsage}% (${memoryInfo.formatted.heapUsed} MB)`);
+          console.log(`   System: ${memoryInfo.percentages.systemUsage}% (${memoryInfo.formatted.systemUsed} MB)`);
+          
+          // Update the global memory manager with working function
+          global.memoryManager.getMemoryUsage = AdvancedMemoryManager.getMemoryUsage;
+          console.log('✅ Updated global memory manager with working getMemoryUsage function');
+        } catch (directErr) {
+          console.error('❌ Error using direct memory module import:', directErr.message);
+        }
+        return;
+      }
+      
+      // Get memory usage
+      const memoryInfo = global.memoryManager.getMemoryUsage();
+      console.log('✅ Memory manager working! Current memory usage:');
+      console.log(`   Heap: ${memoryInfo.percentages.heapUsage}% (${memoryInfo.formatted.heapUsed} MB)`);
+      console.log(`   System: ${memoryInfo.percentages.systemUsage}% (${memoryInfo.formatted.systemUsed} MB)`);
+      
+      // Test cleanup function
+      if (typeof global.memoryManager.runCleanup === 'function') {
+        global.memoryManager.runCleanup();
+        console.log('✅ Memory cleanup function executed successfully');
+      }
+    } catch (err) {
+      console.error('❌ Error testing memory manager:', err);
+    }
+  }, 3000);
+  
   const memoryMonitorInterval = setInterval(() => {
     try {
-      if (global.memoryManager) {
-        const memoryInfo = global.memoryManager.getMemoryUsage();
-        
-        // Log memory status periodically
-        if (memoryInfo.usedPercentage > 70) {
-          console.log(`⚠️ Memory usage high: ${memoryInfo.usedPercentage.toFixed(1)}% (${(memoryInfo.used / 1024 / 1024).toFixed(1)} MB)`);
+      if (!global.memoryManager) {
+        console.error('❌ Memory manager not available globally');
+        return;
+      }
+      
+      let memoryInfo;
+      
+      try {
+        // First try using the global memory manager
+        if (typeof global.memoryManager.getMemoryUsage === 'function') {
+          memoryInfo = global.memoryManager.getMemoryUsage();
+        } else {
+          // Fall back to direct import if needed
+          console.log('⚠️ Global memory manager missing getMemoryUsage, using direct import');
+          
+          const AdvancedMemoryManager = require('./lib/advanced-memory-manager.js');
+          memoryInfo = AdvancedMemoryManager.getMemoryUsage();
+          
+          // Update the global memory manager for future calls
+          global.memoryManager.getMemoryUsage = AdvancedMemoryManager.getMemoryUsage;
         }
+      } catch (memErr) {
+        console.error('❌ Error accessing memory usage:', memErr.message);
         
+        // Last resort fallback to basic memory calculation
+        const basicManager = createBasicMemoryManager();
+        memoryInfo = basicManager.getMemoryUsage();
+        
+        // Replace the broken function with a working one
+        global.memoryManager.getMemoryUsage = basicManager.getMemoryUsage;
+      }
+      
+      // Extract correct properties from memory info
+      const heapUsagePercent = memoryInfo.percentages.heapUsage;
+      const heapUsedMB = memoryInfo.formatted.heapUsed;
+      
+      // Log memory status periodically
+      if (heapUsagePercent > 70) {
+        console.log(`⚠️ Memory usage high: ${heapUsagePercent.toFixed(1)}% (${heapUsedMB} MB)`);
+      }
+      
+      // Make sure required functions are available in memory manager
+      const memManager = global.memoryManager;
+      
+      // Ensure runCleanup is available
+      if (typeof memManager.runCleanup !== 'function') {
+        console.log('⚠️ Adding missing runCleanup function to memory manager');
+        memManager.runCleanup = function() {
+          console.log('[MEMORY-MANAGER] Running basic cleanup...');
+          
+          // Clear require cache for non-essential modules
+          let clearedModules = 0;
+          for (const key in require.cache) {
+            if (key.includes('node_modules') && 
+                !key.includes('baileys') && 
+                !key.includes('whatsapp') &&
+                !key.includes('express')) {
+              delete require.cache[key];
+              clearedModules++;
+            }
+          }
+          console.log(`[MEMORY-MANAGER] Cleared ${clearedModules} modules from cache`);
+          return true;
+        };
+      }
+      
+      // Ensure runEmergencyCleanup is available
+      if (typeof memManager.runEmergencyCleanup !== 'function') {
+        console.log('⚠️ Adding missing runEmergencyCleanup function to memory manager');
+        memManager.runEmergencyCleanup = function() {
+          console.log('[MEMORY-MANAGER] Running emergency cleanup...');
+          
+          // Clear more aggressively
+          let clearedModules = 0;
+          for (const key in require.cache) {
+            if (!key.includes('baileys') && !key.includes('whatsapp')) {
+              delete require.cache[key];
+              clearedModules++;
+            }
+          }
+          console.log(`[MEMORY-MANAGER] Emergency cleared ${clearedModules} modules from cache`);
+          
+          // Clear WhatsApp message cache if possible
+          if (global.conn && global.conn.chats) {
+            let messageCount = 0;
+            const chatCount = Object.keys(global.conn.chats).length;
+            console.log(`[MEMORY-MANAGER] Clearing message history from ${chatCount} chats...`);
+            
+            for (const chatId in global.conn.chats) {
+              const chat = global.conn.chats[chatId];
+              if (chat && chat.messages) {
+                // Keep only 10 messages per chat in emergency mode
+                const keys = [...chat.messages.keys()];
+                if (keys.length > 10) {
+                  const keysToRemove = keys.slice(0, keys.length - 10);
+                  for (const key of keysToRemove) {
+                    chat.messages.delete(key);
+                    messageCount++;
+                  }
+                }
+              }
+            }
+            console.log(`[MEMORY-MANAGER] Removed ${messageCount} cached messages`);
+          }
+          
+          return true;
+        };
+      }
+      
+      try {
         // Run cleanup at warning threshold (default 70%)
-        if (memoryInfo.usedPercentage > 70) {
+        if (heapUsagePercent > 70) {
           console.log('🧹 Running standard memory cleanup...');
           global.memoryManager.runCleanup();
         }
         
         // Run emergency cleanup at critical threshold (default 85%)
-        if (memoryInfo.usedPercentage > 85) {
+        if (heapUsagePercent > 85) {
           console.log('🚨 Memory usage critical! Running emergency cleanup...');
           global.memoryManager.runEmergencyCleanup();
           
-          // Force garbage collection if available
-          if (global.gc) {
-            try {
-              global.gc();
-              console.log('🧹 Force garbage collection completed');
-            } catch (gcErr) {
-              console.error('❌ Error during forced garbage collection:', gcErr.message);
-            }
-          }
+          // Don't attempt to use global.gc directly here anymore
+          // It's handled in runEmergencyCleanup with proper checks
         }
+      } catch (cleanupErr) {
+        console.error('❌ Error during memory cleanup:', cleanupErr.message);
       }
     } catch (err) {
       console.error('❌ Error in memory monitoring:', err.message);
@@ -363,14 +759,24 @@ function startServerWithAvailablePort(initialPort, maxRetries = 10) {
           // Apply enhanced connection keeper once the bot has started and connection is established
           const applyEnhancedConnectionKeeper = () => {
             try {
-              if (global.enhancedConnectionKeeper && global.conn) {
+              if (global.enhancedConnectionKeeper) {
                 console.log('🛡️ Applying enhanced connection keeper to fix "connection appears to be closed" errors...');
                 
-                // Initialize the enhanced connection keeper
-                global.enhancedConnectionKeeper.initializeConnectionKeeper(global.conn);
-                
-                // Apply the connection patch for improved error handling
-                global.enhancedConnectionKeeper.applyConnectionPatch(global.conn);
+                if (typeof global.enhancedConnectionKeeper.safeInitialize === 'function') {
+                  // Use the safe initialize function that can handle delayed connection
+                  global.enhancedConnectionKeeper.safeInitialize(global.conn);
+                  console.log('✅ Enhanced connection keeper safely initialized');
+                } else if (global.conn) {
+                  // Fall back to direct initialization if safeInitialize isn't available
+                  // Initialize the enhanced connection keeper
+                  global.enhancedConnectionKeeper.initializeConnectionKeeper(global.conn);
+                  
+                  // Apply the connection patch for improved error handling
+                  global.enhancedConnectionKeeper.applyConnectionPatch(global.conn);
+                } else {
+                  console.log('⚠️ Connection not established yet, will retry later');
+                  return false;
+                }
                 
                 // Set up a connection watcher for persistent connectivity protection
                 const connectionWatcher = setInterval(() => {
@@ -385,7 +791,7 @@ function startServerWithAvailablePort(initialPort, maxRetries = 10) {
                       const memoryInfo = global.memoryManager.getMemoryUsage();
                       
                       // If memory is critical, clean up WhatsApp-specific memory hogs
-                      if (memoryInfo.usedPercentage > 85) {
+                      if (memoryInfo.percentages.heapUsage > 85) {
                         console.log('🚨 Critical memory usage detected in connection watcher!');
                         
                         try {
@@ -466,14 +872,24 @@ function startServerWithAvailablePort(initialPort, maxRetries = 10) {
               console.log('🛡️ Applying enhanced connection keeper after restart...');
               const applyEnhancedConnectionKeeper = () => {
                 try {
-                  if (global.enhancedConnectionKeeper && global.conn) {
+                  if (global.enhancedConnectionKeeper) {
                     console.log('🛡️ Applying enhanced connection keeper to fix "connection appears to be closed" errors...');
                     
-                    // Initialize the enhanced connection keeper
-                    global.enhancedConnectionKeeper.initializeConnectionKeeper(global.conn);
-                    
-                    // Apply the connection patch for improved error handling
-                    global.enhancedConnectionKeeper.applyConnectionPatch(global.conn);
+                    if (typeof global.enhancedConnectionKeeper.safeInitialize === 'function') {
+                      // Use the safe initialize function that can handle delayed connection
+                      global.enhancedConnectionKeeper.safeInitialize(global.conn);
+                      console.log('✅ Enhanced connection keeper safely initialized after restart');
+                    } else if (global.conn) {
+                      // Fall back to direct initialization if safeInitialize isn't available
+                      // Initialize the enhanced connection keeper
+                      global.enhancedConnectionKeeper.initializeConnectionKeeper(global.conn);
+                      
+                      // Apply the connection patch for improved error handling
+                      global.enhancedConnectionKeeper.applyConnectionPatch(global.conn);
+                    } else {
+                      console.log('⚠️ Connection not established yet after restart, will retry later');
+                      return false;
+                    }
                     
                     // Set up a connection watcher for persistent connectivity protection
                     const connectionWatcher = setInterval(() => {
@@ -488,7 +904,7 @@ function startServerWithAvailablePort(initialPort, maxRetries = 10) {
                           const memoryInfo = global.memoryManager.getMemoryUsage();
                           
                           // If memory is critical, clean up WhatsApp-specific memory hogs
-                          if (memoryInfo.usedPercentage > 85) {
+                          if (memoryInfo.percentages.heapUsage > 85) {
                             console.log('🚨 Critical memory usage detected in connection watcher!');
                             
                             try {

@@ -1,0 +1,46 @@
+{
+  "text": {
+    "english": "Text",
+    "german": "Text"
+  },
+  "group_info_id": {
+    "english": "*ID:* \n%id%",
+    "german": "*ID:* \n%id%"
+  },
+  "group_info_name": {
+    "english": "*Name:* \n%name%",
+    "german": "*Name:* \n%name%"
+  },
+  "group_info_antilink": {
+    "english": "%status% Anti-Link",
+    "german": "%status% Anti-Link"
+  },
+  "listonline_divider": {
+    "english": "<==================>",
+    "german": "<==================>"
+  },
+  "menu_limit_marker": {
+    "english": "Ⓛ",
+    "german": "Ⓛ"
+  },
+  "menu_premium_marker": {
+    "english": "Ⓟ",
+    "german": "Ⓟ"
+  },
+  "searchfitur_plugin_label": {
+    "english": "Plugin:",
+    "german": "Plugin:"
+  },
+  "getplugin_not_found": {
+    "english": "\\",
+    "german": "\\"
+  },
+  "soulmatch_element": {
+    "english": "Element",
+    "german": "Element"
+  },
+  "element_wind": {
+    "english": "Wind 🌪️",
+    "german": "Wind 🌪️"
+  }
+}

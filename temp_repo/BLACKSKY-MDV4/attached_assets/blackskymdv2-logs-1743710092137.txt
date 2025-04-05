@@ -1,0 +1,295 @@
+2025-04-03T19:53:51.453782+00:00 app[worker.1]:     statusCode: 428,
+2025-04-03T19:53:51.453782+00:00 app[worker.1]:     payload: {
+2025-04-03T19:53:51.453782+00:00 app[worker.1]:       statusCode: 428,
+2025-04-03T19:53:51.453783+00:00 app[worker.1]:       error: 'Precondition Required',
+2025-04-03T19:53:51.453783+00:00 app[worker.1]:       message: 'Connection Closed'
+2025-04-03T19:53:51.453783+00:00 app[worker.1]:     },
+2025-04-03T19:53:51.453783+00:00 app[worker.1]:     headers: {}
+2025-04-03T19:53:51.453784+00:00 app[worker.1]:   }
+2025-04-03T19:53:51.453784+00:00 app[worker.1]: }
+2025-04-03T19:53:55.051082+00:00 app[worker.1]: [33m⌛ Waiting for WhatsApp connection before initializing notifications...[0m
+2025-04-03T19:54:00.052182+00:00 app[worker.1]: [33m⌛ Waiting for WhatsApp connection before initializing notifications...[0m
+Disconnected from log stream. There may be events happening that you do not see here! Attempting to reconnect...
+2025-04-03T19:53:51.453783+00:00 app[worker.1]:       error: 'Precondition Required',
+2025-04-03T19:53:51.453783+00:00 app[worker.1]:       message: 'Connection Closed'
+2025-04-03T19:53:51.453783+00:00 app[worker.1]:     },
+2025-04-03T19:53:51.453783+00:00 app[worker.1]:     headers: {}
+2025-04-03T19:53:51.453784+00:00 app[worker.1]:   }
+2025-04-03T19:53:51.453784+00:00 app[worker.1]: }
+2025-04-03T19:53:55.051082+00:00 app[worker.1]: [33m⌛ Waiting for WhatsApp connection before initializing notifications...[0m
+2025-04-03T19:54:00.052182+00:00 app[worker.1]: [33m⌛ Waiting for WhatsApp connection before initializing notifications...[0m
+2025-04-03T19:54:05.053556+00:00 app[worker.1]: [33m⌛ Waiting for WhatsApp connection before initializing notifications...[0m
+2025-04-03T19:54:10.053510+00:00 app[worker.1]: [33m⌛ Waiting for WhatsApp connection before initializing notifications...[0m
+2025-04-03T19:54:15.053474+00:00 app[worker.1]: [33m⌛ Waiting for WhatsApp connection before initializing notifications...[0m
+2025-04-03T19:54:19.813818+00:00 heroku[web.1]: Restarting
+2025-04-03T19:54:19.864618+00:00 heroku[web.1]: State changed from up to starting
+2025-04-03T19:54:19.873358+00:00 heroku[worker.1]: Restarting
+2025-04-03T19:54:19.875840+00:00 heroku[worker.1]: State changed from up to starting
+2025-04-03T19:54:20.054859+00:00 app[worker.1]: [33m⌛ Waiting for WhatsApp connection before initializing notifications...[0m
+2025-04-03T19:54:20.416640+00:00 heroku[web.1]: Stopping all processes with SIGTERM
+2025-04-03T19:54:20.586813+00:00 heroku[worker.1]: Stopping all processes with SIGTERM
+2025-04-03T19:54:20.614870+00:00 app[worker.1]: 🔄 Received shutdown signal, performing graceful shutdown...
+2025-04-03T19:54:20.614884+00:00 app[worker.1]: 💾 Saving WhatsApp session before shutdown...
+2025-04-03T19:54:20.614885+00:00 app[worker.1]: [PROCESS] Received SIGTERM signal, initiating graceful shutdown
+2025-04-03T19:54:20.614885+00:00 app[worker.1]: [SHUTDOWN] Starting graceful shutdown sequence
+2025-04-03T19:54:20.614886+00:00 app[worker.1]: [SHUTDOWN] Saving database
+2025-04-03T19:54:20.433752+00:00 app[web.1]: 🔄 Received shutdown signal, performing graceful shutdown...
+2025-04-03T19:54:20.433807+00:00 app[web.1]: 👍 Graceful shutdown completed
+2025-04-03T19:54:20.679195+00:00 heroku[worker.1]: Process exited with status 143
+2025-04-03T19:54:23.436481+00:00 app[web.1]: ⚠️ Forcing exit after grace period
+2025-04-03T19:54:23.479235+00:00 heroku[web.1]: Process exited with status 0
+2025-04-03T19:54:31.997622+00:00 heroku[web.1]: Starting process with command `node connection-patch.js`
+2025-04-03T19:54:32.526846+00:00 heroku[worker.1]: Starting process with command `node index.js`
+2025-04-03T19:54:32.614571+00:00 app[web.1]: 🔍 Health check server initialized for production environment
+2025-04-03T19:54:32.617834+00:00 app[web.1]: ✅ Connection patch loaded successfully
+2025-04-03T19:54:32.617976+00:00 app[web.1]: 🔧 Connection success patch and health check loaded
+2025-04-03T19:54:32.618105+00:00 app[web.1]: ⚡ Health check server running on port 30371
+2025-04-03T19:54:33.107547+00:00 heroku[web.1]: State changed from starting to up
+2025-04-03T19:54:33.170813+00:00 heroku[worker.1]: State changed from starting to up
+2025-04-03T19:54:33.244098+00:00 app[worker.1]: 🖥️ [33mLinux[0m, [33m5.15.0-1077-aws[0m - [33mx64[0m
+2025-04-03T19:54:33.244108+00:00 app[worker.1]: 💾 [33mTotal RAM: 61.79 GB[0m
+2025-04-03T19:54:33.244109+00:00 app[worker.1]: 💽 [33mFree RAM: 33.85 GB[0m
+2025-04-03T19:54:33.244112+00:00 app[worker.1]: [33m📃 Script by BETABOTZ[0m
+2025-04-03T19:54:33.244964+00:00 app[worker.1]: [35m
+2025-04-03T19:54:33.244965+00:00 app[worker.1]:     ╔════════════════════════════════════════╗
+2025-04-03T19:54:33.244966+00:00 app[worker.1]:     ║      🌌 BLACKSKY-MD PREMIUM 🌌         ║
+2025-04-03T19:54:33.244966+00:00 app[worker.1]:     ║      ⚡ CYBERPUNK EDITION ⚡            ║
+2025-04-03T19:54:33.244967+00:00 app[worker.1]:     ╚════════════════════════════════════════╝
+2025-04-03T19:54:33.244967+00:00 app[worker.1]:     [0m
+2025-04-03T19:54:33.250080+00:00 app[worker.1]: [33m🌐 Port 55965 is open[0m
+2025-04-03T19:54:33.250081+00:00 app[worker.1]: [32m🚀 Server running on port 55965[0m
+2025-04-03T19:54:33.250082+00:00 app[worker.1]: [33m⌛ Waiting for WhatsApp connection before initializing notifications...[0m
+2025-04-03T19:54:33.250082+00:00 app[worker.1]: [33m🟡 Found 839 plugins in folder /app/plugins[0m
+2025-04-03T19:54:33.250082+00:00 app[worker.1]: [33m🟡 Baileys library version 6.7.16 is installed[0m
+2025-04-03T19:54:33.384729+00:00 app[worker.1]: 🔍 Health check server initialized for production environment
+2025-04-03T19:54:33.388996+00:00 app[worker.1]: ✅ Connection patch loaded successfully
+2025-04-03T19:54:33.389316+00:00 app[worker.1]: 🔧 Connection success patch and health check loaded
+2025-04-03T19:54:33.389606+00:00 app[worker.1]: ✅ Connection patch loaded successfully
+2025-04-03T19:54:33.972505+00:00 app[worker.1]: Uncaught Exception: Error: listen EADDRINUSE: address already in use :::55965
+2025-04-03T19:54:33.972519+00:00 app[worker.1]:     at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+2025-04-03T19:54:33.972520+00:00 app[worker.1]:     at listenInCluster (node:net:1994:12)
+2025-04-03T19:54:33.972520+00:00 app[worker.1]:     at Server.listen (node:net:2099:7)
+2025-04-03T19:54:33.972520+00:00 app[worker.1]:     at Function.listen (/app/node_modules/express/lib/application.js:635:24)
+2025-04-03T19:54:33.972521+00:00 app[worker.1]:     at setupHealthCheckServer (/app/connection-patch.js:281:9)
+2025-04-03T19:54:33.972522+00:00 app[worker.1]:     at Object.<anonymous> (/app/connection-patch.js:298:5)
+2025-04-03T19:54:33.972522+00:00 app[worker.1]:     at Module._compile (node:internal/modules/cjs/loader:1554:14)
+2025-04-03T19:54:33.972522+00:00 app[worker.1]:     at Object..js (node:internal/modules/cjs/loader:1706:10)
+2025-04-03T19:54:33.972523+00:00 app[worker.1]:     at Module.load (node:internal/modules/cjs/loader:1289:32)
+2025-04-03T19:54:33.972523+00:00 app[worker.1]:     at Function._load (node:internal/modules/cjs/loader:1108:12) {
+2025-04-03T19:54:33.972524+00:00 app[worker.1]:   code: 'EADDRINUSE',
+2025-04-03T19:54:33.972525+00:00 app[worker.1]:   errno: -98,
+2025-04-03T19:54:33.972526+00:00 app[worker.1]:   syscall: 'listen',
+2025-04-03T19:54:33.972526+00:00 app[worker.1]:   address: '::',
+2025-04-03T19:54:33.972526+00:00 app[worker.1]:   port: 55965
+2025-04-03T19:54:33.972526+00:00 app[worker.1]: }
+2025-04-03T19:54:33.972560+00:00 app[worker.1]: Stack trace: Error: listen EADDRINUSE: address already in use :::55965
+2025-04-03T19:54:33.972560+00:00 app[worker.1]:     at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+2025-04-03T19:54:33.972560+00:00 app[worker.1]:     at listenInCluster (node:net:1994:12)
+2025-04-03T19:54:33.972560+00:00 app[worker.1]:     at Server.listen (node:net:2099:7)
+2025-04-03T19:54:33.972563+00:00 app[worker.1]:     at Function.listen (/app/node_modules/express/lib/application.js:635:24)
+2025-04-03T19:54:33.972563+00:00 app[worker.1]:     at setupHealthCheckServer (/app/connection-patch.js:281:9)
+2025-04-03T19:54:33.972564+00:00 app[worker.1]:     at Object.<anonymous> (/app/connection-patch.js:298:5)
+2025-04-03T19:54:33.972564+00:00 app[worker.1]:     at Module._compile (node:internal/modules/cjs/loader:1554:14)
+2025-04-03T19:54:33.972564+00:00 app[worker.1]:     at Object..js (node:internal/modules/cjs/loader:1706:10)
+2025-04-03T19:54:33.972564+00:00 app[worker.1]:     at Module.load (node:internal/modules/cjs/loader:1289:32)
+2025-04-03T19:54:33.972564+00:00 app[worker.1]:     at Function._load (node:internal/modules/cjs/loader:1108:12)
+2025-04-03T19:54:34.054441+00:00 app[worker.1]: -- using WA v2.3000.1020608496, isLatest: true --
+2025-04-03T19:54:34.440786+00:00 app[worker.1]: [STARTUP] GIF Tester registered
+2025-04-03T19:54:34.522382+00:00 app[worker.1]: [INFO] Created directory: ./media/reactions
+2025-04-03T19:54:34.522677+00:00 app[worker.1]: [WARNING] Missing GIF: cry
+2025-04-03T19:54:34.522823+00:00 app[worker.1]: [INFO] Found 41/42 reaction GIFs
+2025-04-03T19:54:34.897021+00:00 app[worker.1]: [
+2025-04-03T19:54:34.897028+00:00 app[worker.1]:   'Rpg_buydm.js',
+2025-04-03T19:54:34.897028+00:00 app[worker.1]:   'Rpg_daily.js',
+2025-04-03T19:54:34.897029+00:00 app[worker.1]:   '_afk.js',
+2025-04-03T19:54:34.897030+00:00 app[worker.1]:   '_afk_afk.js',
+2025-04-03T19:54:34.897030+00:00 app[worker.1]:   '_ai-lepton.js',
+2025-04-03T19:54:34.897030+00:00 app[worker.1]:   '_anti+212.js',
+2025-04-03T19:54:34.897052+00:00 app[worker.1]:   '_anti-badword-kick.js',
+2025-04-03T19:54:34.897052+00:00 app[worker.1]:   '_anti-badword-nonkick.js',
+2025-04-03T19:54:34.897053+00:00 app[worker.1]:   '_anti-foreign.js',
+2025-04-03T19:54:34.897053+00:00 app[worker.1]:   '_anti-link-delete.js',
+2025-04-03T19:54:34.897053+00:00 app[worker.1]:   '_anti-link.js',
+2025-04-03T19:54:34.897053+00:00 app[worker.1]:   '_anti-morocco.js',
+2025-04-03T19:54:34.897054+00:00 app[worker.1]:   '_anti-photo.js',
+2025-04-03T19:54:34.897054+00:00 app[worker.1]:   '_anti-sticker.js',
+2025-04-03T19:54:34.897054+00:00 app[worker.1]:   '_anti-video.js',
+2025-04-03T19:54:34.897054+00:00 app[worker.1]:   '_anti_luar.js',
+2025-04-03T19:54:34.897055+00:00 app[worker.1]:   '_antibadword_kick.js',
+2025-04-03T19:54:34.897055+00:00 app[worker.1]:   '_antibadword_nonkick.js',
+2025-04-03T19:54:34.897055+00:00 app[worker.1]:   '_anticall.js',
+2025-04-03T19:54:34.897055+00:00 app[worker.1]:   '_antifile.js',
+2025-04-03T19:54:34.897056+00:00 app[worker.1]:   '_antifoto.js',
+2025-04-03T19:54:34.897056+00:00 app[worker.1]:   '_antililink_del.js',
+2025-04-03T19:54:34.897056+00:00 app[worker.1]:   '_antilink.js',
+2025-04-03T19:54:34.897056+00:00 app[worker.1]:   '_antispam.js',
+2025-04-03T19:54:34.897056+00:00 app[worker.1]:   '_antistciker.js',
+2025-04-03T19:54:34.897056+00:00 app[worker.1]:   '_antivideo.js',
+2025-04-03T19:54:34.897056+00:00 app[worker.1]:   '_antiviewonce.js',
+2025-04-03T19:54:34.897057+00:00 app[worker.1]:   '_auto_prayer.js',
+2025-04-03T19:54:34.897057+00:00 app[worker.1]:   '_autoblok.js',
+2025-04-03T19:54:34.897057+00:00 app[worker.1]:   '_autodetectporn.js',
+2025-04-03T19:54:34.897058+00:00 app[worker.1]:   '_autodownload.js',
+2025-04-03T19:54:34.897058+00:00 app[worker.1]:   '_autoeat.js',
+2025-04-03T19:54:34.897058+00:00 app[worker.1]:   '_autohd.js',
+2025-04-03T19:54:34.897058+00:00 app[worker.1]:   '_automakan.js',
+2025-04-03T19:54:34.897058+00:00 app[worker.1]:   '_autoreact.js',
+2025-04-03T19:54:34.897058+00:00 app[worker.1]:   '_autoresponlink.js',
+2025-04-03T19:54:34.897059+00:00 app[worker.1]:   '_autosholat.js',
+2025-04-03T19:54:34.897059+00:00 app[worker.1]:   '_autosticker.js',
+2025-04-03T19:54:34.897059+00:00 app[worker.1]:   '_autotranslate.js',
+2025-04-03T19:54:34.897059+00:00 app[worker.1]:   '_catatan-del.js',
+2025-04-03T19:54:34.897059+00:00 app[worker.1]:   '_catatan-view.js',
+2025-04-03T19:54:34.897059+00:00 app[worker.1]:   '_catatan.js',
+2025-04-03T19:54:34.897059+00:00 app[worker.1]:   '_cmdRespon.js',
+2025-04-03T19:54:34.897059+00:00 app[worker.1]:   '_didyoumean.js',
+2025-04-03T19:54:34.897060+00:00 app[worker.1]:   '_enable.js',
+2025-04-03T19:54:34.897060+00:00 app[worker.1]:   '_getpp.js',
+2025-04-03T19:54:34.897060+00:00 app[worker.1]:   '_jadwalsholat.js',
+2025-04-03T19:54:34.897060+00:00 app[worker.1]:   '_list-block.js',
+2025-04-03T19:54:34.897060+00:00 app[worker.1]:   '_note-delete.js',
+2025-04-03T19:54:34.897061+00:00 app[worker.1]:   '_note-view.js',
+2025-04-03T19:54:34.897061+00:00 app[worker.1]:   '_note.js',
+2025-04-03T19:54:34.897061+00:00 app[worker.1]:   '_openai-ai-logic.js',
+2025-04-03T19:54:34.897061+00:00 app[worker.1]:   '_openai-ai.js',
+2025-04-03T19:54:34.897062+00:00 app[worker.1]:   '_openai-bard(img,audio,video).js',
+2025-04-03T19:54:34.897062+00:00 app[worker.1]:   '_openai-bard.js',
+2025-04-03T19:54:34.897062+00:00 app[worker.1]:   '_openai-bing.js',
+2025-04-03T19:54:34.897062+00:00 app[worker.1]:   '_openai-blackbox.js',
+2025-04-03T19:54:34.897062+00:00 app[worker.1]:   '_openai-character-ai.js',
+2025-04-03T19:54:34.897063+00:00 app[worker.1]:   '_openai-simi_chat.js',
+2025-04-03T19:54:34.897063+00:00 app[worker.1]:   '_openai-simisimi.js',
+2025-04-03T19:54:34.897063+00:00 app[worker.1]:   '_openai-tag.js',
+2025-04-03T19:54:34.897063+00:00 app[worker.1]:   '_openai_simi2.js',
+2025-04-03T19:54:34.897064+00:00 app[worker.1]:   '_owner-greeting.js',
+2025-04-03T19:54:34.897064+00:00 app[worker.1]:   '_owner-sambutan.js',
+2025-04-03T19:54:34.897064+00:00 app[worker.1]:   '_prayer_schedule.js',
+2025-04-03T19:54:34.897064+00:00 app[worker.1]:   '_premium.js',
+2025-04-03T19:54:34.897065+00:00 app[worker.1]:   '_pushkontak.js',
+2025-04-03T19:54:34.897065+00:00 app[worker.1]:   '_salambot.js',
+2025-04-03T19:54:34.897065+00:00 app[worker.1]:   'absen-absen.js',
+2025-04-03T19:54:34.897065+00:00 app[worker.1]:   'absen-cekabsen.js',
+2025-04-03T19:54:34.897065+00:00 app[worker.1]:   'absen-delete.js',
+2025-04-03T19:54:34.897065+00:00 app[worker.1]:   'absen-start.js',
+2025-04-03T19:54:34.897065+00:00 app[worker.1]:   'admin-grouplanguage.js',
+2025-04-03T19:54:34.897066+00:00 app[worker.1]:   'anime-storyanime.js',
+2025-04-03T19:54:34.897066+00:00 app[worker.1]:   'attendance-check.js',
+2025-04-03T19:54:34.897066+00:00 app[worker.1]:   'attendance-delete.js',
+2025-04-03T19:54:34.897066+00:00 app[worker.1]:   'attendance-mark.js',
+2025-04-03T19:54:34.897066+00:00 app[worker.1]:   'attendance-start.js',
+2025-04-03T19:54:34.897066+00:00 app[worker.1]:   'autoai.js',
+2025-04-03T19:54:34.897066+00:00 app[worker.1]:   'autobackup.js',
+2025-04-03T19:54:34.897067+00:00 app[worker.1]:   'autobio.js',
+2025-04-03T19:54:34.897067+00:00 app[worker.1]:   'autoresetlimit.js',
+2025-04-03T19:54:34.897067+00:00 app[worker.1]:   'b64kill.js',
+2025-04-03T19:54:34.897067+00:00 app[worker.1]:   'betabotz_anthem.js',
+2025-04-03T19:54:34.897067+00:00 app[worker.1]:   'biteall.js',
+2025-04-03T19:54:34.897067+00:00 app[worker.1]:   'bonkall.js',
+2025-04-03T19:54:34.897068+00:00 app[worker.1]:   'c-ai_arona.js',
+2025-04-03T19:54:34.897068+00:00 app[worker.1]:   'c-ai_elaina.js',
+2025-04-03T19:54:34.897068+00:00 app[worker.1]:   'c-ai_kujou.js',
+2025-04-03T19:54:34.897068+00:00 app[worker.1]:   'c-ai_mahiru.js',
+2025-04-03T19:54:34.897069+00:00 app[worker.1]:   'c-ai_nahida.js',
+2025-04-03T19:54:34.897069+00:00 app[worker.1]:   'c-ai_plana.js',
+2025-04-03T19:54:34.897069+00:00 app[worker.1]:   'change-language.js',
+2025-04-03T19:54:34.897069+00:00 app[worker.1]:   'check-language.js',
+2025-04-03T19:54:34.897069+00:00 app[worker.1]:   'cuddleall.js',
+2025-04-03T19:54:34.897070+00:00 app[worker.1]:   'cum.js',
+2025-04-03T19:54:34.897070+00:00 app[worker.1]:   'database-cmdDel.js',
+2025-04-03T19:54:34.897070+00:00 app[worker.1]:   'database-cmdInfo.js',
+2025-04-03T19:54:34.897070+00:00 app[worker.1]:   'database-cmdList.js',
+2025-04-03T19:54:34.897070+00:00 app[worker.1]:   'database-cmdLock.js',
+2025-04-03T19:54:34.897071+00:00 app[worker.1]:   ... 737 more items
+2025-04-03T19:54:34.897071+00:00 app[worker.1]: ]
+2025-04-03T19:54:34.899442+00:00 app[worker.1]: [HANDLER] No fixes needed to apply
+2025-04-03T19:54:35.104797+00:00 app[worker.1]: [
+2025-04-03T19:54:35.104800+00:00 app[worker.1]:   true,  true,
+2025-04-03T19:54:35.104800+00:00 app[worker.1]:   true,  true,
+2025-04-03T19:54:35.104800+00:00 app[worker.1]:   false, false,
+2025-04-03T19:54:35.104801+00:00 app[worker.1]:   true
+2025-04-03T19:54:35.104801+00:00 app[worker.1]: ]
+2025-04-03T19:54:35.106091+00:00 app[worker.1]: INFO [Thu Apr 03 2025 19:54:35 GMT+0000 (Coordinated Universal Time)]: Quick Test Done
+2025-04-03T19:54:37.621122+00:00 app[web.1]: [CONNECTION] Using logo: blacksky-premium-gradient.svg
+2025-04-03T19:54:37.621281+00:00 app[web.1]: Converting SVG file: /app/blacksky-premium-gradient.svg
+2025-04-03T19:54:37.885971+00:00 app[web.1]: SVG successfully converted to PNG
+2025-04-03T19:54:37.886017+00:00 app[web.1]: [CONNECTION] Successfully converted logo SVG to PNG
+2025-04-03T19:54:37.899827+00:00 app[web.1]: [CONNECTION] Could not send notification - missing connection or user
+2025-04-03T19:54:38.248804+00:00 app[worker.1]: [33m⌛ Waiting for WhatsApp connection before initializing notifications...[0m
+2025-04-03T19:54:38.389468+00:00 app[worker.1]: [CONNECTION] Using logo: blacksky-premium-gradient.svg
+2025-04-03T19:54:38.389638+00:00 app[worker.1]: Converting SVG file: /app/blacksky-premium-gradient.svg
+2025-04-03T19:54:38.391819+00:00 app[worker.1]: [CONNECTION] Using logo: blacksky-premium-gradient.svg
+2025-04-03T19:54:38.391843+00:00 app[worker.1]: Converting SVG file: /app/blacksky-premium-gradient.svg
+2025-04-03T19:54:38.392453+00:00 app[worker.1]: 📱 Connection success message sent to owner
+2025-04-03T19:54:38.617733+00:00 app[worker.1]: SVG successfully converted to PNG
+2025-04-03T19:54:38.617772+00:00 app[worker.1]: [CONNECTION] Successfully converted logo SVG to PNG
+2025-04-03T19:54:38.649386+00:00 app[worker.1]: SVG successfully converted to PNG
+2025-04-03T19:54:38.649411+00:00 app[worker.1]: [CONNECTION] Successfully converted logo SVG to PNG
+2025-04-03T19:54:38.675123+00:00 app[worker.1]: 
+2025-04-03T19:54:38.675125+00:00 app[worker.1]: ┌「 JAKARTA 」  
+2025-04-03T19:54:38.675126+00:00 app[worker.1]: ├ Subuh: 04:46 (WIB)
+2025-04-03T19:54:38.675126+00:00 app[worker.1]: ├ Dzuhur: 11:56 (WIB)
+2025-04-03T19:54:38.675126+00:00 app[worker.1]: ├ Ashar: 15:13 (WIB)
+2025-04-03T19:54:38.675127+00:00 app[worker.1]: ├ Maghrib: 17:57 (WIB)
+2025-04-03T19:54:38.675127+00:00 app[worker.1]: ├ Isya: 19:06 (WIB)
+2025-04-03T19:54:38.675128+00:00 app[worker.1]: └──────────
+2025-04-03T19:54:39.285045+00:00 app[worker.1]: [CONNECTION] Error sending notification: Error: Connection Closed
+2025-04-03T19:54:39.285060+00:00 app[worker.1]:     at sendRawMessage (/app/node_modules/@adiwajshing/baileys/lib/Socket/socket.js:57:19)
+2025-04-03T19:54:39.285061+00:00 app[worker.1]:     at sendNode (/app/node_modules/@adiwajshing/baileys/lib/Socket/socket.js:76:16)
+2025-04-03T19:54:39.285061+00:00 app[worker.1]:     at query (/app/node_modules/@adiwajshing/baileys/lib/Socket/socket.js:140:15)
+2025-04-03T19:54:39.285062+00:00 app[worker.1]:     at Object.executeUSyncQuery (/app/node_modules/@adiwajshing/baileys/lib/Socket/usync.js:62:30)
+2025-04-03T19:54:39.285062+00:00 app[worker.1]:     at getUSyncDevices (/app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:147:35)
+2025-04-03T19:54:39.285063+00:00 app[worker.1]:     at /app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:371:57
+2025-04-03T19:54:39.285064+00:00 app[worker.1]:     at Object.transaction (/app/node_modules/@adiwajshing/baileys/lib/Utils/auth-utils.js:135:32)
+2025-04-03T19:54:39.285064+00:00 app[worker.1]:     at relayMessage (/app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:287:30)
+2025-04-03T19:54:39.285064+00:00 app[worker.1]:     at Object.sendMessage (/app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:662:23)
+2025-04-03T19:54:39.285065+00:00 app[worker.1]:     at sendConnectionMessage (/app/plugins/info-connection.js:125:13) {
+2025-04-03T19:54:39.285065+00:00 app[worker.1]:   data: null,
+2025-04-03T19:54:39.285066+00:00 app[worker.1]:   isBoom: true,
+2025-04-03T19:54:39.285066+00:00 app[worker.1]:   isServer: false,
+2025-04-03T19:54:39.285067+00:00 app[worker.1]:   output: {
+2025-04-03T19:54:39.285067+00:00 app[worker.1]:     statusCode: 428,
+2025-04-03T19:54:39.285067+00:00 app[worker.1]:     payload: {
+2025-04-03T19:54:39.285067+00:00 app[worker.1]:       statusCode: 428,
+2025-04-03T19:54:39.285068+00:00 app[worker.1]:       error: 'Precondition Required',
+2025-04-03T19:54:39.285068+00:00 app[worker.1]:       message: 'Connection Closed'
+2025-04-03T19:54:39.285068+00:00 app[worker.1]:     },
+2025-04-03T19:54:39.285069+00:00 app[worker.1]:     headers: {}
+2025-04-03T19:54:39.285069+00:00 app[worker.1]:   }
+2025-04-03T19:54:39.285069+00:00 app[worker.1]: }
+2025-04-03T19:54:39.288335+00:00 app[worker.1]: [CONNECTION] Error sending notification: Error: Connection Closed
+2025-04-03T19:54:39.288337+00:00 app[worker.1]:     at sendRawMessage (/app/node_modules/@adiwajshing/baileys/lib/Socket/socket.js:57:19)
+2025-04-03T19:54:39.288338+00:00 app[worker.1]:     at sendNode (/app/node_modules/@adiwajshing/baileys/lib/Socket/socket.js:76:16)
+2025-04-03T19:54:39.288338+00:00 app[worker.1]:     at query (/app/node_modules/@adiwajshing/baileys/lib/Socket/socket.js:140:15)
+2025-04-03T19:54:39.288338+00:00 app[worker.1]:     at Object.executeUSyncQuery (/app/node_modules/@adiwajshing/baileys/lib/Socket/usync.js:62:30)
+2025-04-03T19:54:39.288339+00:00 app[worker.1]:     at getUSyncDevices (/app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:147:35)
+2025-04-03T19:54:39.288339+00:00 app[worker.1]:     at /app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:371:57
+2025-04-03T19:54:39.288339+00:00 app[worker.1]:     at Object.transaction (/app/node_modules/@adiwajshing/baileys/lib/Utils/auth-utils.js:135:32)
+2025-04-03T19:54:39.288339+00:00 app[worker.1]:     at relayMessage (/app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:287:30)
+2025-04-03T19:54:39.288340+00:00 app[worker.1]:     at Object.sendMessage (/app/node_modules/@adiwajshing/baileys/lib/Socket/messages-send.js:662:23)
+2025-04-03T19:54:39.288340+00:00 app[worker.1]:     at sendConnectionMessage (/app/plugins/info-connection.js:125:13) {
+2025-04-03T19:54:39.288340+00:00 app[worker.1]:   data: null,
+2025-04-03T19:54:39.288341+00:00 app[worker.1]:   isBoom: true,
+2025-04-03T19:54:39.288341+00:00 app[worker.1]:   isServer: false,
+2025-04-03T19:54:39.288341+00:00 app[worker.1]:   output: {
+2025-04-03T19:54:39.288341+00:00 app[worker.1]:     statusCode: 428,
+2025-04-03T19:54:39.288342+00:00 app[worker.1]:     payload: {
+2025-04-03T19:54:39.288342+00:00 app[worker.1]:       statusCode: 428,
+2025-04-03T19:54:39.288343+00:00 app[worker.1]:       error: 'Precondition Required',
+2025-04-03T19:54:39.288343+00:00 app[worker.1]:       message: 'Connection Closed'
+2025-04-03T19:54:39.288343+00:00 app[worker.1]:     },
+2025-04-03T19:54:39.288344+00:00 app[worker.1]:     headers: {}
+2025-04-03T19:54:39.288344+00:00 app[worker.1]:   }
+2025-04-03T19:54:39.288344+00:00 app[worker.1]: }
+2025-04-03T19:54:43.250200+00:00 app[worker.1]: [33m⌛ Waiting for WhatsApp connection before initializing notifications...[0m
+2025-04-03T19:54:48.250649+00:00 app[worker.1]: [33m⌛ Waiting for WhatsApp connection before initializing notifications...[0m
+Disconnected from log stream. There may be events happening that you do not see here! Attempting to reconnect...
+2025-04-03T19:54:39.288342+00:00 app[worker.1]:     payload: {
+2025-04-03T19:54:39.288342+00:00 app[worker.1]:       statusCode: 428,
+2025-04-03T19:54:39.288343+00:00 app[worker.1]:       error: 'Precondition Required',
+2025-04-03T19:54:39.288343+00:00 app[worker.1]:       message: 'Connection Closed'
+2025-04-03T19:54:39.288343+00:00 app[worker.1]:     },
+2025-04-03T19:54:39.288344+00:00 app[worker.1]:     headers: {}
+2025-04-03T19:54:39.288344+00:00 app[worker.1]:   }
+2025-04-03T19:54:39.288344+00:00 app[worker.1]: }
+2025-04-03T19:54:43.250200+00:00 app[worker.1]: [33m⌛ Waiting for WhatsApp connection before initializing notifications...[0m
+2025-04-03T19:54:48.250649+00:00 app[worker.1]: [33m⌛ Waiting for WhatsApp connection before initializing notifications...[0m

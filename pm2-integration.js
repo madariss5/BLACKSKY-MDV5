@@ -330,6 +330,17 @@ async function integrate(options = {}) {
   return true;
 }
 
+/**
+ * Check if process is running under PM2
+ * @returns {boolean}
+ */
+function isPM2() {
+  return process.env.PM2_HOME !== undefined || 
+         process.env.PM2_USAGE !== undefined || 
+         (process.env.name !== undefined && 
+         typeof process.send === 'function');
+}
+
 // Export functions for external use
 module.exports = {
   integrate,
@@ -339,5 +350,6 @@ module.exports = {
   startWithPM2,
   savePM2Process,
   getProcessSummary,
-  isTermux
+  isTermux,
+  isPM2
 };

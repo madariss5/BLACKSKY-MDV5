@@ -1,0 +1,10 @@
+2025-04-05T08:53:59.030013+00:00 app[web.1]: true
+2025-04-05T08:53:59.146009+00:00 app[web.1]: true
+2025-04-05T08:53:59.265045+00:00 app[web.1]: true
+2025-04-05T08:53:59.396302+00:00 app[web.1]: true
+2025-04-05T08:53:59.545617+00:00 app[web.1]: true
+2025-04-05T08:53:59.568339+00:00 heroku[web.1]: Process running mem=1030M(201.3%)
+2025-04-05T08:53:59.569700+00:00 heroku[web.1]: Error R15 (Memory quota vastly exceeded)
+2025-04-05T08:53:59.571010+00:00 heroku[web.1]: Stopping process with SIGKILL
+2025-04-05T08:53:59.747130+00:00 heroku[web.1]: Process exited with status 137
+2025-04-05T08:53:59.769598+00:00 heroku[web.1]: State changed from up to crashed

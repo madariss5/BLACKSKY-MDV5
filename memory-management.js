@@ -64,17 +64,36 @@ function performMemoryCleanup() {
 function runEmergencyCleanup() {
   console.log('🚨 Running emergency memory cleanup...');
   
-  // Force garbage collection multiple times
-  if (global.gc) {
+  // Force garbage collection multiple times if available
+  if (typeof global.gc === 'function') {
     try {
       global.gc();
-      setTimeout(() => global.gc(), 1000);
-      setTimeout(() => global.gc(), 2000);
+      setTimeout(() => {
+        if (typeof global.gc === 'function') global.gc();
+      }, 1000);
+      setTimeout(() => {
+        if (typeof global.gc === 'function') global.gc();
+      }, 2000);
       console.log('✅ Emergency garbage collection completed');
     } catch (err) {
       console.error('❌ Error during emergency garbage collection:', err);
     }
+  } else {
+    console.log('⚠️ Garbage collection function not available (Node.js needs --expose-gc flag)');
   }
+  
+  // Clear module cache to free up memory
+  let clearedModules = 0;
+  for (const key in require.cache) {
+    if (key.includes('node_modules') && 
+        !key.includes('baileys') && 
+        !key.includes('whatsapp') &&
+        !key.includes('express')) {
+      delete require.cache[key];
+      clearedModules++;
+    }
+  }
+  console.log(`🧹 Cleared ${clearedModules} non-essential modules from require cache`);
   
   // Clear event listeners that might be leaking
   try {
@@ -87,6 +106,37 @@ function runEmergencyCleanup() {
   } catch (err) {
     console.error('❌ Error cleaning up event listeners:', err);
   }
+  
+  // Clear WhatsApp message cache if available
+  if (global.conn && global.conn.chats) {
+    let messageCount = 0;
+    let chatsCleaned = 0;
+    const chatCount = Object.keys(global.conn.chats).length;
+    
+    try {
+      for (const chatId in global.conn.chats) {
+        const chat = global.conn.chats[chatId];
+        if (chat && chat.messages) {
+          // Keep only the latest 10 messages per chat in emergency mode
+          const keys = [...chat.messages.keys()];
+          if (keys.length > 10) {
+            const keysToRemove = keys.slice(0, keys.length - 10);
+            for (const key of keysToRemove) {
+              chat.messages.delete(key);
+              messageCount++;
+            }
+            chatsCleaned++;
+          }
+        }
+      }
+      console.log(`🧹 Cleared ${messageCount} messages from ${chatsCleaned}/${chatCount} chats`);
+    } catch (chatErr) {
+      console.error('❌ Error clearing chat history:', chatErr);
+    }
+  }
+  
+  console.log('✅ Emergency cleanup completed');
+  return true;
 }
 
 /**

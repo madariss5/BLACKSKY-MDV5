@@ -1,0 +1,10 @@
+/**
+ * Consolidated Reaction Commands - DISABLED VERSION
+ * 
+ * This file has been disabled because we now use the high-priority _reaction.js
+ * implementation which completely bypasses the language system for reliable operation.
+ * 
+ * DO NOT DELETE THIS FILE as it serves as documentation of the original implementation.
+ */
+
+// This module is intentionally empty to prevent the original implementation from loading
