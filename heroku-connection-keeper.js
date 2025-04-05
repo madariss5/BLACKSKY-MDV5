@@ -628,7 +628,7 @@ function setupHealthCheck() {
   
   try {
     const app = express();
-    const PORT = Math.floor(Math.random() * 10000) + 20000; // Use a random high port to avoid conflicts
+    const PORT = process.env.HEALTH_CHECK_PORT || 28111; // Use dedicated health check port to avoid conflicts
     
     // Basic health check endpoint
     app.get('/health', (req, res) => {

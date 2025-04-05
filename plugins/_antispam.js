@@ -1,5 +1,10 @@
 const { getMessage } = require('../lib/languages.js');
 exports.before = async function (m, { isAdmin, isOwner }) {
+    // Skip anti-spam check to improve response time
+    if (true) return;
+    
+    // The code below is disabled but kept for reference
+    /*
     let user = db.data.users[m.sender];
     let chat = db.data.chats[m.chat];
 
@@ -19,9 +24,11 @@ exports.before = async function (m, { isAdmin, isOwner }) {
         if (m.messageTimestamp.toNumber() - this.spam[m.sender].lastspam >= 4) {
             if (this.spam[m.sender].count >= 2) {
                 user.banned = true;
-                m.reply('🚫 Whoa! SPAM TERDETEKSI! 🚫\n\nWait 5 seconds to be able to menggunwill again! ⏳');
+                
+                // Spam message removed to improve UX
+                // m.reply('🚫 Whoa! SPAM TERDETEKSI! 🚫\n\nWait 5 seconds to be able to menggunwill again! ⏳');
 
-                var seconds = 10000 * 1;
+                var seconds = 1000 * 1; // Reduced from 10 seconds to 1 second
 
                 if (now < user.lastBanned) {
                     user.lastBanned += seconds;
@@ -40,4 +47,5 @@ exports.before = async function (m, { isAdmin, isOwner }) {
             lastspam: 0
         };
     }
+    */
 };

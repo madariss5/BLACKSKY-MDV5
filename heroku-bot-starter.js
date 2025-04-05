@@ -41,7 +41,8 @@ function initOptimizer() {
 }
 const express = require('express');
 const app = express();
-const port = process.env.PORT || 5000; // Use Heroku's PORT or 5000 for local development
+// Use a specific port for the primary server to avoid conflicts with heroku-connection-keeper.js
+const port = process.env.MAIN_SERVER_PORT || process.env.PORT || 5000;
 const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
