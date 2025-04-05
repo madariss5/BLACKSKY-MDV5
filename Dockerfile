@@ -1,69 +1,40 @@
 # BLACKSKY-MD Premium WhatsApp Bot Container Configuration
-# Optimized for Heroku deployment with enhanced stability and monitoring
+# Optimized for Heroku deployment with enhanced stability and 24/7 connection
 
 # Use official Node.js LTS Alpine for smaller image size
 FROM node:lts-alpine3.18
 
-# Install required dependencies and cleanup in a single layer to reduce image size
-RUN apk update && apk add --no-cache \
-    ffmpeg \
-    imagemagick \
-    libwebp \
-    tzdata \
-    git \
-    curl \
-    bash \
-    python3 \
-    make \
-    g++ \
-    libc6-compat \
-    ca-certificates \
-    # Install sharp dependencies for better image processing
-    vips-dev \
-    fftw-dev \
-    libjpeg-turbo-dev \
-    # Needed for some node modules
-    libc6-compat \
-    && rm -rf /var/cache/apk/*
-
 # Set working directory
 WORKDIR /app
 
-# Copy package files first for better layer caching
-COPY package*.json ./
-
-# Install dependencies (using production flag for smaller installation)
-RUN npm install --production && \
-    # Explicitly install required packages
-    npm install qrcode-terminal wa-sticker-formatter sharp && \
-    # Install PM2 globally for process management
-    npm install -g pm2
-
-# Copy the rest of the application code
+# Copy files
 COPY . .
 
 # Create required directories
 RUN mkdir -p ./logs ./tmp ./sessions ./sessions-backup ./media
 
-# Set environment variables for better performance
+# Set environment variables for better performance and stability
 ENV NODE_ENV=production \
-    PM2_HOME=/app/.pm2 \
-    # Optimize Node.js garbage collection for containers
-    NODE_OPTIONS="--max-old-space-size=4096 --optimize-for-size" \
-    # Tell Puppeteer to skip installing Chrome
+    NODE_OPTIONS="--max-old-space-size=4096 --optimize-for-size --expose-gc" \
+    NODE_EXPOSE_GC=true \
     PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    # Disable update notifier
-    NO_UPDATE_NOTIFIER=1
+    NO_UPDATE_NOTIFIER=1 \
+    HEROKU=true \
+    ENABLE_SESSION_BACKUP=true \
+    ENABLE_HEALTH_CHECK=true \
+    ENABLE_MEMORY_OPTIMIZATION=true \
+    HEALTH_CHECK_PORT=28111
 
-# Expose the port that the health check server will run on
+# Expose the ports
 EXPOSE 5000
+EXPOSE 28111
 
-# Add healthcheck (executed inside container)
+# Add healthcheck
 HEALTHCHECK --interval=60s --timeout=20s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:5000/health || exit 1
+    CMD curl -f http://localhost:5000/health || curl -f http://localhost:28111/health || exit 1
 
 # Add volume for persistent data
-VOLUME ["/app/sessions", "/app/logs", "/app/database.json"]
+VOLUME ["/app/sessions", "/app/logs", "/app/database.json", "/app/sessions-backup"]
 
-# Set entry point for PM2 runtime with enhanced logging and monitoring
-CMD ["sh", "-c", "pm2-runtime ecosystem.config.js --env production"]
+# Set entry point using our combined runner for enhanced stability
+CMD ["node", "heroku-combined-runner.js", "--autocleartmp", "--autoread", "--keepalive"]

@@ -19,7 +19,64 @@ This comprehensive guide walks you through deploying your BLACKSKY-MD Premium Wh
 4. Click "View" to open your app dashboard
 5. Follow the instructions to scan the QR code
 
-### Option 2: Manual Deployment via Heroku CLI
+### Option 2: Docker-based Deployment
+
+This method uses the Heroku Container Registry for greater reliability and environment control.
+
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/blackskytech/BLACKSKY-MD.git
+   cd BLACKSKY-MD
+   ```
+
+2. Log in to Heroku:
+   ```bash
+   heroku login
+   heroku container:login
+   ```
+
+3. Create a new Heroku app:
+   ```bash
+   heroku create your-app-name
+   ```
+
+4. Add the PostgreSQL addon (required for session persistence):
+   ```bash
+   heroku addons:create heroku-postgresql:mini -a your-app-name
+   ```
+
+5. Set required environment variables:
+   ```bash
+   heroku config:set SESSION_ID=BLACKSKY-MD
+   heroku config:set BOT_NAME=BLACKSKY-MD
+   heroku config:set OWNER_NUMBER=your-whatsapp-number
+   heroku config:set NODE_ENV=production
+   heroku config:set HEROKU=true
+   heroku config:set HEROKU_APP_URL=https://your-app-name.herokuapp.com
+   heroku config:set HEALTH_CHECK_PORT=28111
+   ```
+
+6. Build and push the Docker container:
+   ```bash
+   heroku container:push web
+   heroku container:release web
+   ```
+
+7. Scale dynos:
+   ```bash
+   heroku ps:scale web=1
+   ```
+
+8. Open the app:
+   ```bash
+   heroku open
+   ```
+
+9. Follow the instructions to scan the QR code.
+
+### Option 3: Using heroku.yml (Alternative Docker Deployment)
+
+This method uses the heroku.yml file already included in the repository.
 
 1. Clone this repository:
    ```bash
@@ -37,16 +94,14 @@ This comprehensive guide walks you through deploying your BLACKSKY-MD Premium Wh
    heroku create your-app-name
    ```
 
-4. Add the PostgreSQL addon (required for session persistence):
+4. Set the stack to container:
    ```bash
-   heroku addons:create heroku-postgresql:mini -a your-app-name
+   heroku stack:set container
    ```
 
-5. Add buildpacks:
+5. Add the PostgreSQL addon:
    ```bash
-   heroku buildpacks:add heroku/nodejs
-   heroku buildpacks:add https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest
-   heroku buildpacks:add https://github.com/clhuang/heroku-buildpack-webp-binaries.git
+   heroku addons:create heroku-postgresql:mini -a your-app-name
    ```
 
 6. Set required environment variables:
@@ -57,40 +112,28 @@ This comprehensive guide walks you through deploying your BLACKSKY-MD Premium Wh
    heroku config:set NODE_ENV=production
    heroku config:set HEROKU=true
    heroku config:set HEROKU_APP_URL=https://your-app-name.herokuapp.com
+   heroku config:set HEALTH_CHECK_PORT=28111
    ```
 
-7. Enable the container stack:
-   ```bash
-   heroku stack:set container
-   ```
-
-8. Push to Heroku:
+7. Push to Heroku:
    ```bash
    git push heroku main
    ```
 
-9. Scale dynos:
+8. Open the app:
    ```bash
-   heroku ps:scale web=1 worker=1
+   heroku open
    ```
 
-10. Open the app:
-    ```bash
-    heroku open
-    ```
+9. Follow the instructions to scan the QR code.
 
-11. Follow the instructions to scan the QR code.
-
-### Option 3: Heroku Dashboard Deployment
+### Option 4: Manual Deployment via Heroku Dashboard
 
 1. Fork this repository to your GitHub account
 2. Create a new app in the [Heroku Dashboard](https://dashboard.heroku.com/)
 3. Go to the "Deploy" tab and connect your GitHub repository
 4. Add the PostgreSQL addon from the "Resources" tab
-5. Add buildpacks from the "Settings" tab:
-   - heroku/nodejs
-   - https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest
-   - https://github.com/clhuang/heroku-buildpack-webp-binaries.git
+5. In the Settings tab, set the stack to "container"
 6. Set the required environment variables in the "Settings" tab > "Config Vars"
 7. Deploy from the "Deploy" tab
 8. Open the app and follow the instructions to scan the QR code

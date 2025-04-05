@@ -58,6 +58,11 @@
       "value": "true",
       "required": false
     },
+    "HEALTH_CHECK_PORT": {
+      "description": "Port for the health check server",
+      "value": "28111",
+      "required": false
+    },
     "ENABLE_SESSION_BACKUP": {
       "description": "Enable automatic session backup to prevent session loss",
       "value": "true",
