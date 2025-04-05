@@ -68,7 +68,7 @@ const EventEmitter = require('events');
 
 // Create a custom event emitter for connection events
 const connectionEvents = new EventEmitter();
-connectionEvents.setMaxListeners(20); // Increase max listeners to prevent memory leaks
+connectionEvents.setMaxListeners(500); // Significantly increased to prevent MaxListenersExceededWarning
 
 // Configure colors for better logging
 const colors = {
@@ -397,13 +397,13 @@ async function handleReconnection(conn) {
     }
     
     // Calculate delay with exponential backoff and some jitter
-    // Use a more aggressive reconnection strategy with shorter initial delay
+    // Use an extremely aggressive reconnection strategy with very short initial delay
     const baseDelay = Math.min(
-      connectionState.reconnectDelay * Math.pow(1.3, connectionState.reconnectAttempts),
-      5000  // Cap at 5 seconds for faster recovery
+      500 + (connectionState.reconnectAttempts * 500), // Start at 500ms and add 500ms per attempt
+      3000  // Cap at 3 seconds for even faster recovery
     );
-    const jitter = Math.random() * 500; // Add up to 0.5 second of random jitter
-    const delay = Math.min(baseDelay + jitter, connectionState.maxReconnectDelay);
+    const jitter = Math.random() * 300; // Add up to 0.3 second of random jitter
+    const delay = Math.min(baseDelay + jitter, 10000); // Cap max delay at 10 seconds
     
     connectionState.reconnectAttempts++;
     console.log(`⚠️ Connection appears to be closed. Attempt #${connectionState.reconnectAttempts} to reconnect...`);
@@ -467,8 +467,8 @@ async function handleReconnection(conn) {
           }
         }
         
-        // Wait a bit after closing the socket
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Wait just a short time after closing the socket for immediate reconnection
+        await new Promise(resolve => setTimeout(resolve, 300));
         
         // Try to force Baileys to reconnect by emitting a connection.update event
         try {
@@ -687,7 +687,8 @@ function applyConnectionPatch(conn) {
           
           if (connectionState.isConnected) {
             connectionState.isConnected = false;
-            setTimeout(() => handleReconnection(conn), 1000);
+            // Initiate reconnection immediately without delay
+            handleReconnection(conn);
           }
         }
         throw error;
@@ -738,9 +739,9 @@ function applyConnectionPatch(conn) {
             
             // If connection closed because of connection appears closed error
             if (errMsg.includes('closed') || errMsg.includes('timed out')) {
-              console.log('⚠️ Connection appears to be closed error detected');
-              // Use our own reconnection logic with shorter delay
-              setTimeout(() => handleReconnection(conn), 500);
+              console.log('⚠️ Connection appears to be closed error detected, initiating fast reconnection');
+              // Use our own reconnection logic with immediate initiation
+              handleReconnection(conn);
               // Try to prevent default Baileys handlers from running multiple reconnects
               return;
             }
@@ -766,7 +767,8 @@ function applyConnectionPatch(conn) {
         // If connection is still marked as connected, mark it disconnected
         if (connectionState.isConnected) {
           connectionState.isConnected = false;
-          setTimeout(() => handleReconnection(conn), 2000);
+          // Initiate reconnection immediately without delay
+          handleReconnection(conn);
         }
       };
       
@@ -790,7 +792,8 @@ function applyConnectionPatch(conn) {
             
             if (connectionState.isConnected) {
               connectionState.isConnected = false;
-              setTimeout(() => handleReconnection(conn), 1000);
+              // Initiate reconnection immediately without delay
+              handleReconnection(conn);
             }
           }
           throw error;

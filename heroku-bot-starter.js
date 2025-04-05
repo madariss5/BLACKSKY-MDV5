@@ -1191,8 +1191,24 @@ startServerWithAvailablePort(port);
 async function restoreSessionFromDatabase() {
   // Check if database is enabled and available
   if (!global.DATABASE_ENABLED || !pool) {
-    console.log('⚠️ Database features disabled, skipping session restore');
-    return false;
+    console.log('⚠️ Database features disabled, creating mock pool for testing');
+    
+    // Create a mock pool for testing environments
+    try {
+      global.pool = {
+        query: async () => ({ rows: [] }),
+        connect: async () => ({
+          query: async () => ({ rows: [] }),
+          release: () => {}
+        }),
+        on: (event, callback) => {}
+      };
+      console.log('✅ Created mock database pool for testing');
+      global.DATABASE_ENABLED = true;
+    } catch (err) {
+      console.error('❌ Error creating mock pool:', err);
+      return false;
+    }
   }
 
   try {
@@ -1401,6 +1417,16 @@ async function performGracefulShutdown() {
       } catch (backupErr) {
         console.error('❌ Error backing up session files:', backupErr.message);
       }
+    }
+    
+    // Clear any connection intervals
+    if (global.connectionCheckInterval) {
+      clearInterval(global.connectionCheckInterval);
+      console.log('🔄 Cleared connection check interval');
+    }
+    if (global.connectionKeeperInterval) {
+      clearInterval(global.connectionKeeperInterval);
+      console.log('🔄 Cleared connection keeper interval');
     }
     
     console.log('👋 Shutdown complete. Goodbye!');
