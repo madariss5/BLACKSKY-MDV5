@@ -7,7 +7,8 @@
  */
 
 // Set higher event listener limit to avoid MaxListenersExceededWarning
-require('events').EventEmitter.defaultMaxListeners = 300;
+require('events').EventEmitter.prototype.setMaxListeners(500);
+require('events').EventEmitter.defaultMaxListeners = 500;
 
 // Detect environment
 const os = require('os');
@@ -423,6 +424,13 @@ try {
     console.warn('⚠️ DATABASE_URL environment variable not set. Database features will be disabled.');
     console.warn('⚠️ For Heroku deployment, make sure to add the PostgreSQL addon and set DATABASE_URL.');
     global.DATABASE_ENABLED = false;
+    
+    // Create mock pool for testing purposes
+    pool = {
+      query: async () => ({ rows: [{ now: new Date() }] }),
+      on: () => {}
+    };
+    console.log('✅ Created mock database pool for testing environment');
   } else {
     // Set DATABASE_ENABLED to true immediately to avoid race conditions
     global.DATABASE_ENABLED = true;
@@ -431,7 +439,11 @@ try {
       connectionString: process.env.DATABASE_URL,
       ssl: {
         rejectUnauthorized: false
-      }
+      },
+      // Add connection timeout to prevent hanging
+      connectionTimeoutMillis: 10000,
+      // Increase idle timeout
+      idleTimeoutMillis: 30000
     });
     
     // Test the connection

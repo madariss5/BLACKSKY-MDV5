@@ -368,6 +368,14 @@ async function handleReconnection(conn) {
   connectionState.isReconnecting = true;
   
   try {
+    // Check if socket is already open - might have recovered itself
+    if (conn.ws && conn.ws.readyState === 1 && conn.user) {
+      log('Connection already appears restored, canceling reconnection', 'SUCCESS');
+      connectionState.isConnected = true;
+      connectionState.isReconnecting = false;
+      return;
+    }
+    
     // Check if we've exceeded max attempts
     if (connectionState.reconnectAttempts >= connectionState.maxReconnectAttempts) {
       log('Maximum reconnection attempts reached, trying final recovery options', 'ERROR');
@@ -389,8 +397,12 @@ async function handleReconnection(conn) {
     }
     
     // Calculate delay with exponential backoff and some jitter
-    const baseDelay = connectionState.reconnectDelay * Math.pow(1.5, connectionState.reconnectAttempts);
-    const jitter = Math.random() * 1000; // Add up to 1 second of random jitter
+    // Use a more aggressive reconnection strategy with shorter initial delay
+    const baseDelay = Math.min(
+      connectionState.reconnectDelay * Math.pow(1.3, connectionState.reconnectAttempts),
+      5000  // Cap at 5 seconds for faster recovery
+    );
+    const jitter = Math.random() * 500; // Add up to 0.5 second of random jitter
     const delay = Math.min(baseDelay + jitter, connectionState.maxReconnectDelay);
     
     connectionState.reconnectAttempts++;
