@@ -9,13 +9,13 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const { initialize: initMemoryManager } = require('./memory-management.js');
+const { initializeMemoryManager } = require('./memory-management.js');
 const { initialize: initKeeper } = require('./heroku-connection-keeper.js');
 const { initialize: initPatch } = require('./connection-patch.js');
 
 // Initialize components
 console.log('🧠 Initializing Memory Management...');
-initMemoryManager();
+const memoryManager = initializeMemoryManager();
 
 console.log('🔄 Initializing Connection Keeper...');
 initKeeper();

@@ -152,8 +152,7 @@ function initialize() {
   console.log('Memory management initialized');
 }
 
-// Export functions
-function initialize() {
+function initializeMemoryManager() {
   // Increase max listeners
   require('events').EventEmitter.defaultMaxListeners = 500;
 
@@ -167,14 +166,22 @@ function initialize() {
   });
 
   console.log('✅ Memory management initialized');
+  
+  return {
+    scheduleMemoryCleanup,
+    performMemoryCleanup,
+    safeOn
+  };
 }
 
+// Export functions
 module.exports = {
   safeOn,
-  cleanupEmitterListeners, 
+  cleanupEmitterListeners,
   performMemoryCleanup,
   scheduleMemoryCleanup,
-  initialize
+  initialize: initializeMemoryManager,
+  initializeMemoryManager
 };
 function initializeMemoryManagement() {
   const memoryLimit = process.env.MEMORY_LIMIT || 512; // MB
