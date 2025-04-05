@@ -198,7 +198,48 @@ function initializeMemoryManager() {
     performMemoryCleanup,
     runEmergencyCleanup,
     shutdown,
-    safeOn
+    safeOn,
+    // Get memory usage data
+    getMemoryUsage: function() {
+      try {
+        // Try to get from advanced memory manager
+        const advancedMemoryManager = require('./lib/advanced-memory-manager');
+        if (advancedMemoryManager && typeof advancedMemoryManager.getMemoryUsage === 'function') {
+          return advancedMemoryManager.getMemoryUsage();
+        }
+      } catch (err) {
+        console.error('Error using advanced memory manager:', err.message);
+      }
+      
+      // Fallback to simple memory usage info
+      const memoryUsage = process.memoryUsage();
+      const totalMemory = require('os').totalmem();
+      const freeMemory = require('os').freemem();
+      
+      return {
+        formatted: {
+          heapUsed: Math.round(memoryUsage.heapUsed / (1024 * 1024)),
+          rss: Math.round(memoryUsage.rss / (1024 * 1024)),
+        },
+        percentages: {
+          heapUsage: Math.round((memoryUsage.heapUsed / memoryUsage.heapTotal) * 100),
+          systemUsage: Math.round(((totalMemory - freeMemory) / totalMemory) * 100)
+        }
+      };
+    },
+    // Run cleanup directly from lib
+    runCleanup: function() {
+      try {
+        const advancedMemoryManager = require('./lib/advanced-memory-manager');
+        if (advancedMemoryManager && typeof advancedMemoryManager.runCleanup === 'function') {
+          return advancedMemoryManager.runCleanup();
+        }
+      } catch (err) {
+        console.error('Error using advanced memory manager for cleanup:', err.message);
+      }
+      // Fallback to own cleanup
+      return performMemoryCleanup();
+    }
   };
 
   return global.memoryManager;

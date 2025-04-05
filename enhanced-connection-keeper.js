@@ -133,6 +133,10 @@ const connectionState = {
  * @param {Object} conn - Baileys connection object
  */
 function initializeConnectionKeeper(conn) {
+  if (!conn || typeof conn !== 'object') {
+    log('Invalid connection object provided to initializeConnectionKeeper', 'ERROR');
+    return false;
+  }
   if (!conn) {
     log('No connection object provided', 'ERROR');
     return false;
@@ -772,6 +776,8 @@ function applyConnectionPatch(conn) {
  * @returns {Boolean} - Whether initialization was successful
  */
 function safeInitialize(conn = null, options = {}) {
+  // Log that we are starting in safe mode
+  log('Starting enhanced connection keeper in safe mode with optimal settings', 'INFO');
   // Default options
   const defaultOptions = {
     pollInterval: 5000,        // 5 seconds between checks
