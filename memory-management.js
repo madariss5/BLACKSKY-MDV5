@@ -180,9 +180,22 @@ module.exports = {
   cleanupEmitterListeners,
   performMemoryCleanup,
   scheduleMemoryCleanup,
-  initialize: initializeMemoryManager,
-  initializeMemoryManager
+  initializeMemoryManager: function() {
+    // Increase max listeners
+    require('events').EventEmitter.defaultMaxListeners = 500;
+    
+    // Schedule memory cleanup
+    scheduleMemoryCleanup();
+    
+    // Return API
+    return {
+      scheduleMemoryCleanup,
+      performMemoryCleanup,
+      safeOn
+    };
+  }
 };
+
 function initializeMemoryManagement() {
   const memoryLimit = process.env.MEMORY_LIMIT || 512; // MB
 
