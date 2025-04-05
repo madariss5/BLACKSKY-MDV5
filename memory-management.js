@@ -153,9 +153,25 @@ function initialize() {
 }
 
 // Export functions
+function initialize() {
+  // Increase max listeners
+  require('events').EventEmitter.defaultMaxListeners = 500;
+
+  // Schedule memory cleanup
+  scheduleMemoryCleanup();
+
+  // Handle process exit
+  process.on('exit', () => {
+    console.log('Process exiting, cleaning up resources');
+    performMemoryCleanup();
+  });
+
+  console.log('✅ Memory management initialized');
+}
+
 module.exports = {
   safeOn,
-  cleanupEmitterListeners,
+  cleanupEmitterListeners, 
   performMemoryCleanup,
   scheduleMemoryCleanup,
   initialize

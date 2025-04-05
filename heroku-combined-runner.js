@@ -9,15 +9,19 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-// Initialize memory management to prevent leaks and event listener issues
-console.log('🧠 Initializing Memory Management...');
-const memoryManager = require('./memory-management.js');
-memoryManager.initialize();
+const { initialize: initMemoryManager } = require('./memory-management.js');
+const { initialize: initKeeper } = require('./heroku-connection-keeper.js');
+const { initialize: initPatch } = require('./connection-patch.js');
 
-// Initialize heroku-connection-keeper
-console.log('🔌 Initializing Heroku Connection Keeper...');
-const connectionKeeperModule = require('./heroku-connection-keeper.js');
-const keeper = connectionKeeperModule.initialize();
+// Initialize components
+console.log('🧠 Initializing Memory Management...');
+initMemoryManager();
+
+console.log('🔄 Initializing Connection Keeper...');
+initKeeper();
+
+console.log('🔌 Initializing Connection Patch...');
+initPatch();
 
 // Create logs directory if it doesn't exist
 const logsDir = path.join(__dirname, 'logs');
@@ -48,7 +52,7 @@ process.on('uncaughtException', (err) => {
 
 // Schedule periodic memory cleanup
 const MEMORY_CLEANUP_INTERVAL = 15; // minutes
-memoryManager.scheduleMemoryCleanup(MEMORY_CLEANUP_INTERVAL);
+initMemoryManager().scheduleMemoryCleanup(MEMORY_CLEANUP_INTERVAL); // Assuming scheduleMemoryCleanup is now part of initMemoryManager
 
 // Graceful shutdown
 async function performGracefulShutdown() {
@@ -56,10 +60,10 @@ async function performGracefulShutdown() {
   
   try {
     // Call the keeper's graceful shutdown
-    await connectionKeeperModule.performGracefulShutdown();
+    await initKeeper().performGracefulShutdown(); // Assuming performGracefulShutdown is part of initKeeper
     
     // Perform final memory cleanup
-    memoryManager.performMemoryCleanup();
+    initMemoryManager().performMemoryCleanup(); // Assuming performMemoryCleanup is part of initMemoryManager
     
     console.log('✅ Shutdown completed. Exiting...');
   } catch (error) {
@@ -74,11 +78,11 @@ async function performGracefulShutdown() {
 }
 
 // Use the safe event handler attachment
-memoryManager.safeOn(process, 'SIGTERM', performGracefulShutdown);
-memoryManager.safeOn(process, 'SIGINT', performGracefulShutdown);
+initMemoryManager().safeOn(process, 'SIGTERM', performGracefulShutdown);
+initMemoryManager().safeOn(process, 'SIGINT', performGracefulShutdown);
 
 // Add Heroku dyno shutdown event handler
-memoryManager.safeOn(process, 'SIGUSR2', async () => {
+initMemoryManager().safeOn(process, 'SIGUSR2', async () => {
   console.log('Received Heroku dyno cycling signal (SIGUSR2)');
   await performGracefulShutdown();
 });
