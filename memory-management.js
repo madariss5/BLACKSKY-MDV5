@@ -37,12 +37,12 @@ function safeOn(emitter, event, listener, options = {}) {
   if (!attachedListeners.has(emitterKey)) {
     attachedListeners.set(emitterKey, new Map());
   }
-  
+
   const eventMap = attachedListeners.get(emitterKey);
   if (!eventMap.has(event)) {
     eventMap.set(event, new Set());
   }
-  
+
   const listenerSet = eventMap.get(event);
   listenerSet.add(listener);
 
@@ -85,7 +85,7 @@ function cleanupEmitterListeners(emitter) {
 function setupUnhandledRejectionHandler() {
   process.on('unhandledRejection', (reason, promise) => {
     console.error('Unhandled Promise Rejection:', reason);
-    
+
     // Attempt to handle baileys-specific connection errors
     if (reason && reason.isBoom && reason.output && 
         reason.output.payload && reason.output.payload.message === 'Connection Closed') {
@@ -93,7 +93,7 @@ function setupUnhandledRejectionHandler() {
       // The reconnection is handled by connection-keeper
       return;
     }
-    
+
     // Handle WebSocket close code 1006 (connection closed abnormally)
     if (reason === 1006) {
       console.log('WebSocket closed abnormally (1006) - will reconnect automatically');
@@ -136,19 +136,19 @@ function scheduleMemoryCleanup(intervalMinutes = 30) {
 function initialize() {
   // Increase max listeners
   require('events').EventEmitter.defaultMaxListeners = 500;
-  
+
   // Setup unhandled rejection handler
   setupUnhandledRejectionHandler();
-  
+
   // Schedule memory cleanup
   scheduleMemoryCleanup();
-  
+
   // Handle process exit to clean up resources
   process.on('exit', () => {
     console.log('Process exiting, cleaning up resources');
     // Clean up any resources here
   });
-  
+
   console.log('Memory management initialized');
 }
 
@@ -162,7 +162,7 @@ module.exports = {
 };
 function initializeMemoryManagement() {
   const memoryLimit = process.env.MEMORY_LIMIT || 512; // MB
-  
+
   // Set up memory monitoring
   setInterval(() => {
     const used = process.memoryUsage();
