@@ -6,7 +6,7 @@ let handler = async (m, { conn }) => {
     const user = global.db.data.users[m.sender];
     const chat = global.db.data.chats[m.chat];
     const lang = user?.language || chat?.language || global.language;
- {
+  
   // Set default prefix to '.'
   global.prefix = new RegExp('^[.]')
   
@@ -20,13 +20,11 @@ let handler = async (m, { conn }) => {
     conn.prefix = '.'
   }
   
-  await m.reply(`✅ Prefix has been reset to ".\\" (dot).\n\nCommands should now work with the \\"." prefix (e.g., .menu, .help).\n\nIf commands still don't work, please restart the bot.`);
+  await m.reply(`✅ Prefix has been reset to "." (dot).\n\nCommands should now work with the "." prefix (e.g., .menu, .help).\n\nIf commands still don't work, please restart the bot.`);
 }
 
 handler.help = ['fixprefix']
 handler.tags = ['owner']
 handler.command = /^(fixprefix|resetprefix)$/i
-
-}
 
 module.exports = handler

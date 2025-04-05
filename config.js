@@ -14,7 +14,7 @@ global.packname = 'Made With'
 global.author = '𝔹𝕃𝔸ℂ𝕂𝕊𝕂𝕐-𝕄𝔻'
 global.maxwarn = 3 // Maximum warnings (as a number)
 global.antiporn = true // Auto delete porn messages (bot must be admin)
-global.prefix = '.' // Default command prefix
+global.prefix = '.'; // Default command prefix
 
 // XP and leveling system
 global.multiplier = 5 // Increase XP requirements (higher = slower leveling, increased from 3)
