@@ -16,7 +16,8 @@ const http = require('http');
 const https = require('https');
 const express = require('express');
 const { Pool } = require('pg');
-const { delay } = require('@adiwajshing/baileys');
+const { delay, DisconnectReason } = require('@adiwajshing/baileys');
+const { Boom } = require('@hapi/boom');
 const crypto = require('crypto');
 
 // Configuration
@@ -573,17 +574,37 @@ async function attemptReconnect(conn) {
         await restoreSessionFiles();
       }
 
+      // Try to force close any lingering sockets
+      try {
+        if (conn.ws) {
+          log('Forcibly closing any open WebSocket connections', 'WARN');
+          if (typeof conn.ws.close === 'function') {
+            conn.ws.close();
+          }
+          // Give a moment for the socket to close
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      } catch (socketErr) {
+        log(`Error closing WebSocket: ${socketErr.message}`, 'ERROR');
+      }
+
       // Reset connection state
       STATE.connectionLostTime = null;
       STATE.reconnectAttempts = 0;
       STATE.backoffDelay = CONFIG.initialBackoffDelay;
 
-      // Force restart the connection
+      // Force restart the connection with more explicit flags
       if (typeof conn.ev?.emit === 'function') {
+        log('Emitting forced connection close event', 'WARN');
         conn.ev.emit('connection.update', { 
           connection: 'close', 
           lastDisconnect: {
-            error: new Error('Manual restart after max reconnection attempts')
+            error: new Boom('Connection forcibly reset after failed reconnection attempts', {
+              statusCode: DisconnectReason.restartRequired,
+              data: {
+                forceReconnect: true
+              }
+            })
           }
         });
       }
@@ -605,13 +626,39 @@ async function attemptReconnect(conn) {
       CONFIG.maxBackoffDelay
     );
 
-    // Try to send a message to trigger reconnection
+    // Try multiple reconnection strategies in sequence
+    
+    // 1. First try a simple heartbeat to trigger reconnection
     await sendHeartbeat(conn);
+    
+    // Wait a moment to see if that worked
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // 2. If connection still appears closed, try a more direct approach
+    if (!isConnectionActive(conn)) {
+      log('Heartbeat did not trigger reconnection, trying more direct approach', 'WARN');
+      
+      // Try to force a connection reset through connection update event
+      if (typeof conn.ev?.emit === 'function') {
+        conn.ev.emit('connection.update', { 
+          connection: 'close', 
+          lastDisconnect: {
+            error: new Error('Manual reconnection triggered')
+          }
+        });
+      }
+      
+      // Wait for reset to process
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
 
-    // Every 5 attempts, try restoring sessions
-    if (STATE.reconnectAttempts % 5 === 0) {
+    // Every 3 attempts, try restoring sessions
+    if (STATE.reconnectAttempts % 3 === 0) {
       log('Multiple reconnection attempts failed, trying to restore sessions', 'WARN');
       await restoreSessionFromDatabase();
+      
+      // After restoration, backup current state for safety
+      await backupSessionToDatabase();
     }
   } catch (err) {
     log(`Error in attemptReconnect: ${err.message}`, 'ERROR');
@@ -1062,11 +1109,47 @@ function applyConnectionPatch(conn) {
 
       if (connection === 'close') {
         const statusCode = lastDisconnect?.error?.output?.statusCode;
-        log(`Connection closed (status code: ${statusCode})`, 'WARN');
+        const disconReason = lastDisconnect?.error?.message || 'Unknown reason';
+        log(`Connection closed (status code: ${statusCode}, reason: ${disconReason})`, 'WARN');
 
         // Mark connection as lost
         if (!STATE.connectionLostTime) {
           STATE.connectionLostTime = Date.now();
+        }
+        
+        // Handle specific disconnection reasons with custom strategies
+        if (statusCode === DisconnectReason.loggedOut) {
+          log('Device logged out, will try to restore session from backup', 'WARN');
+          // This is a critical issue that requires session restoration
+          restoreSessionFromDatabase().then(success => {
+            if (!success) {
+              log('Failed to restore from database, trying local backup', 'WARN');
+              return restoreSessionFiles();
+            }
+            return success;
+          }).catch(err => {
+            log(`Error in session restoration: ${err.message}`, 'ERROR');
+          });
+        } else if (statusCode === DisconnectReason.connectionLost) {
+          log('Connection lost, attempting immediate reconnection', 'WARN');
+          // Trigger immediate reconnection attempt without waiting for the regular interval
+          setTimeout(() => attemptReconnect(conn), 1000);
+        } else if (statusCode === DisconnectReason.connectionReplaced) {
+          log('Connection replaced on another device, will try to reclaim', 'WARN');
+          // Wait a moment then try to reclaim the session
+          setTimeout(() => {
+            restoreSessionFromDatabase().then(() => {
+              // Force reconnection after a brief delay
+              setTimeout(() => attemptReconnect(conn), 2000);
+            });
+          }, 3000);
+        } else if (statusCode === DisconnectReason.timedOut) {
+          log('Connection timed out, scheduling faster reconnection', 'WARN');
+          // Use a shorter delay for timeouts
+          setTimeout(() => attemptReconnect(conn), 1500);
+        } else {
+          // For other disconnect reasons, use the regular check interval
+          log(`Standard reconnection will be attempted at next connection check`, 'INFO');
         }
       }
     });
