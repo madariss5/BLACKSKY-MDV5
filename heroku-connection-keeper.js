@@ -174,17 +174,32 @@ async function backupSessionToDatabase() {
       !file.endsWith('.old')
     );
 
-    // Start a transaction
+    // Start transaction with retry mechanism
     let client;
-    try {
-      client = await STATE.postgresPool.connect();
-      await client.query('BEGIN');
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    while (retryCount < maxRetries) {
+      try {
+        client = await STATE.postgresPool.connect();
+        await client.query('BEGIN');
+        
+        // Create table if doesn't exist
+        await client.query(`
+          CREATE TABLE IF NOT EXISTS whatsapp_sessions (
+            session_id VARCHAR(255) PRIMARY KEY,
+            session_data JSONB NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
 
-      let count = 0;
-      let batchSize = 0;
-      for (const file of files) {
-        const filePath = path.join(sessionDir, file);
-        if (fs.statSync(filePath).isDirectory()) continue;
+        let count = 0;
+        let batchSize = 0;
+        
+        for (const file of files) {
+          const filePath = path.join(sessionDir, file);
+          if (fs.statSync(filePath).isDirectory()) continue;
 
         try {
           const fileContent = fs.readFileSync(filePath, 'utf8');
@@ -226,27 +241,34 @@ async function backupSessionToDatabase() {
       }
 
       if (batchSize > 0) {
-        await client.query('COMMIT');
-      }
-      log(`Backed up ${count} session files to PostgreSQL database`, 'SUCCESS');
-      STATE.lastBackupTime = Date.now();
-      return true;
-    } catch (err) {
-      if (client) {
-        try {
-          await client.query('ROLLBACK');
-        } catch (rollbackErr) {
-          log(`Error during rollback: ${rollbackErr.message}`, 'ERROR');
+          await client.query('COMMIT');
         }
-      }
-      log(`Error backing up sessions to database: ${err.message}`, 'ERROR');
-      return false;
-    } finally {
-      if (client) {
-        try {
-          client.release();
-        } catch (releaseErr) {
-          log(`Error releasing client: ${releaseErr.message}`, 'ERROR');
+        log(`Backed up ${count} session files to PostgreSQL database`, 'SUCCESS');
+        STATE.lastBackupTime = Date.now();
+        
+        if (client) client.release();
+        return true;
+        
+      } catch (err) {
+        log(`Attempt ${retryCount + 1} failed: ${err.message}`, 'WARN');
+        
+        if (client) {
+          try {
+            await client.query('ROLLBACK');
+          } catch (rollbackErr) {
+            log(`Error during rollback: ${rollbackErr.message}`, 'ERROR');
+          } finally {
+            client.release();
+          }
+        }
+        
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+        retryCount++;
+        
+        if (retryCount === maxRetries) {
+          log(`Failed to backup after ${maxRetries} attempts`, 'ERROR');
+          return false;
         }
       }
     }
