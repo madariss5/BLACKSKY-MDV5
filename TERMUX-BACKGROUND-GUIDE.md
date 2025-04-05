@@ -1,112 +1,171 @@
-# BLACKSKY-MD Termux Background Running Guide
+# BLACKSKY-MD Premium Bot - Termux Background Running Guide
 
-This guide will help you run BLACKSKY-MD 24/7 in the background on Termux, allowing you to close Termux while the bot continues to run.
+This guide will help you run your WhatsApp bot in the background using Termux so that it stays running even when you close the Termux app.
 
 ## Prerequisites
 
-- Termux app installed
-- BLACKSKY-MD already set up according to the main Termux guide
+1. Termux installed on your Android device
+2. BLACKSKY-MD Premium Bot files installed
+3. Basic knowledge of terminal commands
 
-## Install Required Packages
+## Option 1: Using Our Automated Setup (Recommended)
 
-1. Update Termux packages:
+We've created automated scripts to make running your bot in the background easy:
+
+### Step 1: Make sure Termux packages are up to date
+
 ```bash
 pkg update && pkg upgrade
 ```
 
-2. Install Node.js, PM2, and other necessary tools:
+### Step 2: Install required packages
+
 ```bash
-pkg install nodejs-lts git ffmpeg imagemagick libwebp
+pkg install nodejs git ffmpeg libwebp imagemagick
+```
+
+### Step 3: Fix Sharp module compatibility
+
+Run our compatibility fixer script:
+
+```bash
+node fix-pm2-sharp.js
+```
+
+### Step 4: Start the bot using our PM2 starter script
+
+```bash
+node start-bot-pm2.js start
+```
+
+That's it! Your bot is now running in the background and will continue to run even when you close Termux.
+
+## Option 2: Manual Setup with PM2
+
+If you prefer to set things up manually, follow these steps:
+
+### Step 1: Install PM2 globally
+
+```bash
 npm install -g pm2
 ```
 
-## Setting Up PM2 for Background Running
+### Step 2: Patch your index.js file
 
-1. Navigate to your BLACKSKY-MD folder:
+Run:
+
 ```bash
-cd BLACKSKY-MD
+node index-sharp-patch.js
 ```
 
-2. Make sure you have the latest ecosystem.config.js file:
+### Step 3: Start your bot with PM2
+
 ```bash
-# If you don't have the file, create it using the template provided in the repo
-touch ecosystem.config.js
-# Then edit it with nano
-nano ecosystem.config.js
+pm2 start ecosystem.config.js
 ```
 
-3. Start the bot with PM2:
-```bash
-pm2 start ecosystem.config.js --env production
-```
+### Step 4: Save the PM2 process list
 
-4. Set up PM2 to keep the bot running even if Termux is closed:
+This ensures your bot restarts automatically when Termux restarts:
+
 ```bash
 pm2 save
 ```
 
-5. Set up PM2 to start the bot automatically when Termux is opened:
-```bash
-pm2 startup
-```
+## Keeping Termux Running in the Background
 
-## Keeping Termux Running in Background
+For optimal performance on Android:
 
-1. Configure Termux to stay active in the background:
-   - Open Termux
-   - Go to settings (long press on the Termux screen and select "MORE" → "Settings")
-   - Enable "Acquire Wakelock" to prevent Android from killing Termux
+1. **Disable Battery Optimization for Termux**:
+   - Go to Android Settings > Apps > Termux > Battery
+   - Select "Don't optimize" or "Unrestricted"
 
-2. Allow Termux to run in the background:
-   - Go to your Android settings
-   - Navigate to "Apps" → "Termux"
-   - Select "Battery" → "Battery optimization" → "All apps"
-   - Find Termux in the list and select "Don't optimize"
+2. **Enable Wake Lock** (this is automatically done by our ecosystem.config.js):
+   - The bot uses a wake lock to prevent the device from killing the process
 
-## Managing Your Bot
+3. **Consider installing Termux:Boot**:
+   - From F-Droid, install the Termux:Boot add-on
+   - This allows Termux to start at device boot
 
-- Check bot status:
-```bash
-pm2 status
-```
+## Common Commands
 
-- View bot logs:
-```bash
-pm2 logs BLACKSKY-MD
-```
-
-- Restart the bot:
-```bash
-pm2 restart BLACKSKY-MD
-```
-
-- Stop the bot:
-```bash
-pm2 stop BLACKSKY-MD
-```
-
-## Advanced Power Saving Tips
-
-1. Reduce bot resource usage by editing ecosystem.config.js:
-   - Lower the `max_old_space_size` value to 1024 or 512 for more memory savings
-   - Add the `--optimize-for-size` flag to reduce memory footprint
-
-2. Consider disabling unnecessary plugins if you need to conserve more resources.
-
-3. Set up a scheduled restart to keep the bot fresh:
-```bash
-pm2 restart BLACKSKY-MD --cron "0 4 * * *"  # Restarts the bot at 4 AM daily
-```
+- Check bot status: `pm2 status`
+- View bot logs: `pm2 logs BLACKSKY-MD`
+- Restart bot: `pm2 restart BLACKSKY-MD`
+- Stop bot: `pm2 stop BLACKSKY-MD`
+- Resume bot: `pm2 start BLACKSKY-MD`
 
 ## Troubleshooting
 
-If the bot stops working after closing Termux:
+### Bot disconnects frequently
 
-1. Make sure you've enabled "Acquire Wakelock" in Termux settings
-2. Disable battery optimization for Termux
-3. Some Android devices have aggressive battery saving - install "Don't Kill My App" from Play Store
-4. Try using a Termux widget to create a shortcut that runs `pm2 resurrect` when tapped
+If your bot disconnects frequently, try these steps:
 
-## Conclusion
+1. Check your internet connection stability
+2. Make sure Termux has proper permissions
+3. Run the connection troubleshooter:
+   ```bash
+   node connection-patch-termux.js
+   ```
 
-Your BLACKSKY-MD bot should now run in the background without needing to keep Termux open. Remember that different Android devices have different background process policies, so you might need to adjust some settings specific to your device.
+### Sharp module errors
+
+If you encounter errors related to the Sharp image processing module:
+
+1. Run our Sharp compatibility fixer:
+   ```bash
+   node fix-pm2-sharp.js
+   ```
+
+2. If the issue persists, try reinstalling the compatibility layer:
+   ```bash
+   npm uninstall sharp jimp
+   npm install jimp
+   node fix-pm2-sharp.js
+   ```
+
+### PM2 process disappears after Termux restart
+
+Make sure you've saved the PM2 process list:
+
+```bash
+pm2 save
+```
+
+After that, you can restore the processes with:
+
+```bash
+pm2 resurrect
+```
+
+## Advanced: Boot-Time Autostart
+
+To make your bot start automatically when your device boots:
+
+1. Install Termux:Boot add-on from F-Droid
+2. Grant necessary permissions
+3. Create a boot script in the `~/.termux/boot/` directory:
+
+```bash
+mkdir -p ~/.termux/boot/
+```
+
+Create a file named `start-bot.sh`:
+
+```bash
+echo '#!/data/data/com.termux/files/usr/bin/sh
+cd ~/BLACKSKY-MD
+pm2 resurrect || node start-bot-pm2.js start' > ~/.termux/boot/start-bot.sh
+```
+
+Make it executable:
+
+```bash
+chmod +x ~/.termux/boot/start-bot.sh
+```
+
+Now your bot will start automatically when your device boots up.
+
+## Need More Help?
+
+If you're still experiencing issues, please refer to our troubleshooting guide or contact support.

@@ -1,3 +1,14 @@
+/**
+ * Sharp compatibility patch - Added by fix-pm2-sharp.js
+ */
+try {
+  // Load Sharp compatibility layer early
+  global.sharp = require('./load-sharp.js');
+  console.log('✅ Sharp module loaded and patched for compatibility');
+} catch (err) {
+  console.error('❌ Error loading Sharp compatibility layer:', err);
+}
+
 // Detect if running in Termux and handle Sharp compatibility
 const os = require('os');
 const isTermux = os.platform() === 'android' || process.env.TERMUX === 'true';
@@ -130,14 +141,8 @@ async function startServer() {
   const isPortAvailable = await checkPort(port);
 
   if (isPortAvailable) {
-    // Premium startup message
-    const logo = `
-    ╔════════════════════════════════════════╗
-    ║      🌌 BLACKSKY-MD PREMIUM 🌌         ║
-    ║      ⚡ CYBERPUNK EDITION ⚡            ║
-    ╚════════════════════════════════════════╝
-    `;
-    console.log('\x1b[35m%s\x1b[0m', logo); // Purple color for premium branding
+    // Simple startup message
+    console.log('\x1b[35m%s\x1b[0m', '🌌 BLACKSKY-MD PREMIUM Started 🌌'); // Purple color for premium branding
     console.log('\x1b[33m%s\x1b[0m', `🌐 Port ${port} is open`);
     
     // Helper function to format uptime
@@ -417,9 +422,6 @@ async function startServer() {
       <body>
           <div class="container">
               <div class="header">
-                  <div style="text-align: center; margin-bottom: 20px;">
-                      <img src="/logo" alt="BLACKSKY-MD Premium Logo" style="max-width: 200px; height: auto;" />
-                  </div>
                   <div class="logo">BLACKSKY-MD</div>
                   <div class="tagline">PREMIUM CYBERPUNK WHATSAPP BOT</div>
                   

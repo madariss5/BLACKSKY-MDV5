@@ -2,7 +2,55 @@
  * BLACKSKY-MD Bot Starter for Heroku with enhanced stability
  * Optimized for Replit environment
  * With advanced group chat and response time optimizations
+ * Compatible with both Heroku and Termux environments
+ * Includes PM2 integration for 24/7 operation
  */
+
+// Detect environment
+const os = require('os');
+const isTermux = os.platform() === 'android' || process.env.TERMUX === 'true';
+const isHeroku = process.env.HEROKU === 'true' || !!process.env.DYNO;
+
+// Set environment variables based on detected environment
+if (isTermux) {
+  console.log('📱 Running in Termux environment');
+  process.env.TERMUX = 'true';
+  process.env.HEROKU = 'false';
+  process.env.SHARP_COMPAT = 'true';
+  
+  // Set up Sharp compatibility for Termux
+  try {
+    global.sharp = require('./sharp-compat.js');
+    console.log('✅ Using Sharp compatibility layer for Termux');
+  } catch (err) {
+    try {
+      global.sharp = require('./sharp-simple-compat.js');
+      console.log('✅ Using simple Sharp compatibility layer for Termux');
+    } catch (err2) {
+      console.error('⚠️ Failed to load Sharp compatibility layer:', err2);
+      // Create minimal Sharp dummy implementation
+      const fs = require('fs');
+      global.sharp = (input) => ({
+        resize: () => ({ toBuffer: async () => input, toFile: async (path) => fs.writeFileSync(path, input) })
+      });
+    }
+  }
+} else if (isHeroku) {
+  console.log('☁️ Running in Heroku environment');
+  process.env.HEROKU = 'true';
+  process.env.TERMUX = 'false';
+}
+
+// Set up PM2 integration if running with PM2
+try {
+  const pm2Integration = require('./pm2-integration.js');
+  if (pm2Integration.isPM2()) {
+    console.log('📋 Running with PM2, setting up integration...');
+    global.PM2_INTEGRATION = pm2Integration;
+  }
+} catch (err) {
+  console.warn('⚠️ PM2 integration module not found or failed to load:', err.message);
+}
 const { initialize: initKeeper } = require('./heroku-connection-keeper.js');
 
 // Performance optimization support - initialize earlier for faster startup

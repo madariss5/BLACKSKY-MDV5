@@ -7,61 +7,7 @@ const { svgToPng, getDefaultLogoPath } = require('../lib/svg-converter');
 
 let handler = async (m, { conn, usedPrefix: _p }) => {
     try {
-        // Try to load the premium SVG logo first and convert it to PNG
-        let logoBuffer;
-        try {
-            // Get the default logo path (new gradient logo has priority)
-            const defaultLogoPath = path.join(__dirname, '..', getDefaultLogoPath());
-            console.log(`[MENU] Using logo: ${defaultLogoPath}`);
-            
-            // Convert SVG to PNG for better compatibility with WhatsApp
-            // Using smaller dimensions to ensure logo is properly visible and perform better
-            logoBuffer = await svgToPng(defaultLogoPath, {
-                width: 350,
-                height: 350,
-                background: { r: 0, g: 0, b: 0, alpha: 1 } // Solid black background
-            });
-            console.log('[MENU] Successfully converted logo SVG to PNG for menu');
-        } catch (e) {
-            console.error('[MENU] Error converting primary logo:', e);
-            try {
-                // Fallback to other logo options in order of preference
-                const alternateLogos = [
-                    '../blacksky-premium-gradient.svg', // New gradient logo
-                    '../blacksky-premium-logo.svg',
-                    '../blacksky-logo-premium.svg',
-                    './Bot2.jpg',
-                    '../blacksky-bot-image.jpg'
-                ];
-
-                for (const logo of alternateLogos) {
-                    try {
-                        const logoPath = path.join(__dirname, logo);
-                        // Check if it's an SVG and convert it
-                        if (logo.endsWith('.svg')) {
-                            logoBuffer = await svgToPng(logoPath, {
-                                width: 350,
-                                height: 350,
-                                background: { r: 0, g: 0, b: 0, alpha: 1 } // Solid black background
-                            });
-                        } else {
-                            logoBuffer = fs.readFileSync(logoPath);
-                        }
-                        console.log(`[MENU] Using alternate logo: ${logo}`);
-                        break;
-                    } catch (err) {
-                        continue;
-                    }
-                }
-
-                if (!logoBuffer) {
-                    throw new Error('No logo files found');
-                }
-            } catch (e2) {
-                console.error('[MENU] Error loading any logo:', e2);
-                throw e2;
-            }
-        }
+        // No logo buffer - removed image requirements
 
         // Get user's language preference
         const user = global.db.data.users[m.sender];
@@ -145,10 +91,9 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
         menuText += `🌐 *Join Our Group:* ${groupLink}\n`;
 
 
-        // Send menu with premium logo - adjusted for better visibility
+        // Send text-only menu
         await conn.sendMessage(m.chat, {
-            image: logoBuffer,
-            caption: menuText,
+            text: menuText,
             contextInfo: {
                 mentionedJid: [m.sender],
                 externalAdReply: {
@@ -156,9 +101,8 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
                     body: 'Advanced Cyberpunk WhatsApp Assistant',
                     mediaType: 1,
                     previewType: 0,
-                    renderLargerThumbnail: false, // Changed to false for better logo visibility
+                    renderLargerThumbnail: false,
                     showAdAttribution: true,
-                    thumbnail: logoBuffer,
                     sourceUrl: 'https://whatsapp.com/channel/0029Va8ZH8fFXUuc69TGVw1q'
                 }
             }

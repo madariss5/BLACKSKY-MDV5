@@ -2,6 +2,22 @@
 
 The Sharp module is often problematic in Termux environments due to its native dependencies. This document explains the specific fixes included in this repository to address these issues.
 
+## Latest Update: PM2 Integration
+
+We've added PM2 integration for better background running:
+
+1. **Automatic Fix Script**: `node fix-pm2-sharp.js`
+   - Fixes Sharp compatibility
+   - Patches index.js automatically
+   - Configures PM2 properly
+
+2. **Easy Start Command**: `node start-bot-pm2.js start`
+   - Starts bot with optimal settings
+   - Ensures background operation
+   - Automatically saves PM2 process list
+
+3. **Complete Documentation**: See `TERMUX-PM2-GUIDE.txt`
+
 ## The Problem
 
 Sharp is a high-performance image processing library that requires native C++ bindings, which can be difficult to compile in Termux. Common errors include:

@@ -64,7 +64,7 @@
         "google-it": "^1.6.3",
         "human-readable": "^0.2.1",
         "javascript-obfuscator": "^4.0.2",
-        "jimp": "^0.16.1",
+        "jimp": "^0.16.13",
         "jsdom": "^20.0.0",
         "link-preview-js": "^3.0.4",
         "lodash": "^4.17.21",
