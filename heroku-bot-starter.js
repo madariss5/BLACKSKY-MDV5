@@ -51,7 +51,17 @@ try {
 } catch (err) {
   console.warn('⚠️ PM2 integration module not found or failed to load:', err.message);
 }
+// Load connection keepers
+// Standard Heroku connection keeper
 const { initialize: initKeeper } = require('./heroku-connection-keeper.js');
+// Advanced connection keeper for better "connection appears to be closed" handling
+try {
+  global.enhancedConnectionKeeper = require('./enhanced-connection-keeper');
+  console.log('✅ Enhanced connection keeper loaded successfully');
+} catch (err) {
+  console.error('❌ Failed to load enhanced connection keeper:', err.message);
+  global.enhancedConnectionKeeper = null;
+}
 
 // Performance optimization support - initialize earlier for faster startup
 let optimizerInitialized = false;
@@ -274,8 +284,26 @@ function startServerWithAvailablePort(initialPort, maxRetries = 10) {
       // Start bot after server is confirmed running
       setTimeout(() => {
         try {
+          // Start the bot
           require('./index.js');
           console.log('✅ Bot started successfully');
+          
+          // Apply enhanced connection keeper once the bot has started and connection is established
+          setTimeout(() => {
+            if (global.enhancedConnectionKeeper && global.conn) {
+              console.log('🛡️ Applying enhanced connection keeper to fix "connection appears to be closed" errors...');
+              
+              // Initialize the enhanced connection keeper
+              global.enhancedConnectionKeeper.initializeConnectionKeeper(global.conn);
+              
+              // Apply the connection patch for improved error handling
+              global.enhancedConnectionKeeper.applyConnectionPatch(global.conn);
+              
+              console.log('✅ Enhanced connection keeper applied successfully');
+            } else {
+              console.log('⚠️ Enhanced connection keeper not available or bot connection not established');
+            }
+          }, 5000); // Wait 5 seconds to ensure the connection is established
         } catch (err) {
           console.error('❌ Error starting bot:', err);
           // Attempt to restart after delay
@@ -284,6 +312,13 @@ function startServerWithAvailablePort(initialPort, maxRetries = 10) {
             try {
               require('./index.js');
               console.log('✅ Bot restarted successfully');
+              
+              // Also apply enhanced connection keeper after restart
+              if (global.enhancedConnectionKeeper && global.conn) {
+                console.log('🛡️ Applying enhanced connection keeper after restart...');
+                global.enhancedConnectionKeeper.initializeConnectionKeeper(global.conn);
+                global.enhancedConnectionKeeper.applyConnectionPatch(global.conn);
+              }
             } catch (restartErr) {
               console.error('❌ Error restarting bot:', restartErr);
               process.exit(1); // Exit with error code

@@ -18,6 +18,14 @@ const path = require('path');
 // Initialize auto recovery flag
 global.autoRecovery = true;
 
+// Initialize connection fixer - for reliable connections in Termux
+try {
+  global.connectionFixer = require('./connection-fix.js');
+  console.log('🔌 Enhanced connection fixer loaded');
+} catch (err) {
+  console.error('⚠️ Connection fixer initialization failed:', err);
+}
+
 // Initialize memory management - added for optimized performance
 try {
   const { initializeMemoryManagement } = require('./memory-management');
@@ -95,7 +103,15 @@ if (isTermux) {
   }
 }
 
-// Add failure recovery for connection issues
+// Load enhanced connection keeper
+try {
+  global.connectionKeeper = require('./enhanced-connection-keeper');
+  console.log('✅ Enhanced connection keeper loaded successfully');
+} catch (err) {
+  console.error('❌ Failed to load enhanced connection keeper:', err.message);
+}
+
+// Add enhanced failure recovery for connection issues
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
   
@@ -103,10 +119,19 @@ process.on('unhandledRejection', (reason, promise) => {
   if (reason && reason.message && (
     reason.message.includes('Connection Closed') ||
     reason.message.includes('connection closed') ||
-    reason.message.includes('timed out')
+    reason.message.includes('timed out') ||
+    reason.message.includes('socket') ||
+    reason.message.includes('WebSocket')
   )) {
     console.log('🔄 Connection closed, attempting auto-recovery...');
-    if (global.autoRecovery && global.reloadHandler) {
+    
+    // Use enhanced connection keeper if available
+    if (global.connectionKeeper && global.conn) {
+      console.log('🔄 Using enhanced connection keeper for recovery...');
+      global.connectionKeeper.forceReconnect(global.conn);
+    } 
+    // Fall back to basic recovery mechanism
+    else if (global.autoRecovery && global.reloadHandler) {
       setTimeout(() => {
         console.log('🔄 Forcing connection reload...');
         global.reloadHandler(true);
