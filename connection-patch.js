@@ -34,7 +34,7 @@ function setupHealthCheckServer() {
     }
 
     // Use a dedicated health check port that's different from the main server port
-    const PORT = process.env.HEALTH_CHECK_PORT || 28111;
+    const PORT = process.env.HEALTH_CHECK_PORT || process.env.PORT || 28111;
 
     // Basic info route
     app.get('/', (req, res) => {

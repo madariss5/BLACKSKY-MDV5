@@ -4,7 +4,7 @@ modules = ["nodejs-20"]
 channel = "stable-24_05"
 
 [workflows]
-runButton = "Heroku-Bot-Optimized"
+runButton = "Heroku-Bot-Production"
 
 [[workflows.workflow]]
 name = "Run With Pairing"
@@ -56,6 +56,15 @@ task = "packager.installForAll"
 task = "shell.exec"
 args = "node heroku-bot-starter.js"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Heroku-Bot-Production"
+author = 41149162
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "NODE_ENV=production NODE_OPTIONS=\"--expose-gc --max-old-space-size=512\" node heroku-combined-runner.js"
 
 [deployment]
 run = ["sh", "-c", "NODE_OPTIONS='--expose-gc --max-old-space-size=512' node heroku-bot-starter.js"]

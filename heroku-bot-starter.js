@@ -42,7 +42,8 @@ function initOptimizer() {
 const express = require('express');
 const app = express();
 // Use a specific port for the primary server to avoid conflicts with heroku-connection-keeper.js
-const port = process.env.MAIN_SERVER_PORT || process.env.PORT || 5000;
+const port = process.env.PORT || 5000;
+const healthCheckPort = process.env.HEALTH_CHECK_PORT || 28111;
 const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
