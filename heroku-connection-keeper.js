@@ -175,11 +175,13 @@ async function backupSessionToDatabase() {
     );
 
     // Start a transaction
-    const client = await STATE.postgresPool.connect();
+    let client;
     try {
+      client = await STATE.postgresPool.connect();
       await client.query('BEGIN');
 
       let count = 0;
+      let batchSize = 0;
       for (const file of files) {
         const filePath = path.join(sessionDir, file);
         if (fs.statSync(filePath).isDirectory()) continue;
@@ -187,6 +189,14 @@ async function backupSessionToDatabase() {
         try {
           const fileContent = fs.readFileSync(filePath, 'utf8');
           let sessionData;
+          
+          // Commit transaction every 50 files to prevent timeouts
+          batchSize++;
+          if (batchSize >= 50) {
+            await client.query('COMMIT');
+            await client.query('BEGIN');
+            batchSize = 0;
+          }
 
           // Try to parse as JSON
           try {
@@ -215,16 +225,30 @@ async function backupSessionToDatabase() {
         }
       }
 
-      await client.query('COMMIT');
+      if (batchSize > 0) {
+        await client.query('COMMIT');
+      }
       log(`Backed up ${count} session files to PostgreSQL database`, 'SUCCESS');
       STATE.lastBackupTime = Date.now();
       return true;
     } catch (err) {
-      await client.query('ROLLBACK');
+      if (client) {
+        try {
+          await client.query('ROLLBACK');
+        } catch (rollbackErr) {
+          log(`Error during rollback: ${rollbackErr.message}`, 'ERROR');
+        }
+      }
       log(`Error backing up sessions to database: ${err.message}`, 'ERROR');
       return false;
     } finally {
-      client.release();
+      if (client) {
+        try {
+          client.release();
+        } catch (releaseErr) {
+          log(`Error releasing client: ${releaseErr.message}`, 'ERROR');
+        }
+      }
     }
   } catch (err) {
     log(`Error in backupSessionToDatabase: ${err.message}`, 'ERROR');
