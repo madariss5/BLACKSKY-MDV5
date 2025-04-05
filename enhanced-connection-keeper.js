@@ -503,60 +503,239 @@ function getConnectionState() {
 /**
  * Apply connection patch to fix common issues
  * @param {Object} conn - Baileys connection object
+ * @returns {Boolean} - Whether patches were successfully applied
  */
 function applyConnectionPatch(conn) {
-  // Save the original query function
-  const originalQuery = conn.query.bind(conn);
-  
-  // Patch the query function with improved error handling
-  conn.query = async (node, timeout = 10000) => {
-    try {
-      return await originalQuery(node, timeout);
-    } catch (error) {
-      // If it's a connection closed error, try to reconnect
-      if (error.message && (
-        error.message.includes('Connection closed') ||
-        error.message.includes('connection closed') ||
-        error.message.includes('timed out') ||
-        error.message.includes('socket') ||
-        error.message.includes('WebSocket')
-      )) {
-        log(`Query error: ${error.message}, attempting recovery`, 'WARN');
+  if (!conn) {
+    log('No connection object provided', 'ERROR');
+    return false;
+  }
+
+  try {
+    // 1. Patch the query function with improved error handling
+    // Save the original query function
+    const originalQuery = conn.query.bind(conn);
+    
+    // Replace with our enhanced version
+    conn.query = async (node, timeout = 15000) => {
+      try {
+        // Add random jitter to timeout to avoid thundering herd problem
+        const jitteredTimeout = timeout + Math.floor(Math.random() * 2000);
+        return await originalQuery(node, jitteredTimeout);
+      } catch (error) {
+        // Handle connection closed errors with special care
+        if (error.message && (
+          error.message.includes('Connection closed') ||
+          error.message.includes('connection closed') ||
+          error.message.includes('appears to be closed') ||
+          error.message.includes('timed out') ||
+          error.message.includes('socket') ||
+          error.message.includes('WebSocket')
+        )) {
+          log(`Query error: ${error.message}, attempting recovery`, 'WARN');
+          console.log(`⚠️ Connection issue detected: ${error.message.substring(0, 100)}`);
+          
+          if (connectionState.isConnected) {
+            connectionState.isConnected = false;
+            setTimeout(() => handleReconnection(conn), 1000);
+          }
+        }
+        throw error;
+      }
+    };
+    
+    // 2. Patch the connection event handler
+    if (conn.ev) {
+      const originalConnectionUpdate = conn.ev.on.bind(conn.ev, 'connection.update');
+      
+      // Add our own handler that runs first
+      conn.ev.on('connection.update', (update) => {
+        const { connection, lastDisconnect } = update;
+        
+        if (connection === 'close') {
+          const statusCode = lastDisconnect?.error?.output?.statusCode;
+          const errMsg = lastDisconnect?.error?.message || '';
+          
+          // Log detailed information for debugging
+          console.log(`⚠️ Connection close detected with status: ${statusCode}, message: ${errMsg}`);
+          
+          // Mark as disconnected immediately
+          connectionState.isConnected = false;
+          
+          // Handle Baileys specific codes
+          if (statusCode === DisconnectReason.loggedOut) {
+            console.log('⛔ Account logged out, reconnection canceled');
+            // Don't attempt to reconnect if logged out
+            return;
+          }
+          
+          // If connection closed because of connection appears closed error
+          if (errMsg.includes('closed') || errMsg.includes('timed out')) {
+            console.log('⚠️ Connection appears to be closed error detected');
+            // Use our own reconnection logic
+            setTimeout(() => handleReconnection(conn), 1000);
+            // Try to prevent default Baileys handlers from running multiple reconnects
+            return;
+          }
+        }
+      });
+    }
+    
+    // 3. Add socket error handlers if not already added
+    if (conn.ws && !conn.ws._patchedErrorHandlers) {
+      // Add a special handler for WS errors
+      const socketErrorHandler = (err) => {
+        console.log(`⚠️ WebSocket error: ${err.message}`);
+        
+        // If connection is still marked as connected, mark it disconnected
         if (connectionState.isConnected) {
           connectionState.isConnected = false;
-          handleReconnection(conn);
+          setTimeout(() => handleReconnection(conn), 2000);
         }
-      }
-      throw error;
+      };
+      
+      // Add the handler
+      conn.ws.on('error', socketErrorHandler);
+      
+      // Mark as patched to avoid duplicate handlers
+      conn.ws._patchedErrorHandlers = true;
     }
-  };
-  
-  log('Applied connection patch for improved error handling', 'SUCCESS');
+    
+    // 4. Patch the send function to detect early "connection appears to be closed" errors
+    if (conn.sendNode) {
+      const originalSendNode = conn.sendNode.bind(conn);
+      
+      conn.sendNode = async (...args) => {
+        try {
+          return await originalSendNode(...args);
+        } catch (error) {
+          if (error.message && error.message.includes('closed')) {
+            console.log(`⚠️ sendNode detected closed connection: ${error.message}`);
+            
+            if (connectionState.isConnected) {
+              connectionState.isConnected = false;
+              setTimeout(() => handleReconnection(conn), 1000);
+            }
+          }
+          throw error;
+        }
+      };
+    }
+    
+    log('Applied comprehensive connection patches for improved stability', 'SUCCESS');
+    return true;
+  } catch (err) {
+    log(`Error applying connection patches: ${err.message}`, 'ERROR');
+    console.error('Connection patch error details:', err);
+    return false;
+  }
 }
 
 /**
  * Initialize with a delayed connection check if conn isn't ready yet
  * @param {Object} conn - Baileys connection object (can be null for delayed initialization)
+ * @param {Object} options - Optional configuration for initialization
+ * @returns {Boolean} - Whether initialization was successful
  */
-function safeInitialize(conn = null) {
+function safeInitialize(conn = null, options = {}) {
+  // Default options
+  const defaultOptions = {
+    pollInterval: 5000,        // 5 seconds between checks
+    maxAttempts: 60,           // 5 minutes maximum waiting time
+    applyPatches: true,        // Apply connection patches immediately
+    forceReconnect: false,     // Force reconnection on first available connection
+    verbose: true              // Show detailed logs
+  };
+  
+  // Merge options with defaults
+  const config = { ...defaultOptions, ...options };
+  
+  // If we have a connection, initialize directly
   if (conn) {
-    // If we have a connection, initialize directly
+    // Apply patches if requested
+    if (config.applyPatches) {
+      applyConnectionPatch(conn);
+    }
+    
+    // Force reconnect if requested
+    if (config.forceReconnect && conn.ws) {
+      try {
+        // Only force reconnect if we appear to have an established connection
+        if (conn.user || conn.ws.readyState === 1) {
+          log('Forcing initial reconnection as requested', 'INFO');
+          forceReconnect(conn);
+        }
+      } catch (err) {
+        log(`Error during forced reconnect: ${err.message}`, 'ERROR');
+      }
+    }
+    
+    // Initialize the connection keeper
     return initializeConnectionKeeper(conn);
   } else {
     // Otherwise set up a polling system to wait for global.conn
-    console.log('🕒 Connection not ready, setting up delayed initialization...');
+    if (config.verbose) {
+      console.log('🕒 Connection not ready, setting up delayed initialization...');
+    }
+    
+    let attempts = 0;
     
     const checkAndInit = () => {
+      // Track attempts
+      attempts++;
+      
+      // Check for connection in global.conn
       if (global.conn) {
-        console.log('🔄 Connection now available, initializing connection keeper...');
+        if (config.verbose) {
+          console.log(`🔄 Connection now available after ${attempts} attempts, initializing connection keeper...`);
+        }
+        
         clearInterval(checkInterval);
-        return initializeConnectionKeeper(global.conn);
+        
+        try {
+          // Apply patches if requested
+          if (config.applyPatches) {
+            applyConnectionPatch(global.conn);
+          }
+          
+          // Force reconnect if requested and it seems we have an established connection
+          if (config.forceReconnect && global.conn.ws && 
+            (global.conn.user || global.conn.ws.readyState === 1)) {
+            log('Forcing initial reconnection as requested', 'INFO');
+            // Use a slight delay to allow initialization to complete
+            setTimeout(() => forceReconnect(global.conn), 3000);
+          }
+          
+          // Initialize the connection keeper
+          return initializeConnectionKeeper(global.conn);
+        } catch (err) {
+          log(`Error during delayed initialization: ${err.message}`, 'ERROR');
+          return false;
+        }
       }
+      
+      // Check if we've reached maximum attempts
+      if (config.maxAttempts > 0 && attempts >= config.maxAttempts) {
+        if (config.verbose) {
+          console.log(`⚠️ Maximum attempts (${config.maxAttempts}) reached waiting for connection`);
+        }
+        clearInterval(checkInterval);
+        return false;
+      }
+      
+      // Log every 12 attempts (about 1 minute with default settings)
+      if (config.verbose && attempts % 12 === 0) {
+        console.log(`⏳ Still waiting for WhatsApp connection (attempt ${attempts})...`);
+      }
+      
       return false;
     };
     
-    // Check every 5 seconds
-    const checkInterval = setInterval(checkAndInit, 5000);
+    // Check at specified interval
+    const checkInterval = setInterval(checkAndInit, config.pollInterval);
+    
+    // Store the interval in global space so it can be cancelled if needed
+    global.connectionKeeperInterval = checkInterval;
     
     // Also try immediately in case conn is available
     return checkAndInit();

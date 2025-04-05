@@ -1,148 +1,117 @@
-# BLACKSKY-MD Premium - Heroku Memory Optimization Guide
+# Heroku Memory Optimization Guide for BLACKSKY-MD Premium
 
-This document provides a comprehensive overview of the memory optimization enhancements made to BLACKSKY-MD Premium for Heroku deployment.
+This guide outlines best practices for maintaining optimal memory usage on Heroku to prevent R15 memory errors and ensure 24/7 bot operation.
 
-## Memory Issues Fixed
+## Understanding Heroku Memory Limits
 
-1. **Prevented R15 Memory Quota Exceeded Errors**
-   - Fixed excessive memory growth that caused Heroku to terminate the process
-   - Addressed memory leaks in WhatsApp session management
-   - Added monitoring to detect and prevent memory spikes
+Heroku's free and hobby dynos have the following memory restrictions:
 
-2. **Fixed Runtime Memory Management**
-   - Implemented proper memory usage statistics reporting
-   - Added cascading fallback system for robust operation
-   - Fixed memory function integration issues
+- **Free Tier**: 512MB memory limit
+- **Hobby Tier**: 512MB memory limit
+- **Standard-1X**: 1GB memory limit
+- **Standard-2X**: 2GB memory limit
 
-## Memory Management Architecture
+When a dyno exceeds its memory allocation, Heroku issues an R15 error and terminates the process with SIGKILL, which can cause data loss and connection instability.
 
-### Multiple Fallback Layers
+## Key Memory Optimization Features
 
-The system now implements a multi-layered memory management approach:
+BLACKSKY-MD Premium includes a robust memory management system that helps prevent R15 errors:
 
-1. **Advanced Memory Manager** - Primary system that provides comprehensive monitoring
-2. **Basic Memory Manager** - Fallback system when the advanced system encounters issues
-3. **Direct Function Access** - Third level of fallback using direct module imports
-4. **Health Endpoint Fallback** - Final safety mechanism for server stability
+### 1. Automatic Memory Cleanup
 
-### Memory Monitoring Process
+The bot automatically monitors memory usage and performs cleanup at two thresholds:
 
-1. **Memory Usage Detection**
-   - Uses Node.js `process.memoryUsage()` to track heap usage
-   - Monitors system memory via the OS module
-   - Reports memory metrics via health endpoint (/health)
+- **Regular Cleanup (70%)**: Clears non-essential caches and optimizes memory usage
+- **Emergency Cleanup (85%)**: More aggressive cleanup to prevent imminent crashes
 
-2. **Progressive Cleanup Strategy**
-   - Standard cleanup at 70% memory usage threshold
-     - Clears module caches for non-essential modules
-     - Performs limited garbage collection
-   
-   - Emergency cleanup at 85% memory usage threshold
-     - Aggressively clears module caches
-     - Reduces chat history memory usage
-     - Attempts multiple garbage collection cycles
-     - Cleans up event listeners that might be leaking
+### 2. Memory Usage Monitoring via Health Endpoint
 
-### Fault Tolerance Improvements
+You can monitor your bot's memory usage in real-time via the health endpoint:
 
-1. **Function Availability Verification**
-   - Checks if required functions exist before calling them
-   - Dynamically adds missing functions when needed
-   - Safely handles missing or erroring functions
+```
+https://your-app-name.herokuapp.com/health
+```
 
-2. **Proper Error Handling**
-   - Comprehensive try/catch blocks around all memory operations
-   - Detailed error logging for troubleshooting
-   - Graceful degradation to simpler memory handling
+This endpoint provides detailed memory metrics including:
+- Current heap usage percentage
+- Current system memory usage percentage
+- Raw memory values in MB
 
-## Setup and Configuration
+### 3. Environment Variables
 
-To enable memory optimization for Heroku deployment:
+Control memory optimization behavior with these environment variables:
 
-1. Set the following environment variables:
-   ```
-   ENABLE_MEMORY_OPTIMIZATION=true
-   ```
+- `ENABLE_MEMORY_OPTIMIZATION=true` - Enables or disables memory optimization (default: true)
+- `MEMORY_CLEANUP_THRESHOLD=70` - Sets the percentage threshold for regular cleanup (default: 70)
+- `MEMORY_EMERGENCY_THRESHOLD=85` - Sets the percentage threshold for emergency cleanup (default: 85)
+- `MEMORY_CHECK_INTERVAL=60000` - Sets the interval in milliseconds for memory checks (default: 60000 - 1 minute)
 
-2. Monitor memory usage with the health endpoint:
-   ```
-   curl https://your-app-name.herokuapp.com/health | jq
-   ```
+## Best Practices for Managing Memory Usage
 
-3. The health endpoint returns detailed memory statistics:
-   ```json
-   {
-     "status": "ok",
-     "timestamp": "2025-04-05T17:13:32.189Z",
-     "uptime": 4.172818665,
-     "memory": {
-       "raw": {
-         "rss": 112119808,
-         "heapTotal": 44113920,
-         "heapUsed": 27160048,
-         "external": 3504748,
-         "arrayBuffers": 77927
-       },
-       "formatted": {
-         "heapUsed": 26,
-         "heapTotal": 42,
-         "rss": 107,
-         "external": 3,
-         "arrayBuffers": 0,
-         "systemTotal": 64313,
-         "systemFree": 14752,
-         "systemUsed": 49561
-       },
-       "percentages": {
-         "heapUsage": 62,
-         "systemUsage": 77
-       }
-     },
-     "memoryOptimizationEnabled": true,
-     "databaseConnected": true
-   }
-   ```
+### 1. Limit Group Participation
 
-## Recommendations for Optimal Performance
+Each WhatsApp group the bot participates in increases memory usage. For optimal performance:
 
-1. **Use a Proper Heroku Dyno Size**
-   - Standard-1X (512MB) is the minimum recommended
-   - Standard-2X (1024MB) provides better stability for larger groups
+- **Free/Hobby Dyno**: Limit to 50 active groups
+- **Standard-1X**: Limit to 150 active groups
+- **Standard-2X**: Limit to 300 active groups
 
-2. **Enable Database Session Backups**
-   - Set `ENABLE_SESSION_BACKUP=true` 
-   - This prevents memory issues during reconnection
+### 2. Optimize Plugin Usage
 
-3. **Enable Connection Health Monitoring**
-   - Set `ENABLE_HEALTH_CHECK=true`
-   - Keep your app awake with a service like UptimeRobot
+Disable unused plugins to reduce memory consumption:
 
-4. **Use Heroku Metrics Dashboard**
-   - Monitor your dyno's memory usage
-   - Set up alerts for consistent high memory usage
+```javascript
+// In your config.js file, disable unused plugins
+global.disabledPlugins = [
+  'plugin-heavy-1',
+  'plugin-heavy-2',
+  // Add more plugins to disable
+]
+```
 
-## Troubleshooting
+### 3. Optimize Media Processing
 
-If you encounter memory issues (R15 errors) even with optimization enabled:
+Media processing (images, videos, stickers) consumes significant memory:
 
-1. Check Heroku logs:
-   ```
-   heroku logs --tail
-   ```
+- Use the built-in media optimization setting to automatically resize images before processing
+- Consider disabling auto-sticker features in large groups
+- Limit video processing features if experiencing memory pressure
 
-2. Look for memory threshold warnings:
-   ```
-   ⚠️ Memory usage high: 90.0% (220 MB)
-   ```
+```javascript
+// In your config.js file
+global.autoOptimizeMedia = true     // Enable media optimization
+global.maxMediaSizeMB = 15          // Limit media size to process
+```
 
-3. Check if cleanup is working:
-   ```
-   🧹 Running standard memory cleanup...
-   ```
+### 4. Regular Maintenance
 
-4. Verify emergency cleanup trigger:
-   ```
-   🚨 Memory usage critical! Running emergency cleanup...
-   ```
+Perform these maintenance tasks regularly:
 
-With these optimizations, BLACKSKY-MD Premium should run stably on Heroku without encountering R15 memory quota exceeded errors.
+- Clear temporary files folder via command: `.cleartmp`
+- Restart bot weekly if possible to refresh memory: `.restart`
+- Monitor memory usage via health endpoint
+- Review logs for any memory-related warnings
+
+### 5. Use Database Caching Wisely
+
+The PostgreSQL database is used for session persistence. To optimize database usage:
+
+- Set appropriate backup intervals in config.js
+- Use indexed queries for database operations
+- Clear old database entries periodically
+
+## Troubleshooting Memory Issues
+
+If you continue to experience memory-related crashes:
+
+1. Check the health endpoint for memory usage patterns
+2. Look for specific plugins that might be causing memory spikes
+3. Reduce the number of active groups
+4. Consider upgrading to a higher dyno tier with more memory
+5. Adjust cleanup thresholds for more aggressive memory management
+
+## Conclusion
+
+By following these best practices and utilizing the built-in memory optimization features, your BLACKSKY-MD Premium bot should maintain stable operation on Heroku without encountering R15 memory errors.
+
+For more advanced memory optimization configurations, refer to the advanced memory manager documentation.

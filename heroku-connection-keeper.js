@@ -1239,6 +1239,70 @@ async function performGracefulShutdown() {
 }
 
 /**
+ * Set up enhanced connection keeper with safe initialization
+ */
+function setupEnhancedKeeper() {
+  try {
+    log('Attempting to initialize enhanced connection keeper...', 'INFO');
+    const enhancedKeeper = require('./enhanced-connection-keeper.js');
+    
+    if (typeof enhancedKeeper.safeInitialize === 'function') {
+      log('Enhanced connection keeper with safe initialization found', 'SUCCESS');
+      enhancedKeeper.safeInitialize();
+      log('Enhanced connection keeper polling initialized successfully', 'SUCCESS');
+    } else if (typeof enhancedKeeper.applyConnectionPatch === 'function') {
+      log('Enhanced connection keeper found but without safe initialization', 'WARN');
+      
+      // Set up our own polling for the connection
+      log('Setting up fallback connection polling system...', 'INFO');
+      const connectionCheckInterval = setInterval(() => {
+        if (global.conn) {
+          log('Connection object available, applying enhanced connection patch...', 'SUCCESS');
+          try {
+            // Apply enhanced connection patch when connection is available
+            enhancedKeeper.applyConnectionPatch(global.conn);
+            log('Enhanced connection patch applied successfully', 'SUCCESS');
+            
+            // Clear the interval since we've found the connection
+            clearInterval(connectionCheckInterval);
+          } catch (err) {
+            log(`Error applying enhanced connection patch: ${err.message}`, 'ERROR');
+          }
+        }
+      }, 5000);
+    } else {
+      log('Enhanced connection keeper available but missing required functions', 'WARN');
+      setupFallbackConnectionPolling();
+    }
+  } catch (err) {
+    log(`Enhanced connection keeper not available: ${err.message}`, 'WARN');
+    setupFallbackConnectionPolling();
+  }
+}
+
+/**
+ * Set up a fallback polling system to apply our own connection patch
+ */
+function setupFallbackConnectionPolling() {
+  log('Setting up basic connection polling system...', 'INFO');
+  const connectionCheckInterval = setInterval(() => {
+    if (global.conn) {
+      log('Connection object available, applying basic connection patch...', 'INFO');
+      try {
+        // Apply our own connection patch when connection is available
+        applyConnectionPatch(global.conn);
+        log('Basic connection patch applied successfully', 'SUCCESS');
+        
+        // Clear the interval since we've found the connection
+        clearInterval(connectionCheckInterval);
+      } catch (err) {
+        log(`Error applying basic connection patch: ${err.message}`, 'ERROR');
+      }
+    }
+  }, 5000);
+}
+
+/**
  * Initialize the Heroku connection keeper with improved error handling and retry logic.
  */
 function initialize() {
@@ -1262,6 +1326,9 @@ function initialize() {
     // Try file-based restore
     restoreSessionFiles().catch(console.error);
   });
+  
+  // Set up enhanced connection keeper with polling mechanism
+  setupEnhancedKeeper();
 
   // Set up intervals with error handling
   STATE.intervalIds.heartbeat = setInterval(() => {

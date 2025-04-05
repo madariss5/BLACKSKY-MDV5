@@ -65,10 +65,25 @@ try {
   global.enhancedConnectionKeeper = require('./enhanced-connection-keeper');
   console.log('✅ Enhanced connection keeper loaded successfully');
   
-  // Initialize with safe mode that waits for connection
+  // Configure enhanced connection keeper with optimal settings
+  global.enhancedKeeperConfig = {
+    pollInterval: 3000,        // Check every 3 seconds for faster response
+    maxAttempts: 120,          // 6 minutes timeout (120 * 3s)
+    applyPatches: true,        // Apply patches immediately
+    forceReconnect: false,     // Don't force reconnect initially
+    verbose: true              // Show detailed logs
+  };
+  
+  // Add configuration override from environment
+  if (process.env.CONNECTION_KEEPER_FORCE_RECONNECT === 'true') {
+    global.enhancedKeeperConfig.forceReconnect = true;
+    console.log('⚠️ Force reconnect enabled per environment configuration');
+  }
+  
+  // Initialize with safe mode that waits for connection, using our enhanced config
   if (global.enhancedConnectionKeeper && typeof global.enhancedConnectionKeeper.safeInitialize === 'function') {
-    console.log('🔄 Starting connection keeper in safe mode (will wait for WhatsApp connection)');
-    global.enhancedConnectionKeeper.safeInitialize();
+    console.log('🔄 Starting enhanced connection keeper in safe mode with optimal settings');
+    global.enhancedConnectionKeeper.safeInitialize(null, global.enhancedKeeperConfig);
   }
 } catch (err) {
   console.error('❌ Failed to load enhanced connection keeper:', err.message);
@@ -129,21 +144,69 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
       
       // Map all original methods to our wrapper
       runCleanup: function() {
-        if (typeof memoryManager.runCleanup === 'function') {
-          memoryManager.runCleanup();
-        } else if (typeof memoryManager.performMemoryCleanup === 'function') {
-          memoryManager.performMemoryCleanup();
+        try {
+          if (typeof memoryManager.runCleanup === 'function') {
+            memoryManager.runCleanup();
+          } else if (typeof memoryManager.performMemoryCleanup === 'function') {
+            memoryManager.performMemoryCleanup();
+          } else {
+            // Fallback cleanup implementation
+            this.performBasicCleanup();
+          }
+          console.log('[MEMORY-MANAGER] Performed memory cleanup');
+        } catch (err) {
+          console.error('[MEMORY-MANAGER] Error during cleanup:', err.message);
+          // Fallback to basic cleanup
+          this.performBasicCleanup();
         }
-        console.log('[MEMORY-MANAGER] Performed memory cleanup');
+      },
+      
+      // Basic cleanup implementation for fallback
+      performBasicCleanup: function() {
+        console.log('[MEMORY-MANAGER] Running basic cleanup...');
+        
+        // Clear module cache for non-essential modules
+        let clearedCount = 0;
+        for (const key in require.cache) {
+          if (key.includes('node_modules') && 
+              !key.includes('baileys') && 
+              !key.includes('whatsapp') &&
+              !key.includes('express')) {
+            delete require.cache[key];
+            clearedCount++;
+          }
+        }
+        console.log(`[MEMORY-MANAGER] Cleared ${clearedCount} modules from cache`);
+        
+        // Force garbage collection if available
+        if (global.gc) {
+          try {
+            global.gc();
+            console.log('[MEMORY-MANAGER] Garbage collection triggered');
+          } catch (err) {
+            console.error('[MEMORY-MANAGER] GC error:', err.message);
+          }
+        }
       },
       
       runEmergencyCleanup: function() {
-        if (typeof memoryManager.runEmergencyCleanup === 'function') {
-          memoryManager.runEmergencyCleanup();
-        } else if (typeof memoryManager.performMemoryCleanup === 'function') {
-          memoryManager.performMemoryCleanup(true); // true for emergency
+        try {
+          if (typeof memoryManager.runEmergencyCleanup === 'function') {
+            memoryManager.runEmergencyCleanup();
+          } else if (typeof memoryManager.performMemoryCleanup === 'function') {
+            memoryManager.performMemoryCleanup(true); // true for emergency
+          } else {
+            // Call our own emergency cleanup implementation if original methods aren't available
+            this.performEmergencyCleanup();
+            return; // Skip additional cleanup since our implementation is comprehensive
+          }
+          console.log('[MEMORY-MANAGER] Performed emergency memory cleanup');
+        } catch (err) {
+          console.error('[MEMORY-MANAGER] Error during emergency cleanup:', err.message);
+          // Fall back to our own implementation
+          this.performEmergencyCleanup();
+          return;
         }
-        console.log('[MEMORY-MANAGER] Performed emergency memory cleanup');
         
         // Also clear Node.js module cache to free up memory
         for (const key in require.cache) {
@@ -163,6 +226,62 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
             console.error('[MEMORY-MANAGER] Error during forced GC:', err.message);
           }
         }
+      },
+      
+      // Comprehensive emergency cleanup implementation
+      performEmergencyCleanup: function() {
+        console.log('🚨 Running emergency memory cleanup...');
+        
+        // Clear non-essential module cache
+        let clearedCount = 0;
+        for (const key in require.cache) {
+          if (!key.includes('baileys') && !key.includes('whatsapp') && !key.includes('express')) {
+            delete require.cache[key];
+            clearedCount++;
+          }
+        }
+        console.log(`🧹 Cleared ${clearedCount} non-essential modules from require cache`);
+        
+        // Force garbage collection
+        if (global.gc) {
+          try {
+            global.gc();
+            console.log('✅ Garbage collection triggered successfully');
+          } catch (err) {
+            console.error('⚠️ Garbage collection function not available (Node.js needs --expose-gc flag)');
+          }
+        } else {
+          console.error('⚠️ Garbage collection function not available (Node.js needs --expose-gc flag)');
+        }
+        
+        // Clean up WhatsApp-specific data if available
+        try {
+          if (global.conn && global.conn.chats) {
+            const chatCount = Object.keys(global.conn.chats).length;
+            let messageCount = 0;
+            
+            // Clear message history in chats to free memory
+            for (const chatId in global.conn.chats) {
+              const chat = global.conn.chats[chatId];
+              if (chat && chat.messages) {
+                // Keep only the latest 10 messages
+                const keys = [...chat.messages.keys()];
+                if (keys.length > 10) {
+                  const keysToRemove = keys.slice(0, keys.length - 10);
+                  for (const key of keysToRemove) {
+                    chat.messages.delete(key);
+                    messageCount++;
+                  }
+                }
+              }
+            }
+            console.log(`🧹 Cleared excess message history from ${chatCount} chats (${messageCount} messages removed)`);
+          }
+        } catch (err) {
+          console.error('⚠️ Error cleaning WhatsApp chat history:', err.message);
+        }
+        
+        console.log('✅ Emergency cleanup completed');
       }
     };
     
@@ -763,9 +882,15 @@ function startServerWithAvailablePort(initialPort, maxRetries = 10) {
                 console.log('🛡️ Applying enhanced connection keeper to fix "connection appears to be closed" errors...');
                 
                 if (typeof global.enhancedConnectionKeeper.safeInitialize === 'function') {
-                  // Use the safe initialize function that can handle delayed connection
-                  global.enhancedConnectionKeeper.safeInitialize(global.conn);
-                  console.log('✅ Enhanced connection keeper safely initialized');
+                  // Use the safe initialize function with our enhanced config
+                  global.enhancedConnectionKeeper.safeInitialize(
+                    global.conn, 
+                    global.enhancedKeeperConfig || {
+                      applyPatches: true,
+                      verbose: true
+                    }
+                  );
+                  console.log('✅ Enhanced connection keeper safely initialized with optimal config');
                 } else if (global.conn) {
                   // Fall back to direct initialization if safeInitialize isn't available
                   // Initialize the enhanced connection keeper
@@ -876,9 +1001,15 @@ function startServerWithAvailablePort(initialPort, maxRetries = 10) {
                     console.log('🛡️ Applying enhanced connection keeper to fix "connection appears to be closed" errors...');
                     
                     if (typeof global.enhancedConnectionKeeper.safeInitialize === 'function') {
-                      // Use the safe initialize function that can handle delayed connection
-                      global.enhancedConnectionKeeper.safeInitialize(global.conn);
-                      console.log('✅ Enhanced connection keeper safely initialized after restart');
+                      // Use the safe initialize function with our enhanced config
+                      global.enhancedConnectionKeeper.safeInitialize(
+                        global.conn, 
+                        global.enhancedKeeperConfig || {
+                          applyPatches: true,
+                          verbose: true
+                        }
+                      );
+                      console.log('✅ Enhanced connection keeper safely initialized after restart with optimal config');
                     } else if (global.conn) {
                       // Fall back to direct initialization if safeInitialize isn't available
                       // Initialize the enhanced connection keeper
