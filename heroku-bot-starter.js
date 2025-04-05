@@ -11,6 +11,9 @@ const os = require('os');
 const isTermux = os.platform() === 'android' || process.env.TERMUX === 'true';
 const isHeroku = process.env.HEROKU === 'true' || !!process.env.DYNO;
 
+// Enable memory optimization by default on Heroku
+process.env.ENABLE_MEMORY_OPTIMIZATION = process.env.ENABLE_MEMORY_OPTIMIZATION || 'true';
+
 // Set environment variables based on detected environment
 if (isTermux) {
   console.log('📱 Running in Termux environment');
@@ -61,6 +64,25 @@ try {
 } catch (err) {
   console.error('❌ Failed to load enhanced connection keeper:', err.message);
   global.enhancedConnectionKeeper = null;
+}
+
+// Initialize advanced memory manager if enabled (default on Heroku)
+let memoryManager;
+if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
+  try {
+    const AdvancedMemoryManager = require('./lib/advanced-memory-manager.js');
+    memoryManager = AdvancedMemoryManager.initMemoryManager({
+      memoryThresholdWarning: 70, // Lower the threshold for earlier intervention
+      memoryThresholdCritical: 85, // Lower the critical threshold
+      cleanupInterval: 2 * 60 * 1000, // More frequent cleanup (2 minutes)
+      logMemoryUsage: true // Enable memory usage logging
+    });
+    global.memoryManager = memoryManager;
+    console.log('✅ Advanced memory manager initialized for Heroku optimization');
+  } catch (err) {
+    console.error('❌ Failed to load advanced memory manager:', err.message);
+    global.memoryManager = null;
+  }
 }
 
 // Performance optimization support - initialize earlier for faster startup
@@ -185,14 +207,61 @@ const keeper = initKeeper();
 
 // Health check endpoint
 app.get('/health', (req, res) => {
+  // Get detailed memory info if memory manager is available
+  const memoryInfo = global.memoryManager ? global.memoryManager.getMemoryUsage() : process.memoryUsage();
+  
   res.json({ 
     status: 'ok', 
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    memory: process.memoryUsage(),
+    memory: memoryInfo,
+    memoryOptimizationEnabled: !!global.memoryManager,
     databaseConnected: !!global.dbPool
   });
 });
+
+// Set up periodic memory monitoring for Heroku
+if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
+  const MEMORY_CHECK_INTERVAL = 60 * 1000; // Check every minute
+  console.log('🧠 Setting up periodic memory monitoring...');
+  
+  const memoryMonitorInterval = setInterval(() => {
+    try {
+      if (global.memoryManager) {
+        const memoryInfo = global.memoryManager.getMemoryUsage();
+        
+        // Log memory status periodically
+        if (memoryInfo.usedPercentage > 70) {
+          console.log(`⚠️ Memory usage high: ${memoryInfo.usedPercentage.toFixed(1)}% (${(memoryInfo.used / 1024 / 1024).toFixed(1)} MB)`);
+        }
+        
+        // Run cleanup at warning threshold (default 70%)
+        if (memoryInfo.usedPercentage > 70) {
+          console.log('🧹 Running standard memory cleanup...');
+          global.memoryManager.runCleanup();
+        }
+        
+        // Run emergency cleanup at critical threshold (default 85%)
+        if (memoryInfo.usedPercentage > 85) {
+          console.log('🚨 Memory usage critical! Running emergency cleanup...');
+          global.memoryManager.runEmergencyCleanup();
+          
+          // Force garbage collection if available
+          if (global.gc) {
+            try {
+              global.gc();
+              console.log('🧹 Force garbage collection completed');
+            } catch (gcErr) {
+              console.error('❌ Error during forced garbage collection:', gcErr.message);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('❌ Error in memory monitoring:', err.message);
+    }
+  }, MEMORY_CHECK_INTERVAL);
+}
 
 // Status page
 app.get('/', (req, res) => {
@@ -310,6 +379,45 @@ function startServerWithAvailablePort(initialPort, maxRetries = 10) {
                       console.log('📡 Connection watcher detected offline state, triggering reconnection...');
                       global.enhancedConnectionKeeper.forceReconnect(global.conn);
                     }
+                    
+                    // Monitor connection memory usage
+                    if (global.conn && global.memoryManager) {
+                      const memoryInfo = global.memoryManager.getMemoryUsage();
+                      
+                      // If memory is critical, clean up WhatsApp-specific memory hogs
+                      if (memoryInfo.usedPercentage > 85) {
+                        console.log('🚨 Critical memory usage detected in connection watcher!');
+                        
+                        try {
+                          // Clear message history in chats
+                          if (global.conn.chats) {
+                            const chatCount = Object.keys(global.conn.chats).length;
+                            console.log(`🧹 Clearing excessive message history from ${chatCount} chats...`);
+                            
+                            for (const chatId in global.conn.chats) {
+                              const chat = global.conn.chats[chatId];
+                              if (chat && chat.messages) {
+                                // Keep only the latest 20 messages per chat
+                                const keys = [...chat.messages.keys()];
+                                if (keys.length > 20) {
+                                  const keysToRemove = keys.slice(0, keys.length - 20);
+                                  for (const key of keysToRemove) {
+                                    chat.messages.delete(key);
+                                  }
+                                }
+                              }
+                            }
+                          }
+                          
+                          // Force garbage collection
+                          if (global.gc) {
+                            global.gc();
+                          }
+                        } catch (cleanupErr) {
+                          console.error('⚠️ Error during WhatsApp memory cleanup:', cleanupErr.message);
+                        }
+                      }
+                    }
                   } catch (watcherErr) {
                     console.error('⚠️ Error in connection watcher:', watcherErr.message);
                   }
@@ -373,6 +481,45 @@ function startServerWithAvailablePort(initialPort, maxRetries = 10) {
                         if (global.conn && !global.conn.isOnline) {
                           console.log('📡 Connection watcher detected offline state, triggering reconnection...');
                           global.enhancedConnectionKeeper.forceReconnect(global.conn);
+                        }
+                        
+                        // Monitor connection memory usage
+                        if (global.conn && global.memoryManager) {
+                          const memoryInfo = global.memoryManager.getMemoryUsage();
+                          
+                          // If memory is critical, clean up WhatsApp-specific memory hogs
+                          if (memoryInfo.usedPercentage > 85) {
+                            console.log('🚨 Critical memory usage detected in connection watcher!');
+                            
+                            try {
+                              // Clear message history in chats
+                              if (global.conn.chats) {
+                                const chatCount = Object.keys(global.conn.chats).length;
+                                console.log(`🧹 Clearing excessive message history from ${chatCount} chats...`);
+                                
+                                for (const chatId in global.conn.chats) {
+                                  const chat = global.conn.chats[chatId];
+                                  if (chat && chat.messages) {
+                                    // Keep only the latest 20 messages per chat
+                                    const keys = [...chat.messages.keys()];
+                                    if (keys.length > 20) {
+                                      const keysToRemove = keys.slice(0, keys.length - 20);
+                                      for (const key of keysToRemove) {
+                                        chat.messages.delete(key);
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                              
+                              // Force garbage collection
+                              if (global.gc) {
+                                global.gc();
+                              }
+                            } catch (cleanupErr) {
+                              console.error('⚠️ Error during WhatsApp memory cleanup:', cleanupErr.message);
+                            }
+                          }
                         }
                       } catch (watcherErr) {
                         console.error('⚠️ Error in connection watcher:', watcherErr.message);
@@ -612,6 +759,17 @@ async function performGracefulShutdown() {
   console.log('🛑 Shutting down gracefully...');
 
   try {
+    // Run memory cleanup first to free resources
+    if (global.memoryManager) {
+      console.log('🧹 Running memory cleanup before shutdown...');
+      try {
+        global.memoryManager.runEmergencyCleanup();
+        console.log('✅ Memory cleanup completed');
+      } catch (memErr) {
+        console.error('❌ Error during memory cleanup:', memErr.message);
+      }
+    }
+    
     // Save sessions to database if database features are enabled
     if (global.DATABASE_ENABLED && pool) {
       console.log('💾 Backing up sessions to PostgreSQL...');
