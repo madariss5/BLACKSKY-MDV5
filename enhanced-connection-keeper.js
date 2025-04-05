@@ -696,39 +696,65 @@ function applyConnectionPatch(conn) {
     
     // 2. Patch the connection event handler
     if (conn.ev) {
-      const originalConnectionUpdate = conn.ev.on.bind(conn.ev, 'connection.update');
-      
-      // Add our own handler that runs first
-      conn.ev.on('connection.update', (update) => {
-        const { connection, lastDisconnect } = update;
-        
-        if (connection === 'close') {
-          const statusCode = lastDisconnect?.error?.output?.statusCode;
-          const errMsg = lastDisconnect?.error?.message || '';
+      // Create a new function to handle connection updates
+      function handleConnectionUpdate(update) {
+        try {
+          const { connection, lastDisconnect, qr } = update;
           
-          // Log detailed information for debugging
-          console.log(`⚠️ Connection close detected with status: ${statusCode}, message: ${errMsg}`);
-          
-          // Mark as disconnected immediately
-          connectionState.isConnected = false;
-          
-          // Handle Baileys specific codes - loggedOut is usually code 401
-          if (statusCode === 401 || (typeof DisconnectReason !== 'undefined' && statusCode === DisconnectReason.loggedOut)) {
-            console.log('⛔ Account logged out (status code 401), reconnection canceled');
-            // Don't attempt to reconnect if logged out
-            return;
+          // Update connection state based on update
+          if (connection === 'open') {
+            console.log('✅ Connection is now open!');
+            connectionState.isConnected = true;
+            connectionState.reconnectAttempts = 0;
+            connectionState.lastConnected = Date.now();
+            connectionEvents.emit('connect');
+            
+            // After successful connection, set up heartbeat
+            startHeartbeat(conn);
+          } 
+          else if (connection === 'close') {
+            const statusCode = lastDisconnect?.error?.output?.statusCode;
+            const errMsg = lastDisconnect?.error?.message || '';
+            
+            // Log detailed information for debugging
+            console.log(`⚠️ Connection close detected with status: ${statusCode}, message: ${errMsg}`);
+            
+            // Mark as disconnected immediately
+            connectionState.isConnected = false;
+            
+            // Handle Baileys specific codes - loggedOut is usually code 401
+            if (statusCode === 401 || (typeof DisconnectReason !== 'undefined' && statusCode === DisconnectReason.loggedOut)) {
+              console.log('⛔ Account logged out (status code 401), reconnection canceled');
+              // Don't attempt to reconnect if logged out
+              connectionEvents.emit('logout');
+              return;
+            }
+            
+            // If restartRequired, we'll let baileys handle it if possible
+            if (statusCode === 515 || (typeof DisconnectReason !== 'undefined' && statusCode === DisconnectReason.restartRequired)) {
+              console.log('🔄 Restart required, letting Baileys handle reconnection');
+              return;
+            }
+            
+            // If connection closed because of connection appears closed error
+            if (errMsg.includes('closed') || errMsg.includes('timed out')) {
+              console.log('⚠️ Connection appears to be closed error detected');
+              // Use our own reconnection logic with shorter delay
+              setTimeout(() => handleReconnection(conn), 500);
+              // Try to prevent default Baileys handlers from running multiple reconnects
+              return;
+            }
           }
-          
-          // If connection closed because of connection appears closed error
-          if (errMsg.includes('closed') || errMsg.includes('timed out')) {
-            console.log('⚠️ Connection appears to be closed error detected');
-            // Use our own reconnection logic
-            setTimeout(() => handleReconnection(conn), 1000);
-            // Try to prevent default Baileys handlers from running multiple reconnects
-            return;
+          else if (connection === 'connecting') {
+            console.log('🔄 Connection status: connecting...');
           }
+        } catch (err) {
+          console.error('❌ Error in connection update handler:', err.message);
         }
-      });
+      }
+      
+      // Register our handler
+      conn.ev.on('connection.update', handleConnectionUpdate);
     }
     
     // 3. Add socket error handlers if not already added

@@ -527,10 +527,10 @@ function createBasicMemoryManager() {
         systemUsed: Math.round(usedMemory / (1024 * 1024)),
       };
       
-      // Calculate percentages
+      // Calculate percentages (with a ceiling of 100% to prevent NaN)
       const percentages = {
-        heapUsage: Math.round((memoryUsage.heapUsed / memoryUsage.heapTotal) * 100),
-        systemUsage: Math.round((usedMemory / totalMemory) * 100),
+        heapUsage: Math.min(100, Math.round((memoryUsage.heapUsed / Math.max(1, memoryUsage.heapTotal)) * 100)),
+        systemUsage: Math.min(100, Math.round((usedMemory / Math.max(1, totalMemory)) * 100)),
       };
       
       return {
