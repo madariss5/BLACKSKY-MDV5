@@ -28,8 +28,8 @@ try {
 
 // Initialize memory management - added for optimized performance
 try {
-  const { initializeMemoryManagement } = require('./memory-management');
-  initializeMemoryManagement();
+  const { initializeMemoryManager } = require('./memory-management');
+  initializeMemoryManager();
   console.log('🧠 Memory management system activated');
 } catch (err) {
   console.error('⚠️ Memory management initialization failed:', err);
