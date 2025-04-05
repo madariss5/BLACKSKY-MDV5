@@ -1,1 +1,1 @@
-web: node heroku-combined-runner.js --autocleartmp --autoread --keepalive
+worker: node heroku-bot-starter.js

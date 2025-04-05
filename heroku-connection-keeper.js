@@ -660,8 +660,49 @@ async function sendHeartbeat(conn) {
  * Only used when HEROKU_APP_URL is set
  */
 function setupAntiIdle() {
+  // Even if HEROKU_APP_URL is not set, we'll use internal anti-idle measures
   if (!process.env.HEROKU_APP_URL) {
-    log('No HEROKU_APP_URL set, anti-idle disabled', 'INFO');
+    log('No HEROKU_APP_URL set, using internal anti-idle mechanisms', 'INFO');
+    
+    // Set up internal anti-idle mechanism (will keep the process active)
+    STATE.intervalIds.internalAntiIdle = setInterval(() => {
+      try {
+        // Force minor activity to prevent dyno from sleeping
+        if (global.conn && global.conn.user) {
+          // Log minimal activity to keep the process active
+          log(`Bot active with JID: ${global.conn.user?.id || 'Unknown'}`, 'DEBUG');
+          
+          // Perform minimal activity every few hours
+          const currentHour = new Date().getHours();
+          if (currentHour % 3 === 0) { // Every 3 hours
+            log('Running periodic bot activity to prevent idle', 'INFO');
+            
+            // Update presence status or perform another lightweight action
+            try {
+              if (typeof global.conn.updateProfileStatus === 'function') {
+                const timestamp = new Date().toISOString();
+                global.conn.updateProfileStatus(`Online [Last check: ${timestamp}]`)
+                  .catch(err => log(`Failed to update profile status: ${err.message}`, 'WARN'));
+              } else {
+                // If updateProfileStatus isn't available, try another lightweight action
+                if (typeof global.conn.sendPresenceUpdate === 'function') {
+                  global.conn.sendPresenceUpdate('available', global.conn.user.id)
+                    .catch(err => log(`Failed to update presence: ${err.message}`, 'WARN'));
+                }
+              }
+            } catch (err) {
+              log(`Error in lightweight anti-idle action: ${err.message}`, 'ERROR');
+            }
+          }
+        } else {
+          log('Bot not fully initialized yet, skipping internal anti-idle', 'DEBUG');
+        }
+      } catch (err) {
+        log(`Error in internal anti-idle: ${err.message}`, 'ERROR');
+      }
+    }, 30 * 60 * 1000); // Check every 30 minutes
+    
+    log('Internal anti-idle mechanism active, checking every 30 minutes', 'SUCCESS');
     return;
   }
 
@@ -681,13 +722,20 @@ function setupAntiIdle() {
         }
       }).on('error', (err) => {
         log(`Anti-idle ping error: ${err.message}`, 'ERROR');
+        
+        // If external ping fails, fall back to internal mechanism
+        log('External ping failed, falling back to internal anti-idle mechanism', 'INFO');
+        if (global.conn && global.conn.user && typeof global.conn.sendPresenceUpdate === 'function') {
+          global.conn.sendPresenceUpdate('available', global.conn.user.id)
+            .catch(err => log(`Failed to update presence: ${err.message}`, 'WARN'));
+        }
       });
     } catch (err) {
       log(`Error in anti-idle: ${err.message}`, 'ERROR');
     }
   }, CONFIG.antiIdleInterval);
 
-  log(`Anti-idle setup for ${appUrl} every ${CONFIG.antiIdleInterval / 60000} minutes`, 'INFO');
+  log(`Anti-idle setup for ${appUrl} every ${CONFIG.antiIdleInterval / 60000} minutes`, 'SUCCESS');
 }
 
 /**

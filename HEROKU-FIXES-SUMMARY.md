@@ -1,69 +1,61 @@
-# BLACKSKY-MD Premium - Heroku 24/7 Operation Fixes
+# BLACKSKY-MD Premium Heroku 24/7 Operation Fixes
 
-This document summarizes the key fixes and optimizations implemented to ensure 24/7 operation of BLACKSKY-MD on Heroku.
+This document summarizes the key enhancements made to ensure the BLACKSKY-MD Premium WhatsApp Bot runs 24/7 on Heroku without downtime.
 
-## 1. Connection Stability Improvements
+## Key Improvements
 
-- **Combined Runner Process**: Created `heroku-combined-runner.js` that runs both the main bot and connection keeper in a single Heroku dyno
-- **Connection Keeper**: Enhanced `heroku-connection-keeper.js` to maintain stable WhatsApp connections
-- **Automatic Reconnection**: Implemented exponential backoff reconnection strategy in case of disconnections
-- **Heartbeat System**: Added periodic heartbeat messages to prevent WhatsApp server timeouts
-- **Anti-Idle System**: Implemented a health check endpoint that prevents Heroku from putting the dyno to sleep
+### 1. Enhanced PostgreSQL Database Integration
 
-## 2. Session Persistence Across Dyno Cycles
+- **Fixed Database Connection Logic**: Modified `heroku-bot-starter.js` to properly detect and use PostgreSQL database
+- **Immediate Database Flag**: Set `DATABASE_ENABLED` flag at the start of initialization to avoid race conditions
+- **Session Table Creation**: Added proper error handling for session table creation
+- **Automatic Database Recovery**: Enhanced recovery mechanisms if database connections fail
 
-- **PostgreSQL Session Backups**: Configured automatic session backup to PostgreSQL database
-- **Backup Frequency**: Set up cron job to backup session every 30 minutes
-- **Auto-Restore System**: Enhanced startup process to automatically restore session from PostgreSQL
-- **Fallback Mechanism**: Added local file backups as secondary session persistence method
-- **Graceful Shutdown**: Implemented proper shutdown handling to save session state before dyno restarts
+### 2. Internal Anti-Idle Mechanism
 
-## 3. Heroku-Specific Optimizations
+- **HEROKU_APP_URL Independence**: Bot now stays active even without setting HEROKU_APP_URL
+- **Minimal Internal Activity**: Implements lightweight periodic activities to keep the process from sleeping
+- **Profile Status Update**: Uses `updateProfileStatus` or `sendPresenceUpdate` to maintain connection activity
+- **Intelligent Scheduling**: Performs larger activities at specific intervals to minimize resource usage
 
-- **Port Configuration**: Fixed port conflicts by using designated ports for different services
-- **Health Check System**: Added dedicated health check endpoint that reports bot status
-- **Procfile Configuration**: Updated to use the combined runner for optimal operation
-- **Build Process**: Added required buildpacks for media processing capabilities
-- **Environment Variables**: Documented all required environment variables in app.json
-- **Resource Allocation**: Recommended eco dyno for cost-effective 24/7 operation
-- **Memory Management**: Added automatic memory optimization for Heroku's limited resources
+### 3. Connection Stability Improvements
 
-## 4. Recommended Environment Variables
+- **Enhanced Connection Keeper**: Improved mechanisms to detect and fix "connection appears to be closed" errors
+- **Exponential Backoff**: Intelligent reconnection with increasing delays between attempts
+- **Fallback Mechanisms**: Implements multiple fallback strategies for keeping connections alive
+- **Redundant Session Storage**: Backs up sessions to both database and files for maximum reliability
 
-```
-SESSION_ID=BLACKSKY-MD
-BOT_NAME=BLACKSKY-MD
-OWNER_NUMBER=your-number-here
-NODE_ENV=production
-HEROKU=true
-HEROKU_APP_URL=https://your-app-name.herokuapp.com
-ENABLE_HEALTH_CHECK=true
-ENABLE_SESSION_BACKUP=true
-BACKUP_INTERVAL=30
-ENABLE_MEMORY_OPTIMIZATION=true
-```
+### 4. Graceful Shutdown Handling
 
-## 5. Database Configuration
+- **Pre-Shutdown Backup**: Ensures sessions are properly backed up before dyno cycling
+- **Database Cleanup**: Properly closes database connections during shutdown
+- **Signal Handling**: Catches SIGTERM and SIGINT signals for proper Heroku shutdown procedures
+- **State Preservation**: Preserves connection state across restarts
 
-- **PostgreSQL Integration**: Set up Heroku PostgreSQL for session persistence
-- **Auto-creation of Tables**: Added automatic table creation for storing session data
-- **Connection Error Handling**: Implemented robust error handling for database connection issues
-- **Database Pool Management**: Configured proper connection pooling for PostgreSQL operations
+### 5. Worker Process Configuration
 
-## 6. Deployment Improvements
+- **Updated Procfile**: Created Procfile with `worker: node heroku-bot-starter.js` for proper Heroku worker dyno
+- **App.json Worker Formation**: Changed app.json to use worker formation instead of web formation
+- **Documentation**: Updated deployment guides to explain worker dyno usage
 
-- **Direct Deployment Button**: Added one-click "Deploy to Heroku" button
-- **Dockerfile Configuration**: Updated Dockerfile for Heroku container support
-- **heroku.yml Support**: Added heroku.yml for container-based deployment
-- **Updated Documentation**: Created comprehensive deployment guides
+## Deployment Instructions
 
-## Next Steps & Recommendations
+To deploy the improved version:
 
-1. **Upgrade to Paid Plan**: For truly 24/7 operation, we recommend at least the "Eco" ($5/month) dyno type
-2. **Set Up Monitoring**: Consider integrating with a monitoring service for uptime alerts
-3. **Regular Updates**: Keep the bot up to date with the latest security patches
-4. **Rate Limiting**: Be mindful of WhatsApp's rate limits to avoid temporary blocks
+1. Make sure you have a PostgreSQL database addon on Heroku
+2. Deploy using the `worker` dyno, not the `web` dyno
+3. Scale with: `heroku ps:scale worker=1 web=0`
+4. No need to set HEROKU_APP_URL (though it can still be used if desired)
+
+## Troubleshooting
+
+If you encounter connection issues:
+
+1. Check logs with `heroku logs --tail`
+2. Make sure PostgreSQL is properly provisioned
+3. Restart the worker dyno with `heroku dyno:restart worker`
+4. Verify worker dyno is running with `heroku ps`
 
 ---
 
-*These fixes work together to provide a robust solution for running BLACKSKY-MD Premium on Heroku with minimal downtime, proper handling of Heroku's dyno cycling, and resilient session management.*
+These enhancements significantly improve the reliability of BLACKSKY-MD Premium on Heroku, allowing for true 24/7 operation without manual intervention.

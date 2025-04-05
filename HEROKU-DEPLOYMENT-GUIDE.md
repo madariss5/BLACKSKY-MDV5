@@ -19,9 +19,9 @@ This comprehensive guide walks you through deploying your BLACKSKY-MD Premium Wh
 4. Click "View" to open your app dashboard
 5. Follow the instructions to scan the QR code
 
-### Option 2: Docker-based Deployment
+### Option 2: Using Procfile (Worker Process)
 
-This method uses the Heroku Container Registry for greater reliability and environment control.
+This method uses our optimized Procfile configuration for greater reliability:
 
 1. Clone this repository:
    ```bash
@@ -32,7 +32,6 @@ This method uses the Heroku Container Registry for greater reliability and envir
 2. Log in to Heroku:
    ```bash
    heroku login
-   heroku container:login
    ```
 
 3. Create a new Heroku app:
@@ -52,31 +51,29 @@ This method uses the Heroku Container Registry for greater reliability and envir
    heroku config:set OWNER_NUMBER=your-whatsapp-number
    heroku config:set NODE_ENV=production
    heroku config:set HEROKU=true
-   heroku config:set HEROKU_APP_URL=https://your-app-name.herokuapp.com
    heroku config:set HEALTH_CHECK_PORT=28111
    ```
 
-6. Build and push the Docker container:
+6. Push to Heroku:
    ```bash
-   heroku container:push web
-   heroku container:release web
+   git push heroku main
    ```
 
-7. Scale dynos:
+7. Scale worker dyno:
    ```bash
-   heroku ps:scale web=1
+   heroku ps:scale worker=1 web=0
    ```
 
-8. Open the app:
+8. Check the logs:
    ```bash
-   heroku open
+   heroku logs --tail
    ```
 
-9. Follow the instructions to scan the QR code.
+9. Follow the instructions to scan the QR code shown in the logs.
 
-### Option 3: Using heroku.yml (Alternative Docker Deployment)
+### Option 3: Docker-based Deployment
 
-This method uses the heroku.yml file already included in the repository.
+This method uses the Heroku Container Registry for environment control.
 
 1. Clone this repository:
    ```bash
@@ -87,6 +84,7 @@ This method uses the heroku.yml file already included in the repository.
 2. Log in to Heroku:
    ```bash
    heroku login
+   heroku container:login
    ```
 
 3. Create a new Heroku app:
@@ -94,38 +92,36 @@ This method uses the heroku.yml file already included in the repository.
    heroku create your-app-name
    ```
 
-4. Set the stack to container:
-   ```bash
-   heroku stack:set container
-   ```
-
-5. Add the PostgreSQL addon:
+4. Add the PostgreSQL addon:
    ```bash
    heroku addons:create heroku-postgresql:mini -a your-app-name
    ```
 
-6. Set required environment variables:
+5. Set required environment variables:
    ```bash
    heroku config:set SESSION_ID=BLACKSKY-MD
    heroku config:set BOT_NAME=BLACKSKY-MD
    heroku config:set OWNER_NUMBER=your-whatsapp-number
    heroku config:set NODE_ENV=production
    heroku config:set HEROKU=true
-   heroku config:set HEROKU_APP_URL=https://your-app-name.herokuapp.com
    heroku config:set HEALTH_CHECK_PORT=28111
    ```
 
-7. Push to Heroku:
+6. Build and push the Docker container:
    ```bash
-   git push heroku main
+   heroku container:push worker
+   heroku container:release worker
    ```
 
-8. Open the app:
+7. Scale worker dyno:
    ```bash
-   heroku open
+   heroku ps:scale worker=1
    ```
 
-9. Follow the instructions to scan the QR code.
+8. Check the logs:
+   ```bash
+   heroku logs --tail
+   ```
 
 ### Option 4: Manual Deployment via Heroku Dashboard
 
@@ -133,10 +129,10 @@ This method uses the heroku.yml file already included in the repository.
 2. Create a new app in the [Heroku Dashboard](https://dashboard.heroku.com/)
 3. Go to the "Deploy" tab and connect your GitHub repository
 4. Add the PostgreSQL addon from the "Resources" tab
-5. In the Settings tab, set the stack to "container"
-6. Set the required environment variables in the "Settings" tab > "Config Vars"
-7. Deploy from the "Deploy" tab
-8. Open the app and follow the instructions to scan the QR code
+5. In the Settings tab, set the required environment variables
+6. Deploy from the "Deploy" tab
+7. Scale worker dyno to 1 and web dyno to 0 in the "Resources" tab
+8. View the logs and follow the instructions to scan the QR code
 
 ## Required Environment Variables
 
@@ -147,7 +143,6 @@ This method uses the heroku.yml file already included in the repository.
 | OWNER_NUMBER | Your WhatsApp number with country code | 491556315347 |
 | NODE_ENV | Environment setting | production |
 | HEROKU | Enable Heroku-specific optimizations | true |
-| HEROKU_APP_URL | Your app's URL | https://your-app-name.herokuapp.com |
 
 ## Optional Environment Variables
 
@@ -160,25 +155,28 @@ This method uses the heroku.yml file already included in the repository.
 | ENABLE_SESSION_BACKUP | Enable session backup to DB | true |
 | BACKUP_INTERVAL | Minutes between backups | 30 |
 | MAX_MEMORY_MB | Memory threshold for auto-restart | 1024 |
-| PM2_RESTART_CRON | Schedule for daily restart | 0 4 * * * |
+| HEROKU_APP_URL | Your app's URL (for anti-idle) | (not required) |
+| HEALTH_CHECK_PORT | Port for health monitoring | 28111 |
 
 ## Maintaining 24/7 Operation
 
-BLACKSKY-MD includes several features to ensure reliable 24/7 operation on Heroku:
+BLACKSKY-MD Premium includes enhanced features to ensure reliable 24/7 operation on Heroku:
 
-1. **PostgreSQL Session Persistence**: Automatically backs up and restores sessions
-2. **Connection Keepalive**: Prevents WhatsApp from disconnecting due to inactivity
-3. **Automatic Reconnection**: Handles WhatsApp disconnects with exponential backoff
-4. **Health Monitoring**: Detects and recovers from connection issues
-5. **Memory Management**: Prevents crashes due to memory leaks
-6. **Scheduled Restarts**: Maintains fresh connections and prevents errors
+1. **PostgreSQL Session Persistence**: Automatically backs up and restores sessions across dyno restarts
+2. **Internal Anti-Idle Mechanism**: Keeps the bot active even without HEROKU_APP_URL configuration
+3. **Enhanced Connection Keeper**: Advanced mechanisms to prevent "connection appears to be closed" errors
+4. **Automatic Reconnection**: Handles WhatsApp disconnects with intelligent exponential backoff
+5. **Health Monitoring**: Built-in health check server with detailed status information
+6. **Memory Management**: Prevents crashes due to memory leaks with periodic garbage collection
+7. **Graceful Shutdown**: Ensures proper session backup before dyno cycling
+8. **Scheduled Backups**: Automatic session backups to both PostgreSQL and local files
 
 ## Troubleshooting
 
 ### QR Code Not Showing
-- Make sure both web and worker dynos are running
 - Check the logs with `heroku logs --tail`
-- Restart the dynos with `heroku dyno:restart`
+- Restart the dynos with `heroku dyno:restart worker`
+- Make sure worker dyno is running with `heroku ps`
 
 ### Connection Issues
 - Verify your Heroku app is not sleeping (`heroku ps`)
@@ -196,8 +194,8 @@ For advanced users, you can modify:
 
 - `ecosystem.config.js`: PM2 process management settings
 - `Procfile`: Dyno process definitions
-- `heroku.yml`: Container configuration
-- `heroku-connection-patch.js`: Connection stability mechanisms
+- `heroku-bot-starter.js`: Main entry point for Heroku
+- `heroku-connection-keeper.js`: Connection stability mechanisms
 
 ## Support
 

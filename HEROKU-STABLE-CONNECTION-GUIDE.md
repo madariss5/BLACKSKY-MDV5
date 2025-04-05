@@ -1,130 +1,171 @@
-# BLACKSKY-MD Premium - Stable 24/7 Connection on Heroku
+# BLACKSKY-MD Premium - Heroku Stable Connection Guide
 
-This guide outlines how to maintain a stable, 24/7 connection for your WhatsApp bot on Heroku, addressing common disconnection issues and ensuring continuous operation through Heroku's daily dyno cycling.
+This guide provides detailed instructions for maintaining a stable, 24/7 connection for your BLACKSKY-MD Premium WhatsApp bot on Heroku using worker dynos and the enhanced connection keeper.
 
-## Understanding Heroku's Limitations
+## Overview of the Solution
 
-Heroku has several characteristics that can affect WhatsApp bot connections:
+The implementation uses several key mechanisms to ensure your bot stays online 24/7:
 
-1. **Dyno Cycling**: Heroku restarts all dynos every 24 hours, which can disconnect your WhatsApp session
-2. **Ephemeral Filesystem**: Any files (including WhatsApp session data) are lost when dynos restart
-3. **Idle Timeout**: Free dynos sleep after 30 minutes of inactivity
-4. **Resource Constraints**: Memory limitations can cause issues with long-running Node.js applications
+1. **Worker Dynos**: Using Heroku worker dynos instead of web dynos
+2. **PostgreSQL Session Storage**: Persisting sessions across dyno restarts
+3. **Enhanced Connection Keeper**: Preventing "connection appears to be closed" errors
+4. **Internal Anti-Idle**: Keeping the process active without external pinging
 
-## Implemented Solutions
+## Step-by-Step Deployment Instructions
 
-BLACKSKY-MD Premium includes several features specifically designed to address these Heroku limitations:
-
-### 1. Session Persistence with PostgreSQL
-
-```javascript
-// Session data is automatically backed up to PostgreSQL
-// This ensures your session survives dyno restarts
-ENABLE_SESSION_BACKUP=true
-BACKUP_INTERVAL=30  // Backup every 30 minutes
-```
-
-### 2. Combined Runner Process
-
-We've implemented a special combined runner (`heroku-combined-runner.js`) that:
-- Runs both the bot and connection keeper in a single process
-- Handles graceful shutdowns during dyno cycling
-- Manages reconnection with exponential backoff
-- Provides memory leak prevention
-
-### 3. Anti-Idle System
-
-```javascript
-// Prevents Heroku from putting your app to sleep on free dynos
-// Requires setting the HEROKU_APP_URL environment variable
-ENABLE_HEALTH_CHECK=true
-HEROKU_APP_URL=https://your-app-name.herokuapp.com
-```
-
-### 4. Memory Management
-
-Memory leaks can cause crashes on Heroku. We've implemented:
-- Periodic garbage collection
-- Event listener limiting and cleanup
-- Unhandled rejection handling
-- Optimized connection management
-
-## Configuration Guide
-
-### Required Environment Variables
-
-For optimal stability on Heroku, set these environment variables:
-
-```
-SESSION_ID=BLACKSKY-MD              # Your bot session name
-OWNER_NUMBER=491556123456           # Your WhatsApp number
-NODE_ENV=production                 # Set production mode
-HEROKU=true                         # Enable Heroku-specific optimizations
-HEROKU_APP_URL=https://your-app.herokuapp.com  # Your Heroku app URL
-ENABLE_HEALTH_CHECK=true            # Enable health check endpoint
-ENABLE_SESSION_BACKUP=true          # Enable PostgreSQL session backup
-BACKUP_INTERVAL=30                  # Backup interval in minutes
-ENABLE_MEMORY_OPTIMIZATION=true     # Enable memory optimization
-```
-
-### Setting Variables on Heroku
+### 1. Create a Heroku App
 
 ```bash
-# Use Heroku CLI to set these variables
-heroku config:set SESSION_ID=BLACKSKY-MD --app your-app-name
-heroku config:set OWNER_NUMBER=491556123456 --app your-app-name
-heroku config:set NODE_ENV=production --app your-app-name
-heroku config:set HEROKU=true --app your-app-name
-heroku config:set HEROKU_APP_URL=https://your-app-name.herokuapp.com --app your-app-name
-heroku config:set ENABLE_HEALTH_CHECK=true --app your-app-name
-heroku config:set ENABLE_SESSION_BACKUP=true --app your-app-name
-heroku config:set BACKUP_INTERVAL=30 --app your-app-name
-heroku config:set ENABLE_MEMORY_OPTIMIZATION=true --app your-app-name
+# Login to Heroku
+heroku login
+
+# Create a new app
+heroku create your-app-name
+
+# Add PostgreSQL addon
+heroku addons:create heroku-postgresql:mini
 ```
 
-## Connection Monitoring
+### 2. Configure Environment Variables
 
-To check if your bot is maintaining a stable connection:
+```bash
+# Required variables
+heroku config:set SESSION_ID=BLACKSKY-MD
+heroku config:set BOT_NAME=BLACKSKY-MD
+heroku config:set OWNER_NUMBER=your-whatsapp-number
+heroku config:set NODE_ENV=production
+heroku config:set HEROKU=true
 
-1. View logs with `heroku logs --tail`
-2. Monitor the health check endpoint: `https://your-app-name.herokuapp.com/status`
-3. Look for these indicators of healthy operation:
-   - "Connection keeper active" messages
-   - "Session backup completed" messages
-   - No repeated disconnection errors
+# Optional but recommended
+heroku config:set ENABLE_HEALTH_CHECK=true
+heroku config:set HEALTH_CHECK_PORT=28111
+heroku config:set ENABLE_SESSION_BACKUP=true
+heroku config:set BACKUP_INTERVAL=30
+```
 
-## Troubleshooting Common Issues
+### 3. Deploy Using the Procfile
 
-### Issue: Bot disconnects after 24 hours (Dyno Cycling)
+Our Procfile is configured to use a worker dyno instead of a web dyno. This is crucial for 24/7 operation.
 
-**Solution**: This should be automatically handled by the session backup and restore system. If problems persist, check:
-- PostgreSQL addon is properly configured
-- `ENABLE_SESSION_BACKUP` is set to true
-- Database connection is working (check logs)
+```bash
+# Clone the repository
+git clone https://github.com/blackskytech/BLACKSKY-MD.git
+cd BLACKSKY-MD
 
-### Issue: High memory usage and crashes
+# Push to Heroku
+git push heroku main
 
-**Solution**: 
-- Set `ENABLE_MEMORY_OPTIMIZATION=true`
-- Upgrade to a paid dyno with more memory (Eco or Basic)
-- Limit the number of complex plugins or features running simultaneously
+# Scale dynos properly - IMPORTANT!
+heroku ps:scale worker=1 web=0
+```
 
-### Issue: Connection is unstable or drops frequently
+### 4. Monitor the Connection
 
-**Solution**:
-- Check your internet connection when scanning the QR code
-- Ensure your phone has a stable connection when linking
-- Try relinking your WhatsApp by deleting the session and scanning a new QR code
+```bash
+# Watch the logs for QR code and connection status
+heroku logs --tail
+```
 
-## Recommended Heroku Plan
+## Key Features for Stable Connection
 
-While BLACKSKY-MD Premium works on Heroku's free tier, we strongly recommend at least the **Eco** plan ($5/month) for:
-- No dyno sleeping (critical for WhatsApp connection)
-- Improved performance and stability
-- More reliable operation
+### 1. PostgreSQL Session Persistence
 
-For business or high-usage scenarios, consider the **Basic** plan ($7/month) which provides even better resources.
+The bot automatically backs up and restores session data to PostgreSQL, so even if your dyno restarts, the connection is maintained. This happens in the background every 30 minutes.
+
+### 2. Internal Anti-Idle Mechanism
+
+Even without setting HEROKU_APP_URL, the bot implements an internal activity mechanism that prevents the dyno from becoming idle. This works by:
+
+- Updating profile status periodically
+- Sending presence updates
+- Performing minimal actions to keep the process active
+
+### 3. Enhanced Connection Keeper
+
+The Enhanced Connection Keeper detects and fixes "connection appears to be closed" errors by:
+
+- Monitoring connection state changes
+- Implementing exponential backoff for reconnection attempts
+- Applying connection patches to fix common issues
+- Using heartbeat mechanisms to keep the connection alive
+
+### 4. Health Check Server
+
+A built-in health check server runs on port 28111 (configurable) and provides:
+
+- Connection status information
+- Uptime monitoring
+- Memory usage statistics
+- Session backup status
+
+You can access it at: `https://your-app-name.herokuapp.com:28111/health`
+
+## Troubleshooting
+
+### Bot Disconnecting Frequently
+
+1. Check the logs:
+   ```bash
+   heroku logs --tail
+   ```
+
+2. Look for specific error patterns:
+   - "Connection closed" - Usually temporary, will reconnect
+   - "Database error" - Check PostgreSQL addon status
+   - "Memory usage high" - Consider upgrading dyno size
+
+3. Restart the worker dyno:
+   ```bash
+   heroku dyno:restart worker
+   ```
+
+### QR Code Not Appearing
+
+1. Check if worker dyno is running:
+   ```bash
+   heroku ps
+   ```
+
+2. Ensure the logs are showing startup messages:
+   ```bash
+   heroku logs --tail
+   ```
+
+3. Try restarting the process:
+   ```bash
+   heroku dyno:restart worker
+   ```
+
+### Database Connection Issues
+
+1. Verify PostgreSQL addon is provisioned:
+   ```bash
+   heroku addons | grep postgresql
+   ```
+
+2. Check database credentials:
+   ```bash
+   heroku config | grep DATABASE_URL
+   ```
+
+3. Ensure the DATABASE_URL is being properly used in the application
+
+## Advanced Configuration
+
+You can further optimize your deployment by:
+
+1. **Memory Management**: Adjust MAX_MEMORY_MB environment variable based on your dyno size
+2. **Backup Frequency**: Change BACKUP_INTERVAL for more or less frequent session backups
+3. **Health Check**: Configure HEALTH_CHECK_PORT if the default port conflicts with other services
+
+## Support
+
+If you encounter issues not covered in this guide:
+
+1. Check the detailed logs for specific error messages
+2. Refer to the HEROKU-FIXES-SUMMARY.md file for technical details
+3. Search for similar issues in the GitHub repository
 
 ---
 
-Follow this guide to ensure your BLACKSKY-MD Premium bot maintains a stable connection 24/7 on Heroku!
+© 2025 BLACKSKY-MD Premium - Stable Heroku Connection Guide

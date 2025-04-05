@@ -114,6 +114,9 @@ try {
     console.warn('⚠️ For Heroku deployment, make sure to add the PostgreSQL addon and set DATABASE_URL.');
     global.DATABASE_ENABLED = false;
   } else {
+    // Set DATABASE_ENABLED to true immediately to avoid race conditions
+    global.DATABASE_ENABLED = true;
+    
     pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: {
@@ -129,7 +132,7 @@ try {
         global.DATABASE_ENABLED = false;
       } else {
         console.log('✅ Database connection established successfully.');
-        global.DATABASE_ENABLED = true;
+        console.log('✅ Database features enabled for 24/7 Heroku operation.');
       }
     });
   }
