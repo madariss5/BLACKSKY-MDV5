@@ -3,7 +3,6 @@ const { DateTime } = require('luxon');
 const fs = require('fs');
 const path = require('path');
 const moment = require('moment-timezone');
-const { svgToPng, getDefaultLogoPath } = require('../lib/svg-converter');
 
 let handler = async (m, { conn, usedPrefix: _p }) => {
     try {
