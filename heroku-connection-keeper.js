@@ -178,19 +178,28 @@ async function backupSessionToDatabase() {
     let client;
     let retryCount = 0;
     const maxRetries = 3;
+    const batchSize = 50;
+    let currentBatch = [];
     
     while (retryCount < maxRetries) {
       try {
         client = await STATE.postgresPool.connect();
         await client.query('BEGIN');
         
+        // Clear any existing transaction
+        await client.query('ROLLBACK');
+        await client.query('BEGIN');
+        
         // Create table if doesn't exist
         await client.query(`
           CREATE TABLE IF NOT EXISTS whatsapp_sessions (
-            session_id VARCHAR(255) PRIMARY KEY,
-            session_data JSONB NOT NULL,
+            id SERIAL PRIMARY KEY,
+            session_id VARCHAR(255) NOT NULL,
+            file_name VARCHAR(255) NOT NULL, 
+            session_data TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(session_id, file_name)
           );
         `);
 
