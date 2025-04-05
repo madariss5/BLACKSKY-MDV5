@@ -1,0 +1,32 @@
+2025-04-05T09:13:12.595377+00:00 app[web.1]:     at node:internal/main/run_main_module:36:49
+2025-04-05T09:13:12.595377+00:00 app[web.1]: 
+2025-04-05T09:13:12.595377+00:00 app[web.1]: Node.js v22.14.0
+2025-04-05T09:13:12.638555+00:00 heroku[web.1]: Process exited with status 1
+2025-04-05T09:13:12.662470+00:00 heroku[web.1]: State changed from starting to crashed
+2025-04-05T09:18:44.000000+00:00 app[api]: Build started by user martin2122007@gmail.com
+2025-04-05T09:19:31.498492+00:00 app[api]: Deploy a884ad70 by user martin2122007@gmail.com
+2025-04-05T09:19:31.498492+00:00 app[api]: Release v35 created by user martin2122007@gmail.com
+2025-04-05T09:19:31.718855+00:00 heroku[web.1]: State changed from crashed to starting
+2025-04-05T09:19:35.000000+00:00 app[api]: Build succeeded
+2025-04-05T09:19:44.169491+00:00 heroku[web.1]: Starting process with command `node heroku-combined-runner.js --autocleartmp --autoread --keepalive`
+2025-04-05T09:19:45.051461+00:00 heroku[web.1]: Process exited with status 1
+2025-04-05T09:19:44.971737+00:00 app[web.1]: 🔍 Health check server initialized for production environment
+2025-04-05T09:19:44.997905+00:00 app[web.1]: ✅ Connection patch loaded successfully
+2025-04-05T09:19:44.998077+00:00 app[web.1]: 🧠 Initializing Memory Management...
+2025-04-05T09:19:44.998648+00:00 app[web.1]: /app/heroku-combined-runner.js:18
+2025-04-05T09:19:44.998649+00:00 app[web.1]: initMemoryManager();
+2025-04-05T09:19:44.998649+00:00 app[web.1]: ^
+2025-04-05T09:19:44.998650+00:00 app[web.1]: 
+2025-04-05T09:19:44.998650+00:00 app[web.1]: TypeError: initMemoryManager is not a function
+2025-04-05T09:19:44.998650+00:00 app[web.1]:     at Object.<anonymous> (/app/heroku-combined-runner.js:18:1)
+2025-04-05T09:19:44.998651+00:00 app[web.1]:     at Module._compile (node:internal/modules/cjs/loader:1554:14)
+2025-04-05T09:19:44.998651+00:00 app[web.1]:     at Object..js (node:internal/modules/cjs/loader:1706:10)
+2025-04-05T09:19:44.998652+00:00 app[web.1]:     at Module.load (node:internal/modules/cjs/loader:1289:32)
+2025-04-05T09:19:44.998659+00:00 app[web.1]:     at Function._load (node:internal/modules/cjs/loader:1108:12)
+2025-04-05T09:19:44.998659+00:00 app[web.1]:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2025-04-05T09:19:44.998660+00:00 app[web.1]:     at wrapModuleLoad (node:internal/modules/cjs/loader:220:24)
+2025-04-05T09:19:44.998661+00:00 app[web.1]:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:170:5)
+2025-04-05T09:19:44.998661+00:00 app[web.1]:     at node:internal/main/run_main_module:36:49
+2025-04-05T09:19:44.998661+00:00 app[web.1]: 
+2025-04-05T09:19:44.998662+00:00 app[web.1]: Node.js v22.14.0
+2025-04-05T09:19:45.074788+00:00 heroku[web.1]: State changed from starting to crashed
