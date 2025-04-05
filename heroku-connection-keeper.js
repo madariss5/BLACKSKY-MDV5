@@ -876,6 +876,48 @@ function setupHealthCheck() {
 
     // Check if any global connection exists
     const connectionStatus = global.conn?.user ? 'Connected' : 'Disconnected';
+  app.get('/restart-connection', (req, res) => {
+    try {
+      log('Manual connection restart requested via health endpoint', 'INFO');
+      
+      res.json({
+        status: 'restarting',
+        timestamp: new Date().toISOString(),
+        message: 'Connection restart initiated'
+      });
+      
+      // Use a small timeout to ensure response is sent before restarting the connection
+      setTimeout(() => {
+        if (global.enhancedConnectionKeeper?.forceReconnect) {
+          log('Using enhanced connection keeper to restart connection', 'INFO');
+          global.enhancedConnectionKeeper.forceReconnect(global.conn);
+        } else if (typeof global.forceRestartConnection === 'function') {
+          log('Using global forceRestartConnection function', 'INFO');
+          global.forceRestartConnection();
+        } else if (typeof attemptReconnect === 'function') {
+          log('Using standard attemptReconnect function', 'INFO');
+          attemptReconnect();
+        } else {
+          log('No reconnection method found, using basic technique', 'WARN');
+          // Basic reconnection - mark as disconnected and wait for auto-reconnect
+          if (global.conn?.ws) {
+            try {
+              global.conn.ws.close();
+              log('Closed WebSocket connection to trigger reconnect', 'INFO');
+            } catch (err) {
+              log(`Error closing WebSocket: ${err.message}`, 'ERROR');
+            }
+          }
+        }
+      }, 500);
+    } catch (err) {
+      log(`Error handling restart-connection request: ${err.message}`, 'ERROR');
+      res.status(500).json({
+        status: 'error',
+        message: `Failed to restart connection: ${err.message}`
+      });
+    }
+  });
 
     const response = {
       status: 'ok',

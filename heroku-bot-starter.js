@@ -417,6 +417,39 @@ const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
 
+// Add restart connection endpoint
+app.get('/restart-connection', (req, res) => {
+  console.log('🔄 Manual connection restart requested via API endpoint');
+  
+  res.json({
+    status: 'restarting',
+    timestamp: new Date().toISOString(),
+    message: 'Connection restart initiated'
+  });
+  
+  // Use a timeout to allow response to be sent first
+  setTimeout(() => {
+    if (global.enhancedConnectionKeeper && typeof global.enhancedConnectionKeeper.forceReconnect === 'function') {
+      console.log('✅ Using enhanced connection keeper to restart connection');
+      global.enhancedConnectionKeeper.forceReconnect(global.conn);
+    } else if (global.connectionKeeper && typeof global.connectionKeeper.forceReconnect === 'function') {
+      console.log('✅ Using connection keeper to restart connection');
+      global.connectionKeeper.forceReconnect(global.conn);
+    } else {
+      console.log('⚠️ No specialized reconnect function found, using manual approach');
+      // Force close the connection to trigger auto-reconnect
+      if (global.conn && global.conn.ws) {
+        try {
+          global.conn.ws.close();
+          console.log('✅ Closed WebSocket to trigger reconnection');
+        } catch (err) {
+          console.error('❌ Error closing WebSocket:', err.message);
+        }
+      }
+    }
+  }, 500);
+});
+
 // Initialize PostgreSQL connection pool with error handling
 let pool;
 try {
@@ -622,6 +655,39 @@ app.get('/health', (req, res) => {
         }
       };
     }
+    
+// Add restart connection endpoint
+app.get('/restart-connection', (req, res) => {
+  console.log('🔄 Manual connection restart requested via API endpoint');
+  
+  res.json({
+    status: 'restarting',
+    timestamp: new Date().toISOString(),
+    message: 'Connection restart initiated'
+  });
+  
+  // Use a timeout to allow response to be sent first
+  setTimeout(() => {
+    if (global.enhancedConnectionKeeper && typeof global.enhancedConnectionKeeper.forceReconnect === 'function') {
+      console.log('✅ Using enhanced connection keeper to restart connection');
+      global.enhancedConnectionKeeper.forceReconnect(global.conn);
+    } else if (global.connectionKeeper && typeof global.connectionKeeper.forceReconnect === 'function') {
+      console.log('✅ Using connection keeper to restart connection');
+      global.connectionKeeper.forceReconnect(global.conn);
+    } else {
+      console.log('⚠️ No specialized reconnect function found, using manual approach');
+      // Force close the connection to trigger auto-reconnect
+      if (global.conn && global.conn.ws) {
+        try {
+          global.conn.ws.close();
+          console.log('✅ Closed WebSocket to trigger reconnection');
+        } catch (err) {
+          console.error('❌ Error closing WebSocket:', err.message);
+        }
+      }
+    }
+  }, 500);
+});
     
     res.json({ 
       status: 'ok', 
