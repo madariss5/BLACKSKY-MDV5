@@ -4,7 +4,7 @@ modules = ["nodejs-20"]
 channel = "stable-24_05"
 
 [workflows]
-runButton = "Heroku-Bot-Production"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Run With Pairing"
