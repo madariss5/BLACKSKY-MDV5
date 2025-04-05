@@ -1,192 +1,109 @@
-# BLACKSKY-MD Premium Heroku Deployment Guide
+# BLACKSKY-MD Premium - Heroku Deployment Guide (2025 Updated)
 
-This comprehensive guide will help you deploy the BLACKSKY-MD Premium WhatsApp bot to Heroku with persistent session storage, database support, and 24/7 operation.
+This guide provides instructions for deploying BLACKSKY-MD Premium WhatsApp Bot on Heroku with 24/7 uptime and stable connections.
 
-## ⚠️ Important Requirements
+## Prerequisites
 
-1. A **Heroku account** (sign up at [heroku.com](https://heroku.com))
-2. We strongly recommend using a **paid Heroku plan** (at least "Eco") for stable 24/7 operation
-3. PostgreSQL database add-on (automatically configured with deployments using this guide)
+1. A Heroku account (paid tier recommended for 24/7 operation)
+2. Git installed on your computer
+3. Basic knowledge of command line operations
 
-## 🚀 Quick Deploy Method (Recommended)
+## Deployment Options
 
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/blackskytech/BLACKSKY-MD)
+### Option 1: Direct Deployment (Easiest)
 
-1. Click the "Deploy to Heroku" button above.
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
+
+1. Click the "Deploy to Heroku" button above
 2. Fill in the required environment variables:
-   - `SESSION_ID`: A unique identifier for your WhatsApp session (any name you choose)
-   - `BOT_NAME`: The name of your WhatsApp bot (default: BLACKSKY-MD)
+   - `SESSION_ID`: A unique identifier for your bot (e.g., BLACKSKY-MD)
    - `OWNER_NUMBER`: Your WhatsApp number with country code (e.g., 491556315347)
-   - `PREFIX`: Command prefix for the bot (default: .)
-   - `HEROKU_APP_URL`: Your app URL (e.g., https://your-app-name.herokuapp.com)
-3. Click "Deploy App" and wait for the deployment to finish.
-4. Once deployed, go to the Heroku dashboard and add the PostgreSQL database:
-   ```bash
-   heroku addons:create heroku-postgresql:mini -a your-app-name
-   ```
-5. Restart your app after adding PostgreSQL:
-   ```bash
-   heroku restart -a your-app-name
-   ```
+   - `BOT_NAME`: Name for your bot (defaults to BLACKSKY-MD)
+   - `HEROKU_APP_URL`: Your Heroku app URL after deployment (e.g., https://your-app-name.herokuapp.com)
+3. Click "Deploy App" and wait for the build to complete
+4. After deployment, go to "Resources" tab and ensure the web dyno is enabled
 
-## 🛠️ Manual Deployment with Git
+### Option 2: Manual Deployment via Heroku CLI
 
-1. Fork this repository to your GitHub account.
-2. Clone your forked repository:
-   ```bash
-   git clone https://github.com/your-username/BLACKSKY-MD.git
-   cd BLACKSKY-MD
-   ```
-3. Log in to Heroku:
-   ```bash
-   heroku login
-   ```
-4. Create a new Heroku app:
-   ```bash
-   heroku create your-app-name
-   ```
-5. Add PostgreSQL database:
-   ```bash
-   heroku addons:create heroku-postgresql:mini -a your-app-name
-   ```
-6. Set the required environment variables:
-   ```bash
-   heroku config:set SESSION_ID=your_session_id
-   heroku config:set BOT_NAME=BLACKSKY-MD
-   heroku config:set OWNER_NUMBER=your_number_with_country_code
-   heroku config:set PREFIX=.
-   heroku config:set HEROKU_APP_URL=https://your-app-name.herokuapp.com
-   ```
-7. Deploy to Heroku:
-   ```bash
-   git push heroku main
-   ```
+```bash
+# Clone the repository
+git clone https://github.com/your-username/your-bot-repo.git
+cd your-bot-repo
 
-## 📋 Configuration Options
+# Login to Heroku
+heroku login
 
-### Essential Environment Variables
+# Create a new Heroku app
+heroku create your-app-name
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `SESSION_ID` | Unique identifier for your WhatsApp session | (required) |
-| `BOT_NAME` | Name of your WhatsApp bot | BLACKSKY-MD |
-| `OWNER_NUMBER` | Your WhatsApp number with country code | (required) |
-| `PREFIX` | Command prefix for the bot | . |
-| `HEROKU_APP_URL` | Your app URL for anti-idle functionality | (optional) |
+# Add PostgreSQL database
+heroku addons:create heroku-postgresql:mini
 
-### Additional Configuration (Optional)
+# Set environment variables
+heroku config:set SESSION_ID=BLACKSKY-MD
+heroku config:set BOT_NAME=BLACKSKY-MD
+heroku config:set OWNER_NUMBER=your-number-here
+heroku config:set NODE_ENV=production
+heroku config:set HEROKU=true
+heroku config:set HEROKU_APP_URL=https://your-app-name.herokuapp.com
+heroku config:set ENABLE_HEALTH_CHECK=true
+heroku config:set ENABLE_SESSION_BACKUP=true
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `LANGUAGE` | Bot's default language (en, de, id, es) | en |
-| `ENABLE_RPG` | Enable or disable RPG features | true |
-| `MAX_FILESIZE` | Maximum file size for uploads (in MB) | 100 |
-| `GROUP_ONLY` | Restrict bot to group chats only | false |
-| `DATABASE_URL` | PostgreSQL connection URL (set automatically) | (auto) |
+# Push to Heroku
+git push heroku main
 
-## 📱 Connecting Your WhatsApp
+# Scale to one web dyno
+heroku ps:scale web=1
 
-After deployment, follow these steps to connect your WhatsApp account:
+# View logs
+heroku logs --tail
+```
 
-1. Wait for the deployment to complete and check the logs:
-   ```bash
-   heroku logs --tail -a your-app-name
-   ```
+## Recommended Heroku Settings
 
-2. When the QR code appears in the logs, scan it with your WhatsApp by:
-   - Open WhatsApp on your phone
-   - Tap Menu (three dots) > Linked Devices > Link a Device
-   - Scan the QR code displayed in the Heroku logs
+For optimal 24/7 operation on Heroku:
 
-3. Once connected, the bot will display a success message and is ready to use!
+1. **Use Heroku Eco or Basic Plan**: Free dynos sleep after 30 minutes of inactivity and have monthly usage limits.
+2. **Enable PostgreSQL Database**: Essential for session persistence across dyno restarts.
+3. **Set Up Automatic Dyno Cycling**: In app.json we have configured proper handling of Heroku's 24-hour dyno cycling.
+4. **Enable Health Checks**: Set `ENABLE_HEALTH_CHECK=true` to prevent dyno sleeping.
+5. **Enable Session Backups**: Set `ENABLE_SESSION_BACKUP=true` to automatically backup your WhatsApp session data.
 
-## 🔍 Troubleshooting Guide
+## Verifying Deployment
 
-### Common Issues
+1. After deployment completes, visit `https://your-app-name.herokuapp.com/status` to verify the bot is running
+2. Check Heroku logs for any errors: `heroku logs --tail`
+3. Scan the QR code that will be displayed in the logs using your WhatsApp
+4. Once connected, your bot will show "Connected to WhatsApp" in the logs
 
-1. **PostgreSQL Connection Error**
-   - Verify the PostgreSQL add-on is installed: `heroku addons -a your-app-name`
-   - Check if DATABASE_URL is set: `heroku config -a your-app-name`
-   - Solution: Add PostgreSQL if missing: `heroku addons:create heroku-postgresql:mini -a your-app-name`
+## Maintaining 24/7 Operation
 
-2. **QR Code Not Appearing**
-   - Check logs for errors: `heroku logs --tail -a your-app-name`
-   - Solution: Restart the app: `heroku restart -a your-app-name`
+BLACKSKY-MD Premium includes specialized modules for maintaining 24/7 operation:
 
-3. **Session Disconnections**
-   - Verify you're using a paid plan (free dynos sleep after 30 minutes of inactivity)
-   - Check if HEROKU_APP_URL is set correctly to prevent dyno sleeping
-   - Solution: Upgrade to at least Eco plan for 24/7 operation
+1. **heroku-combined-runner.js**: Runs both the bot and connection keeper in a single process
+2. **heroku-connection-keeper.js**: Implements advanced connection stability mechanisms
+3. **Session backup system**: Automatically backs up WhatsApp session data to PostgreSQL
 
-4. **Memory Issues**
-   - Check for memory errors in logs: `heroku logs --tail -a your-app-name | grep "memory"`
-   - Solution: Scale dyno to higher specs: `heroku dyno:resize basic -a your-app-name`
+These components work together to ensure your bot stays connected even during Heroku's dyno cycling (every 24 hours).
 
-5. **Port Conflicts (EADDRINUSE Errors)**
-   - This is now automatically handled by the latest version
-   - The app will automatically select alternative ports if conflicts occur
+## Troubleshooting
 
-## 🌟 Advanced Configuration for Best Performance
+If your bot disconnects frequently or has other issues:
 
-For optimal performance and stability, we recommend:
+1. **Check Logs**: `heroku logs --tail` to identify errors
+2. **Verify Environment Variables**: Make sure all required variables are set
+3. **Restart Dyno**: `heroku ps:restart` to force a clean restart
+4. **Check Database**: `heroku pg:info` to ensure PostgreSQL is running
+5. **Upgrade Plan**: Consider upgrading to Heroku Basic or Standard plan for better reliability
 
-1. **Upgrade to Paid Dyno**: Use at least the "Eco" ($5/month) plan to avoid dyno sleeping and maintain 24/7 operation.
+## Additional Resources
 
-2. **Database Backups**: Enable automated backups for your PostgreSQL database:
-   ```bash
-   heroku pg:backups:schedule DATABASE_URL --at '02:00 UTC' -a your-app-name
-   ```
+- [Heroku Documentation](https://devcenter.heroku.com/categories/reference)
+- [Node.js on Heroku](https://devcenter.heroku.com/categories/nodejs-support)
+- [PostgreSQL on Heroku](https://devcenter.heroku.com/categories/heroku-postgres)
 
-3. **Custom Domain**: Add a custom domain to your Heroku app for a professional appearance:
-   ```bash
-   heroku domains:add example.com -a your-app-name
-   ```
+For support or feature requests, please open an issue on GitHub.
 
-4. **Monitoring**: Add free Heroku metrics for better monitoring:
-   ```bash
-   heroku labs:enable runtime-metrics -a your-app-name
-   ```
+---
 
-## 📊 Maintenance & Monitoring
-
-1. **Checking Logs**: View real-time logs to monitor bot activity:
-   ```bash
-   heroku logs --tail -a your-app-name
-   ```
-
-2. **Restarting the Bot**: If you encounter issues, try restarting:
-   ```bash
-   heroku restart -a your-app-name
-   ```
-
-3. **Update Bot**: To update to the latest version:
-   ```bash
-   git pull
-   git push heroku main
-   ```
-
-4. **Resource Usage**: Monitor your app's resource usage in the Heroku dashboard.
-
-5. **Database Management**: Check database status:
-   ```bash
-   heroku pg:info -a your-app-name
-   ```
-
-## ⚠️ Important Notes for 24/7 Operation
-
-1. **Free Tier Limitations**: Free dynos sleep after 30 minutes of inactivity and are limited to 550 hours per month, making them unsuitable for 24/7 operation.
-
-2. **Eco Tier ($5/month)**: Provides always-on operation and is the minimum recommended tier for reliable bot operation.
-
-3. **Database Persistence**: The PostgreSQL add-on ensures your bot data and sessions persist across dyno restarts and deployments.
-
-4. **Multiple Devices**: BLACKSKY-MD supports multi-device operation, so you can use WhatsApp on your phone while the bot is running.
-
-5. **Automatic Recovery**: The bot includes mechanisms to automatically recover from crashes and connection issues.
-
-## Need Help?
-
-If you encounter any issues during deployment or operation, join our support group on WhatsApp for assistance:
-[BLACKSKY-MD Support Group](https://whatsapp.com/channel/0029Va8ZH8fFXUuc69TGVw1q)
-
-Happy Botting! 🤖✨
+*Last updated: April 2025*

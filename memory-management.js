@@ -1,101 +1,162 @@
 /**
- * Memory Management Module
- * Integrates advanced memory management for WhatsApp bot
+ * BLACKSKY-MD Premium - Memory Management and Event Leak Prevention
+ * 
+ * This module helps prevent memory leaks and properly handles events
+ * for stable 24/7 operation, especially on Heroku.
  */
 
-const { initMemoryManager } = require('./lib/advanced-memory-manager');
+// Increase the default max listeners to prevent warnings
+require('events').EventEmitter.defaultMaxListeners = 500;
+
+// Track attached event listeners for cleanup
+const attachedListeners = new Map();
 
 /**
- * Initialize memory management for the WhatsApp bot
- * Handles garbage collection and memory optimization
+ * Safely attach an event listener with automatic cleanup tracking
+ * @param {EventEmitter} emitter - The event emitter object
+ * @param {string} event - Event name
+ * @param {Function} listener - Event callback function
+ * @param {Object} options - Optional parameters (once, prepend, etc.)
+ * @returns {Function} - Remove function for manual cleanup
  */
-function initializeMemoryManagement() {
-  console.log('🧠 Initializing memory management systems...');
-  
-  // Check if NODE_OPTIONS includes --expose-gc
-  const exposedGC = process.execArgv.includes('--expose-gc') || 
-                    process.env.NODE_OPTIONS?.includes('--expose-gc');
-  
-  if (!exposedGC) {
-    console.warn('⚠️ Running without exposed garbage collection. For optimal memory management, start with NODE_OPTIONS="--expose-gc"');
+function safeOn(emitter, event, listener, options = {}) {
+  if (!emitter || typeof emitter.on !== 'function') {
+    console.error('Invalid emitter provided to safeOn');
+    return () => {};
+  }
+
+  // Use once if specified
+  if (options.once) {
+    emitter.once(event, listener);
+  } else {
+    emitter.on(event, listener);
+  }
+
+  // Track this listener for cleanup
+  const emitterKey = emitter.constructor?.name || 'UnknownEmitter';
+  if (!attachedListeners.has(emitterKey)) {
+    attachedListeners.set(emitterKey, new Map());
   }
   
-  // Initialize safe garbage collection function
-  global.safeGC = function() {
-    try {
-      if (typeof global.gc === 'function') {
-        global.gc();
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error('❌ Error during garbage collection:', error);
-      return false;
+  const eventMap = attachedListeners.get(emitterKey);
+  if (!eventMap.has(event)) {
+    eventMap.set(event, new Set());
+  }
+  
+  const listenerSet = eventMap.get(event);
+  listenerSet.add(listener);
+
+  // Return remove function
+  return () => {
+    if (emitter && typeof emitter.removeListener === 'function') {
+      emitter.removeListener(event, listener);
+      listenerSet.delete(listener);
     }
   };
-  
-  // Initialize memory manager with optimal settings
-  // These settings are optimized for WhatsApp bots which typically have
-  // high media processing and caching requirements
-  const memoryManager = initMemoryManager({
-    memoryThresholdWarning: 75, // Warn at 75% memory usage
-    memoryThresholdCritical: 85, // Critical at 85% memory usage
-    cleanupInterval: 3 * 60 * 1000, // Clean every 3 minutes (more frequent)
-    snapshotInterval: 15 * 60 * 1000, // Snapshot every 15 minutes
-    cacheDefaultTTL: 10 * 60 * 1000, // Default cache TTL: 10 minutes
-    maxCacheItems: 500, // Reduced max cache items for memory efficiency
-    logMemoryUsage: true, // Enable memory usage logging
-    logInterval: 10 * 60 * 1000, // Log every 10 minutes
-  });
-  
-  // Store in global for access throughout the application
-  global.memoryManager = memoryManager;
-  
-  // Create specialized caches for bot operations
-  const mediaCache = memoryManager.createCache('media', {
-    ttl: 30 * 60 * 1000, // 30 minutes TTL for media
-    maxItems: 100, // Only keep 100 media items cached
-  });
-  
-  const userDataCache = memoryManager.createCache('userData', {
-    ttl: 60 * 60 * 1000, // 1 hour TTL for user data
-    maxItems: 1000, // User data is small, so we can cache more
-  });
-  
-  const pluginResultCache = memoryManager.createCache('pluginResults', {
-    ttl: 5 * 60 * 1000, // 5 minutes TTL for plugin results
-    maxItems: 200, // Limit plugin result caching
-  });
-  
-  // Setup memory cleanup event handler for Node.js
-  process.on('memoryUsageChange', (memoryInfo) => {
-    // If memory usage exceeds 80%, run cleanup
-    if (memoryInfo.percentageMemoryUsed > 80) {
-      console.log('⚠️ High memory usage detected, running cleanup...');
-      memoryManager.runCleanup();
-      global.safeGC();
-    }
-  });
-  
-  // Register memory manager shutdown on process exit
-  process.on('exit', () => {
-    console.log('🧹 Cleaning up memory manager on exit...');
-    memoryManager.shutdown();
-  });
-  
-  // Register for SIGTERM (for Heroku)
-  process.on('SIGTERM', () => {
-    console.log('🧹 Performing final garbage collection...');
-    global.safeGC();
-  });
-  
-  // Execute initial garbage collection
-  global.safeGC();
-  
-  console.log('✅ Memory management initialized');
-  return memoryManager;
 }
 
+/**
+ * Clean up all listeners for a specific emitter
+ * @param {EventEmitter} emitter - The event emitter to clean
+ */
+function cleanupEmitterListeners(emitter) {
+  if (!emitter || typeof emitter.removeListener !== 'function') {
+    return;
+  }
+
+  const emitterKey = emitter.constructor?.name || 'UnknownEmitter';
+  if (!attachedListeners.has(emitterKey)) {
+    return;
+  }
+
+  const eventMap = attachedListeners.get(emitterKey);
+  for (const [event, listeners] of eventMap.entries()) {
+    for (const listener of listeners) {
+      emitter.removeListener(event, listener);
+    }
+    listeners.clear();
+  }
+  eventMap.clear();
+}
+
+/**
+ * Handle unhandled promise rejections
+ */
+function setupUnhandledRejectionHandler() {
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Promise Rejection:', reason);
+    
+    // Attempt to handle baileys-specific connection errors
+    if (reason && reason.isBoom && reason.output && 
+        reason.output.payload && reason.output.payload.message === 'Connection Closed') {
+      console.log('Baileys connection closed - will reconnect automatically');
+      // The reconnection is handled by connection-keeper
+      return;
+    }
+    
+    // Handle WebSocket close code 1006 (connection closed abnormally)
+    if (reason === 1006) {
+      console.log('WebSocket closed abnormally (1006) - will reconnect automatically');
+      return;
+    }
+
+    // Log other unhandled rejections but don't crash the process
+    console.error('Unhandled rejection details:', reason instanceof Error ? reason.stack : reason);
+  });
+}
+
+/**
+ * Perform a memory cleanup to prevent leaks
+ */
+function performMemoryCleanup() {
+  if (global.gc && typeof global.gc === 'function') {
+    try {
+      global.gc();
+      console.log('Forced garbage collection completed');
+    } catch (err) {
+      console.error('Error during forced garbage collection:', err);
+    }
+  }
+}
+
+/**
+ * Schedule periodic memory cleanup
+ * @param {number} intervalMinutes - Cleanup interval in minutes
+ */
+function scheduleMemoryCleanup(intervalMinutes = 30) {
+  setInterval(() => {
+    console.log('Performing scheduled memory cleanup');
+    performMemoryCleanup();
+  }, intervalMinutes * 60 * 1000);
+}
+
+/**
+ * Initialize memory management
+ */
+function initialize() {
+  // Increase max listeners
+  require('events').EventEmitter.defaultMaxListeners = 500;
+  
+  // Setup unhandled rejection handler
+  setupUnhandledRejectionHandler();
+  
+  // Schedule memory cleanup
+  scheduleMemoryCleanup();
+  
+  // Handle process exit to clean up resources
+  process.on('exit', () => {
+    console.log('Process exiting, cleaning up resources');
+    // Clean up any resources here
+  });
+  
+  console.log('Memory management initialized');
+}
+
+// Export functions
 module.exports = {
-  initializeMemoryManagement
+  safeOn,
+  cleanupEmitterListeners,
+  performMemoryCleanup,
+  scheduleMemoryCleanup,
+  initialize
 };
