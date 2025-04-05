@@ -483,20 +483,53 @@ function isConnectionActive(conn) {
 
     // Check if user is available (means connected)
     if (!conn.user) return false;
+    
+    // Check socket status for direct websocket health
+    if (conn.ws) {
+      // If websocket exists but is in CLOSING or CLOSED state, connection is inactive
+      if (conn.ws.readyState === 2 || conn.ws.readyState === 3) {
+        log('WebSocket in CLOSING or CLOSED state, connection is inactive', 'WARN');
+        return false;
+      }
+      
+      // If socket is connecting for too long, consider problematic
+      if (conn.ws.readyState === 0) {
+        const connectingTime = Date.now() - (conn.wsStartTime || Date.now());
+        if (connectingTime > 10000) { // 10 seconds
+          log(`WebSocket has been in CONNECTING state for ${Math.round(connectingTime/1000)}s, connection may be stale`, 'WARN');
+          return false;
+        }
+      }
+    }
+    
+    // Check if there are any pending message sends that have timed out
+    if (conn.pendingRequestTimeoutMs && conn.pendingRequests) {
+      const stalePendingRequests = Object.values(conn.pendingRequests).filter(req => {
+        const elapsed = Date.now() - req.startTime;
+        return elapsed > 30000; // 30 seconds is too long for a request
+      });
+      
+      if (stalePendingRequests.length > 3) {
+        log(`Found ${stalePendingRequests.length} stale pending requests, connection may be stale`, 'WARN');
+        return false;
+      }
+    }
 
-    // Check if last received message was too long ago
+    // Check for messages received timestamp as a general health indicator
     const lastReceiveTimestamp = conn.lastReceivedMsg?.messageTimestamp;
     if (lastReceiveTimestamp) {
       const now = Date.now() / 1000; // Convert to seconds
       const elapsed = now - lastReceiveTimestamp;
 
-      // If no message received in 10 minutes, consider connection dead
-      if (elapsed > 600) {
+      // If no message received in 5 minutes, consider connection potentially problematic
+      // (reduced from 10 minutes to catch issues earlier)
+      if (elapsed > 300) {
         log(`No messages received in ${Math.round(elapsed)}s, connection may be stale`, 'WARN');
         return false;
       }
     }
-
+    
+    // If we get here, all checks passed
     return true;
   } catch (err) {
     log(`Error checking connection status: ${err.message}`, 'ERROR');

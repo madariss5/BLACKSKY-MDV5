@@ -292,21 +292,59 @@ function startServerWithAvailablePort(initialPort, maxRetries = 10) {
           console.log('✅ Bot started successfully');
           
           // Apply enhanced connection keeper once the bot has started and connection is established
-          setTimeout(() => {
-            if (global.enhancedConnectionKeeper && global.conn) {
-              console.log('🛡️ Applying enhanced connection keeper to fix "connection appears to be closed" errors...');
-              
-              // Initialize the enhanced connection keeper
-              global.enhancedConnectionKeeper.initializeConnectionKeeper(global.conn);
-              
-              // Apply the connection patch for improved error handling
-              global.enhancedConnectionKeeper.applyConnectionPatch(global.conn);
-              
-              console.log('✅ Enhanced connection keeper applied successfully');
-            } else {
-              console.log('⚠️ Enhanced connection keeper not available or bot connection not established');
+          const applyEnhancedConnectionKeeper = () => {
+            try {
+              if (global.enhancedConnectionKeeper && global.conn) {
+                console.log('🛡️ Applying enhanced connection keeper to fix "connection appears to be closed" errors...');
+                
+                // Initialize the enhanced connection keeper
+                global.enhancedConnectionKeeper.initializeConnectionKeeper(global.conn);
+                
+                // Apply the connection patch for improved error handling
+                global.enhancedConnectionKeeper.applyConnectionPatch(global.conn);
+                
+                // Set up a connection watcher for persistent connectivity protection
+                const connectionWatcher = setInterval(() => {
+                  try {
+                    if (global.conn && !global.conn.isOnline) {
+                      console.log('📡 Connection watcher detected offline state, triggering reconnection...');
+                      global.enhancedConnectionKeeper.forceReconnect(global.conn);
+                    }
+                  } catch (watcherErr) {
+                    console.error('⚠️ Error in connection watcher:', watcherErr.message);
+                  }
+                }, 60000); // Check every minute
+                
+                console.log('✅ Enhanced connection keeper and persistent watcher applied successfully');
+                return true;
+              } else {
+                console.log('⚠️ Enhanced connection keeper not available or bot connection not established');
+                return false;
+              }
+            } catch (err) {
+              console.error('❌ Error applying enhanced connection keeper:', err.message);
+              return false;
             }
-          }, 5000); // Wait 5 seconds to ensure the connection is established
+          };
+          
+          // Try immediately
+          const initialSuccess = applyEnhancedConnectionKeeper();
+          
+          // If not successful, retry after a delay
+          if (!initialSuccess) {
+            setTimeout(() => {
+              console.log('🔄 Retrying enhanced connection keeper application...');
+              if (!applyEnhancedConnectionKeeper()) {
+                // If still not successful, set up a periodic retry
+                const retryInterval = setInterval(() => {
+                  console.log('🔄 Periodic retry of enhanced connection keeper...');
+                  if (applyEnhancedConnectionKeeper()) {
+                    clearInterval(retryInterval);
+                  }
+                }, 30000); // Try every 30 seconds
+              }
+            }, 5000); // Wait 5 seconds before first retry
+          }
         } catch (err) {
           console.error('❌ Error starting bot:', err);
           // Attempt to restart after delay
@@ -317,11 +355,47 @@ function startServerWithAvailablePort(initialPort, maxRetries = 10) {
               console.log('✅ Bot restarted successfully');
               
               // Also apply enhanced connection keeper after restart
-              if (global.enhancedConnectionKeeper && global.conn) {
-                console.log('🛡️ Applying enhanced connection keeper after restart...');
-                global.enhancedConnectionKeeper.initializeConnectionKeeper(global.conn);
-                global.enhancedConnectionKeeper.applyConnectionPatch(global.conn);
-              }
+              console.log('🛡️ Applying enhanced connection keeper after restart...');
+              const applyEnhancedConnectionKeeper = () => {
+                try {
+                  if (global.enhancedConnectionKeeper && global.conn) {
+                    console.log('🛡️ Applying enhanced connection keeper to fix "connection appears to be closed" errors...');
+                    
+                    // Initialize the enhanced connection keeper
+                    global.enhancedConnectionKeeper.initializeConnectionKeeper(global.conn);
+                    
+                    // Apply the connection patch for improved error handling
+                    global.enhancedConnectionKeeper.applyConnectionPatch(global.conn);
+                    
+                    // Set up a connection watcher for persistent connectivity protection
+                    const connectionWatcher = setInterval(() => {
+                      try {
+                        if (global.conn && !global.conn.isOnline) {
+                          console.log('📡 Connection watcher detected offline state, triggering reconnection...');
+                          global.enhancedConnectionKeeper.forceReconnect(global.conn);
+                        }
+                      } catch (watcherErr) {
+                        console.error('⚠️ Error in connection watcher:', watcherErr.message);
+                      }
+                    }, 60000); // Check every minute
+                    
+                    console.log('✅ Enhanced connection keeper and persistent watcher applied successfully after restart');
+                    return true;
+                  } else {
+                    console.log('⚠️ Enhanced connection keeper not available or bot connection not established after restart');
+                    return false;
+                  }
+                } catch (err) {
+                  console.error('❌ Error applying enhanced connection keeper after restart:', err.message);
+                  return false;
+                }
+              };
+              
+              // Try immediately
+              applyEnhancedConnectionKeeper();
+              
+              // Also try after a delay in case connection isn't fully established yet
+              setTimeout(applyEnhancedConnectionKeeper, 5000);
             } catch (restartErr) {
               console.error('❌ Error restarting bot:', restartErr);
               process.exit(1); // Exit with error code

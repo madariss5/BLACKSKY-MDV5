@@ -10,9 +10,12 @@
  * - Connection keepalive through periodic heartbeats
  * - Socket error handling and recovery
  * - Memory usage optimization for long-term stability
+ * - Websocket state validation
+ * - Robust recovery from connection issues
  */
 
-const { delay } = require('@adiwajshing/baileys');
+const { delay, DisconnectReason } = require('@adiwajshing/baileys');
+const { Boom } = require('@hapi/boom');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
@@ -209,15 +212,50 @@ async function checkConnection(conn) {
     // Check if the socket is actually open
     const isSocketConnected = conn.ws && conn.ws.readyState === 1; // WebSocket.OPEN
     
+    // Check socket status for additional health indicators
+    if (conn.ws) {
+      if (conn.ws.readyState === 2 || conn.ws.readyState === 3) {
+        log('WebSocket in CLOSING or CLOSED state, connection is inactive', 'WARN');
+        connectionState.isConnected = false;
+        handleReconnection(conn);
+        return;
+      }
+      
+      // If socket is in connecting state for too long, consider it problematic
+      if (conn.ws.readyState === 0) {
+        const connectingTime = Date.now() - (conn.wsStartTime || Date.now());
+        if (connectingTime > 10000) { // 10 seconds
+          log(`WebSocket has been in CONNECTING state for ${Math.round(connectingTime/1000)}s, connection may be stale`, 'WARN');
+          connectionState.isConnected = false;
+          handleReconnection(conn);
+          return;
+        }
+      }
+    }
+    
     // Check if we have user data (indicates successful auth)
     const hasUserData = !!conn.user;
     
+    // Check for pending requests that might have timed out
+    let hasStalePendingRequests = false;
+    if (conn.pendingRequestTimeoutMs && conn.pendingRequests) {
+      const stalePendingRequests = Object.values(conn.pendingRequests).filter(req => {
+        const elapsed = Date.now() - req.startTime;
+        return elapsed > 30000; // 30 seconds is too long for a request
+      });
+      
+      if (stalePendingRequests.length > 2) {
+        log(`Found ${stalePendingRequests.length} stale pending requests, connection may be stale`, 'WARN');
+        hasStalePendingRequests = true;
+      }
+    }
+    
     // Check if heartbeat is recent enough
     const hasRecentHeartbeat = connectionState.lastHeartbeat && 
-      (Date.now() - connectionState.lastHeartbeat) < 60000; // Within last minute
+      (Date.now() - connectionState.lastHeartbeat) < 45000; // Within last 45 seconds
     
-    if (!isSocketConnected || !hasUserData) {
-      log('Connection check failed - socket or user data issue', 'WARN');
+    if (!isSocketConnected || !hasUserData || hasStalePendingRequests) {
+      log('Connection check failed - socket, user data, or pending requests issue', 'WARN');
       connectionState.isConnected = false;
       handleReconnection(conn);
       return;
@@ -226,7 +264,35 @@ async function checkConnection(conn) {
     if (!hasRecentHeartbeat) {
       log('No recent heartbeat detected, sending test ping', 'WARN');
       // Try to send a ping to see if connection is responsive
-      await sendHeartbeat(conn);
+      try {
+        await sendHeartbeat(conn);
+      } catch (heartbeatError) {
+        log(`Heartbeat test failed: ${heartbeatError.message}`, 'ERROR');
+        connectionState.isConnected = false;
+        handleReconnection(conn);
+        return;
+      }
+    }
+    
+    // Additional check: try a simple query to verify two-way communication
+    try {
+      const pingStart = Date.now();
+      await conn.query({
+        tag: 'ping',
+        attrs: {}
+      });
+      const pingTime = Date.now() - pingStart;
+      
+      if (pingTime > 5000) {
+        log(`Ping response time is slow (${pingTime}ms), connection may be degraded`, 'WARN');
+      } else {
+        log(`Ping response time: ${pingTime}ms`, 'DEBUG');
+      }
+    } catch (pingError) {
+      log(`Ping test failed: ${pingError.message}`, 'ERROR');
+      connectionState.isConnected = false;
+      handleReconnection(conn);
+      return;
     }
     
     log('Connection check passed', 'INFO');
@@ -276,7 +342,13 @@ async function handleReconnection(conn) {
       conn.ev.emit('connection.update', {
         connection: 'close',
         lastDisconnect: {
-          error: new Error('Forced reconnection by connection keeper')
+          error: new Boom('Forced reconnection by connection keeper', {
+            statusCode: DisconnectReason.restartRequired,
+            data: {
+              forceReconnect: true,
+              isTransient: true
+            }
+          })
         }
       });
     }
