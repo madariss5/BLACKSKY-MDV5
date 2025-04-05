@@ -18,6 +18,7 @@ let healthCheckServer = null; // Reference to the server
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const { default: makeWASocket, useMultiFileAuthState, jidDecode } = require('@adiwajshing/baileys'); //Added jidDecode
 
 // Initialize global variables
 let reconnectTimer = null;
@@ -31,7 +32,7 @@ function setupHealthCheckServer() {
         console.log('Health check server already initialized, skipping duplicate initialization');
         return;
     }
-    
+
     // Use a dedicated health check port that's different from the main server port
     const PORT = process.env.HEALTH_CHECK_PORT || 28111;
 
@@ -107,7 +108,7 @@ function setupHealthCheckServer() {
     // More detailed status endpoint in JSON format
     app.get('/status', (req, res) => {
         const uptime = process.uptime();
-        
+
         const herokuInfo = {
             status: 'online',
             uptime: formatUptime(uptime),
@@ -137,12 +138,12 @@ function setupHealthCheckServer() {
                 console.log('Error closing existing health check server:', err.message);
             }
         }
-        
+
         healthCheckServer = app.listen(PORT, () => {
             console.log(`⚡ Health check server running on port ${PORT}`);
             healthCheckServerInitialized = true;
         });
-        
+
         healthCheckServer.on('error', (err) => {
             console.error(`Failed to start health check server on port ${PORT}:`, err.message);
             // Try another port if this one is in use
@@ -269,13 +270,13 @@ if (typeof connectionMessageSender === 'function') {
  */
 async function performGracefulShutdown() {
     console.log('🛑 Performing graceful shutdown...');
-    
+
     // Clear reconnection timer if it exists
     if (reconnectInterval) {
         clearInterval(reconnectInterval);
         console.log('✅ Cleared reconnection interval');
     }
-    
+
     // Close health check server if it exists
     if (healthCheckServer) {
         try {
@@ -285,7 +286,7 @@ async function performGracefulShutdown() {
             console.log('❌ Error closing health check server:', err.message);
         }
     }
-    
+
     // Save session state if possible
     if (global.conn && global.conn.authState && typeof global.conn.authState.saveState === 'function') {
         try {
@@ -295,7 +296,7 @@ async function performGracefulShutdown() {
             console.log('❌ Error saving auth state:', err.message);
         }
     }
-    
+
     // Close WhatsApp connection if it exists
     if (global.conn && global.conn.ws) {
         try {
@@ -305,7 +306,7 @@ async function performGracefulShutdown() {
             console.log('❌ Error closing WhatsApp connection:', err.message);
         }
     }
-    
+
     // Save database if it exists
     if (global.db && typeof global.db.write === 'function') {
         try {
@@ -315,7 +316,7 @@ async function performGracefulShutdown() {
             console.log('❌ Error saving database:', err.message);
         }
     }
-    
+
     console.log('✅ Graceful shutdown complete');
 }
 

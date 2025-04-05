@@ -160,3 +160,25 @@ module.exports = {
   scheduleMemoryCleanup,
   initialize
 };
+function initializeMemoryManagement() {
+  const memoryLimit = process.env.MEMORY_LIMIT || 512; // MB
+  
+  // Set up memory monitoring
+  setInterval(() => {
+    const used = process.memoryUsage();
+    if (used.heapUsed > memoryLimit * 1024 * 1024) {
+      console.log('🧹 Running memory cleanup...');
+      global.gc && global.gc();
+    }
+  }, 30000);
+
+  // Handle memory pressure events
+  process.on('memoryUsageHigh', () => {
+    console.log('⚠️ High memory usage detected, cleaning up...');
+    global.gc && global.gc();
+  });
+
+  return true;
+}
+
+module.exports = { initializeMemoryManagement };
