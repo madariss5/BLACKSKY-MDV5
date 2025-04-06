@@ -73,7 +73,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "NODE_ENV=production node --expose-gc --max-old-space-size=384 heroku-combined-runner.js --optimize-memory --auto-reconnect"
+args = "NODE_ENV=production node --expose-gc --max-old-space-size=384 --no-warnings heroku-combined-runner.js --optimize-memory --auto-reconnect --performance-mode"
 
 [deployment]
 run = ["sh", "-c", "NODE_ENV=production NODE_OPTIONS='--expose-gc --max-old-space-size=512' node heroku-combined-runner.js"]
