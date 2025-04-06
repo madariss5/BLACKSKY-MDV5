@@ -33,7 +33,7 @@
       "waifu": "Belum Di Set",
       "husbu": "Belum Di Set",
       "pc": 0,
-      "exp": 24245,
+      "exp": 24396,
       "coin": 0,
       "atm": 0,
       "limit": 8,
@@ -297,7 +297,7 @@
       "lastgrab": 0,
       "lastngocok": 0,
       "lastturu": 0,
-      "lastseen": 1743951352729,
+      "lastseen": 1743951456173,
       "lastSetStatus": 0,
       "registered": true,
       "mangga": 0,
@@ -348,8 +348,8 @@
       "lastdate": 0,
       "lasttambang": 0,
       "lastngepet": 0,
-      "chat": 4752,
-      "chatTotal": 4752,
+      "chat": 4771,
+      "chatTotal": 4771,
       "glimit": 10,
       "pertambangan": 0,
       "lastbossbattle": 0,
@@ -384,10 +384,10 @@
       "bibitapel": 0,
       "bibitmangga": 0,
       "bibitjeruk": 0,
-      "command": 618,
-      "commandTotal": 618,
-      "lastCmd": 1743951352436,
-      "language": "en",
+      "command": 624,
+      "commandTotal": 624,
+      "lastCmd": 1743951456135,
+      "language": "de",
       "doctor": 0,
       "mining": 0,
       "intimate": 0,
@@ -108855,16 +108855,16 @@
       "lastSuccess": 1743675357150
     },
     "reactions.js": {
-      "total": 203,
-      "success": 203,
-      "last": 1743951339612,
-      "lastSuccess": 1743951339612
+      "total": 208,
+      "success": 208,
+      "last": 1743951456172,
+      "lastSuccess": 1743951456172
     },
     "change-language.js": {
-      "total": 14,
-      "success": 14,
-      "last": 1743944247913,
-      "lastSuccess": 1743944247913
+      "total": 15,
+      "success": 15,
+      "last": 1743951451657,
+      "lastSuccess": 1743951451657
     },
     "tools-ping.js": {
       "total": 10,
