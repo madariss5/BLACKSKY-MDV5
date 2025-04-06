@@ -5,7 +5,7 @@ const path = require('path');
 
 // GitHub repository information
 const owner = 'madariss5';
-const repo = 'BLACKSKY-MDV3';
+const repo = 'BLACKSKY-MDV5';
 const token = process.env.GITHUB_TOKEN;
 
 if (!token) {
