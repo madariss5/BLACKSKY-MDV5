@@ -4,13 +4,13 @@
    * Contact: wa.me/62895628117900
 */
 
-// List of owner numbers
+// List of owner numbers - with proper formatting
 global.owner = [
-  ['4915563151347', 'Owner', true],
-  ['4915563151347', 'Owner', true]
-]  
-global.mods = ['4915563151347', '436769645892'] 
-global.prems = ['4915563151347', '436769645892']
+  ['49155631513470@s.whatsapp.net', 'Owner', true],
+  ['4915563151347@s.whatsapp.net', 'Owner', true]
+]
+global.mods = ['4915563151347@s.whatsapp.net', '436769645892@s.whatsapp.net']
+global.prems = ['4915563151347@s.whatsapp.net', '436769645892@s.whatsapp.net']
 global.nameowner = 'Martin'
 global.numberowner = '4915563151347'
 global.mail = 'support@tioprm.eu.org' 
