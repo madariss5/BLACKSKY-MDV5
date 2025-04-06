@@ -22,7 +22,7 @@ try {
   const baileys = require('@adiwajshing/baileys');
   delay = baileys.delay;
   DisconnectReason = baileys.DisconnectReason;
-  
+
   // Log what codes are available for debugging
   console.log('Loaded DisconnectReason codes:', Object.keys(DisconnectReason || {}));
 } catch (baileyError) {
@@ -89,7 +89,7 @@ const colors = {
 function log(message, type = 'INFO') {
   const timestamp = new Date().toISOString();
   let color = colors.reset;
-  
+
   switch (type.toUpperCase()) {
     case 'ERROR':
       color = colors.red;
@@ -106,7 +106,7 @@ function log(message, type = 'INFO') {
     default:
       color = colors.reset;
   }
-  
+
   console.log(`${color}[CONNECTION-KEEPER][${type}][${timestamp}] ${message}${colors.reset}`);
 }
 
@@ -117,15 +117,19 @@ const connectionState = {
   reconnectAttempts: 0,
   maxReconnectAttempts: 20,
   reconnectDelay: 2000, // Start with 2 seconds
-  maxReconnectDelay: 60000, // Max 1 minute
-  heartbeatInterval: null,
-  connectionCheckInterval: null,
+  maxReconnectDelay: 30000, // Max 30 seconds
+  heartbeatInterval: 30000, // More frequent heartbeat
+  connectionCheckInterval: 20000, // Faster connection checks
   lastHeartbeat: null,
   socketErrorCount: 0,
   maxSocketErrors: 5,
   socketErrorResetTime: 60000, // 1 minute
   lastSocketErrorTime: null,
   isReconnecting: false, // Flag to prevent concurrent reconnection attempts
+  initialBackoffDelay: 2000, // Start with shorter delay
+  backoffFactor: 1.3, // Gentler backoff
+  socketTimeout: 60000, // Socket timeout
+  keepAliveInterval: 25000 // Keep-alive interval
 };
 
 /**
@@ -141,24 +145,24 @@ function initializeConnectionKeeper(conn) {
     log('No connection object provided', 'ERROR');
     return false;
   }
-  
+
   log('Initializing enhanced connection keeper...', 'INFO');
-  
+
   // Set up connection state listeners
   setupConnectionListeners(conn);
-  
+
   // Start regular connection checks
   startConnectionChecks(conn);
-  
+
   // Set up heartbeat to keep connection alive
   startHeartbeat(conn);
-  
+
   // Set up memory usage monitoring
   startMemoryMonitoring();
-  
+
   // Set up global error handlers
   setupGlobalErrorHandlers(conn);
-  
+
   log('Connection keeper initialized successfully', 'SUCCESS');
   return true;
 }
@@ -171,14 +175,14 @@ function setupConnectionListeners(conn) {
   // Listen for close events
   conn.ev.on('connection.update', (update) => {
     const { connection, lastDisconnect } = update;
-    
+
     if (connection === 'close') {
       const statusCode = lastDisconnect?.error?.output?.statusCode;
       const shouldReconnect = statusCode !== 401; // Don't reconnect if unauthorized
-      
+
       log(`Connection closed with status code: ${statusCode}`, 'WARN');
       connectionState.isConnected = false;
-      
+
       if (shouldReconnect) {
         handleReconnection(conn);
       } else {
@@ -191,26 +195,26 @@ function setupConnectionListeners(conn) {
       connectionState.isConnected = true;
       connectionState.lastConnected = Date.now();
       connectionState.reconnectAttempts = 0;
-      connectionState.reconnectDelay = 2000; // Reset reconnect delay
-      
+      connectionState.reconnectDelay = connectionState.initialBackoffDelay; // Reset reconnect delay
+
       // Notify about successful connection
       connectionEvents.emit('connection.success');
     }
   });
-  
+
   // Listen for socket errors which often precede connection closed errors
   conn.ws.on('error', (err) => {
     log(`WebSocket error: ${err.message}`, 'ERROR');
     connectionState.socketErrorCount++;
     connectionState.lastSocketErrorTime = Date.now();
-    
+
     // If we have too many socket errors in a short time, force reconnection
     if (connectionState.socketErrorCount >= connectionState.maxSocketErrors) {
       log('Too many socket errors, forcing reconnection', 'WARN');
       handleReconnection(conn);
     }
   });
-  
+
   // Listen for unexpected socket close
   conn.ws.on('close', () => {
     log('WebSocket closed unexpectedly', 'WARN');
@@ -219,7 +223,7 @@ function setupConnectionListeners(conn) {
       handleReconnection(conn);
     }
   });
-  
+
   // Listen for socket error count reset
   setInterval(() => {
     if (connectionState.lastSocketErrorTime && 
@@ -239,12 +243,12 @@ function startConnectionChecks(conn) {
   if (connectionState.connectionCheckInterval) {
     clearInterval(connectionState.connectionCheckInterval);
   }
-  
+
   // Set up new check interval
   connectionState.connectionCheckInterval = setInterval(() => {
     checkConnection(conn);
-  }, 30000); // Check every 30 seconds
-  
+  }, connectionState.connectionCheckInterval); // Check every 20 seconds
+
   log('Regular connection checks started', 'INFO');
 }
 
@@ -258,10 +262,10 @@ async function checkConnection(conn) {
     if (!connectionState.isConnected) {
       return;
     }
-    
+
     // Check if the socket is actually open
     const isSocketConnected = conn.ws && conn.ws.readyState === 1; // WebSocket.OPEN
-    
+
     // Check socket status for additional health indicators
     if (conn.ws) {
       if (conn.ws.readyState === 2 || conn.ws.readyState === 3) {
@@ -270,7 +274,7 @@ async function checkConnection(conn) {
         handleReconnection(conn);
         return;
       }
-      
+
       // If socket is in connecting state for too long, consider it problematic
       if (conn.ws.readyState === 0) {
         const connectingTime = Date.now() - (conn.wsStartTime || Date.now());
@@ -282,10 +286,10 @@ async function checkConnection(conn) {
         }
       }
     }
-    
+
     // Check if we have user data (indicates successful auth)
     const hasUserData = !!conn.user;
-    
+
     // Check for pending requests that might have timed out
     let hasStalePendingRequests = false;
     if (conn.pendingRequestTimeoutMs && conn.pendingRequests) {
@@ -293,24 +297,24 @@ async function checkConnection(conn) {
         const elapsed = Date.now() - req.startTime;
         return elapsed > 30000; // 30 seconds is too long for a request
       });
-      
+
       if (stalePendingRequests.length > 2) {
         log(`Found ${stalePendingRequests.length} stale pending requests, connection may be stale`, 'WARN');
         hasStalePendingRequests = true;
       }
     }
-    
+
     // Check if heartbeat is recent enough
     const hasRecentHeartbeat = connectionState.lastHeartbeat && 
       (Date.now() - connectionState.lastHeartbeat) < 45000; // Within last 45 seconds
-    
+
     if (!isSocketConnected || !hasUserData || hasStalePendingRequests) {
       log('Connection check failed - socket, user data, or pending requests issue', 'WARN');
       connectionState.isConnected = false;
       handleReconnection(conn);
       return;
     }
-    
+
     if (!hasRecentHeartbeat) {
       log('No recent heartbeat detected, sending test ping', 'WARN');
       // Try to send a ping to see if connection is responsive
@@ -323,7 +327,7 @@ async function checkConnection(conn) {
         return;
       }
     }
-    
+
     // Additional check: try a simple query to verify two-way communication
     try {
       const pingStart = Date.now();
@@ -332,7 +336,7 @@ async function checkConnection(conn) {
         attrs: {}
       });
       const pingTime = Date.now() - pingStart;
-      
+
       if (pingTime > 5000) {
         log(`Ping response time is slow (${pingTime}ms), connection may be degraded`, 'WARN');
       } else {
@@ -344,7 +348,7 @@ async function checkConnection(conn) {
       handleReconnection(conn);
       return;
     }
-    
+
     log('Connection check passed', 'INFO');
   } catch (error) {
     log(`Connection check error: ${error.message}`, 'ERROR');
@@ -363,10 +367,10 @@ async function handleReconnection(conn) {
     log('Already attempting to reconnect, skipping duplicate reconnection', 'INFO');
     return;
   }
-  
+
   // Mark that we're trying to reconnect
   connectionState.isReconnecting = true;
-  
+
   try {
     // Check if socket is already open - might have recovered itself
     if (conn.ws && conn.ws.readyState === 1 && conn.user) {
@@ -375,11 +379,11 @@ async function handleReconnection(conn) {
       connectionState.isReconnecting = false;
       return;
     }
-    
+
     // Check if we've exceeded max attempts
     if (connectionState.reconnectAttempts >= connectionState.maxReconnectAttempts) {
       log('Maximum reconnection attempts reached, trying final recovery options', 'ERROR');
-      
+
       // Try final recovery option - full reload if we have the function
       if (typeof global.restartConnection === 'function') {
         log('Attempting full bot restart via global.restartConnection', 'INFO');
@@ -389,29 +393,29 @@ async function handleReconnection(conn) {
         connectionState.isReconnecting = false;
         return;
       }
-      
+
       // If we can't restart the whole bot, reset the counter and continue trying
       log('No restart function available, resetting counter and continuing to try', 'WARN');
       connectionState.reconnectAttempts = 0;
       connectionEvents.emit('reconnect.maxattempts');
     }
-    
+
     // Calculate delay with exponential backoff and some jitter
     // Use an extremely aggressive reconnection strategy with very short initial delay
     const baseDelay = Math.min(
-      500 + (connectionState.reconnectAttempts * 500), // Start at 500ms and add 500ms per attempt
-      3000  // Cap at 3 seconds for even faster recovery
+      connectionState.initialBackoffDelay + (connectionState.reconnectAttempts * connectionState.initialBackoffDelay * connectionState.backoffFactor),
+      connectionState.maxReconnectDelay
     );
     const jitter = Math.random() * 300; // Add up to 0.3 second of random jitter
     const delay = Math.min(baseDelay + jitter, 10000); // Cap max delay at 10 seconds
-    
+
     connectionState.reconnectAttempts++;
     console.log(`⚠️ Connection appears to be closed. Attempt #${connectionState.reconnectAttempts} to reconnect...`);
     log(`Attempting reconnection ${connectionState.reconnectAttempts}/${connectionState.maxReconnectAttempts} in ${Math.round(delay)}ms`, 'INFO');
-    
+
     // Wait for the calculated delay
     await new Promise(resolve => setTimeout(resolve, delay));
-    
+
     // Check if the connection has already recovered on its own
     if (conn.ws && conn.ws.readyState === 1 && conn.user) {
       log('Connection appears to have recovered while waiting to reconnect', 'SUCCESS');
@@ -420,13 +424,13 @@ async function handleReconnection(conn) {
       connectionState.reconnectAttempts = 0;
       return;
     }
-    
+
     // First try to restore credentials if available and connection seems corrupted
     let usedCredRestore = false;
     if (connectionState.reconnectAttempts > 2 && !conn.authState?.creds?.me) {
       try {
         log('Connection credentials appear corrupted, attempting to restore', 'WARN');
-        
+
         // Try different methods of credential restoration
         if (global.authFolder && global.loadAuthFromFolder) {
           log('Attempting to restore credentials from auth folder', 'INFO');
@@ -441,7 +445,7 @@ async function handleReconnection(conn) {
         log(`Credential restoration error: ${credError.message}`, 'ERROR');
       }
     }
-    
+
     // Try different reconnection strategies based on attempt number
     try {
       // If global.reloadHandler exists and this is one of the early attempts, use it
@@ -457,7 +461,7 @@ async function handleReconnection(conn) {
       // Otherwise, use our own reconnection logic
       else {
         log('Using manual socket reconnection', 'INFO');
-        
+
         // Close socket if it exists
         if (conn.ws) {
           try {
@@ -466,17 +470,17 @@ async function handleReconnection(conn) {
             log(`Error closing socket: ${closeErr.message}`, 'WARN');
           }
         }
-        
+
         // Wait just a short time after closing the socket for immediate reconnection
         await new Promise(resolve => setTimeout(resolve, 300));
-        
+
         // Try to force Baileys to reconnect by emitting a connection.update event
         try {
           // Use Baileys' restart required reason code
           const restartCode = typeof DisconnectReason !== 'undefined' ? 
                              DisconnectReason.restartRequired : 
                              500;
-                             
+
           conn.ev.emit('connection.update', {
             connection: 'close',
             lastDisconnect: {
@@ -493,7 +497,7 @@ async function handleReconnection(conn) {
           log(`Error emitting connection update: ${emitErr.message}`, 'ERROR');
         }
       }
-      
+
       log('Reconnection initiated', 'INFO');
     } catch (error) {
       log(`Reconnection error: ${error.message}`, 'ERROR');
@@ -520,14 +524,14 @@ function startHeartbeat(conn) {
   if (connectionState.heartbeatInterval) {
     clearInterval(connectionState.heartbeatInterval);
   }
-  
+
   // Set up new heartbeat interval
   connectionState.heartbeatInterval = setInterval(() => {
     if (connectionState.isConnected) {
       sendHeartbeat(conn);
     }
-  }, 45000); // Every 45 seconds
-  
+  }, connectionState.heartbeatInterval); // Every 30 seconds
+
   log('Connection heartbeat started', 'INFO');
 }
 
@@ -541,14 +545,14 @@ async function sendHeartbeat(conn) {
     if (!conn || !conn.ws || conn.ws.readyState !== 1) {
       return;
     }
-    
+
     // Send a simple query to the server
     // This is a lightweight operation that helps keep the connection active
     await conn.query({
       tag: 'ping',
       attrs: {}
     });
-    
+
     connectionState.lastHeartbeat = Date.now();
     log('Heartbeat sent successfully', 'INFO');
   } catch (error) {
@@ -569,7 +573,7 @@ function setupGlobalErrorHandlers(conn) {
   // Handle unhandled promise rejections
   process.on('unhandledRejection', (reason, promise) => {
     log(`Unhandled Rejection: ${reason}`, 'ERROR');
-    
+
     // If it's a connection-related error, try to reconnect
     if (reason && reason.message && (
       reason.message.includes('Connection closed') ||
@@ -585,11 +589,11 @@ function setupGlobalErrorHandlers(conn) {
       }
     }
   });
-  
+
   // Handle uncaught exceptions, but don't exit
   process.on('uncaughtException', (err) => {
     log(`Uncaught Exception: ${err.message}`, 'ERROR');
-    
+
     // If it's a connection-related error, try to reconnect
     if (err.message && (
       err.message.includes('Connection closed') ||
@@ -616,10 +620,10 @@ function startMemoryMonitoring() {
     const memoryUsage = process.memoryUsage();
     const heapUsed = Math.round(memoryUsage.heapUsed / 1024 / 1024);
     const rss = Math.round(memoryUsage.rss / 1024 / 1024);
-    
+
     if (heapUsed > 200 || rss > 300) {
       log(`High memory usage detected: Heap ${heapUsed}MB, RSS ${rss}MB`, 'WARN');
-      
+
       // Try to reduce memory usage
       if (global.gc) {
         log('Triggering manual garbage collection', 'INFO');
@@ -665,9 +669,9 @@ function applyConnectionPatch(conn) {
     // 1. Patch the query function with improved error handling
     // Save the original query function
     const originalQuery = conn.query.bind(conn);
-    
+
     // Replace with our enhanced version
-    conn.query = async (node, timeout = 15000) => {
+    conn.query = async (node, timeout = connectionState.socketTimeout) => {
       try {
         // Add random jitter to timeout to avoid thundering herd problem
         const jitteredTimeout = timeout + Math.floor(Math.random() * 2000);
@@ -684,7 +688,7 @@ function applyConnectionPatch(conn) {
         )) {
           log(`Query error: ${error.message}, attempting recovery`, 'WARN');
           console.log(`⚠️ Connection issue detected: ${error.message.substring(0, 100)}`);
-          
+
           if (connectionState.isConnected) {
             connectionState.isConnected = false;
             // Initiate reconnection immediately without delay
@@ -694,14 +698,14 @@ function applyConnectionPatch(conn) {
         throw error;
       }
     };
-    
+
     // 2. Patch the connection event handler
     if (conn.ev) {
       // Create a new function to handle connection updates
       function handleConnectionUpdate(update) {
         try {
           const { connection, lastDisconnect, qr } = update;
-          
+
           // Update connection state based on update
           if (connection === 'open') {
             console.log('✅ Connection is now open!');
@@ -709,20 +713,20 @@ function applyConnectionPatch(conn) {
             connectionState.reconnectAttempts = 0;
             connectionState.lastConnected = Date.now();
             connectionEvents.emit('connect');
-            
+
             // After successful connection, set up heartbeat
             startHeartbeat(conn);
           } 
           else if (connection === 'close') {
             const statusCode = lastDisconnect?.error?.output?.statusCode;
             const errMsg = lastDisconnect?.error?.message || '';
-            
+
             // Log detailed information for debugging
             console.log(`⚠️ Connection close detected with status: ${statusCode}, message: ${errMsg}`);
-            
+
             // Mark as disconnected immediately
             connectionState.isConnected = false;
-            
+
             // Handle Baileys specific codes - loggedOut is usually code 401
             if (statusCode === 401 || (typeof DisconnectReason !== 'undefined' && statusCode === DisconnectReason.loggedOut)) {
               console.log('⛔ Account logged out (status code 401), reconnection canceled');
@@ -730,13 +734,13 @@ function applyConnectionPatch(conn) {
               connectionEvents.emit('logout');
               return;
             }
-            
+
             // If restartRequired, we'll let baileys handle it if possible
             if (statusCode === 515 || (typeof DisconnectReason !== 'undefined' && statusCode === DisconnectReason.restartRequired)) {
               console.log('🔄 Restart required, letting Baileys handle reconnection');
               return;
             }
-            
+
             // If connection closed because of connection appears closed error
             if (errMsg.includes('closed') || errMsg.includes('timed out')) {
               console.log('⚠️ Connection appears to be closed error detected, initiating fast reconnection');
@@ -753,17 +757,17 @@ function applyConnectionPatch(conn) {
           console.error('❌ Error in connection update handler:', err.message);
         }
       }
-      
+
       // Register our handler
       conn.ev.on('connection.update', handleConnectionUpdate);
     }
-    
+
     // 3. Add socket error handlers if not already added
     if (conn.ws && !conn.ws._patchedErrorHandlers) {
       // Add a special handler for WS errors
       const socketErrorHandler = (err) => {
         console.log(`⚠️ WebSocket error: ${err.message}`);
-        
+
         // If connection is still marked as connected, mark it disconnected
         if (connectionState.isConnected) {
           connectionState.isConnected = false;
@@ -771,25 +775,25 @@ function applyConnectionPatch(conn) {
           handleReconnection(conn);
         }
       };
-      
+
       // Add the handler
       conn.ws.on('error', socketErrorHandler);
-      
+
       // Mark as patched to avoid duplicate handlers
       conn.ws._patchedErrorHandlers = true;
     }
-    
+
     // 4. Patch the send function to detect early "connection appears to be closed" errors
     if (conn.sendNode) {
       const originalSendNode = conn.sendNode.bind(conn);
-      
+
       conn.sendNode = async (...args) => {
         try {
           return await originalSendNode(...args);
         } catch (error) {
           if (error.message && error.message.includes('closed')) {
             console.log(`⚠️ sendNode detected closed connection: ${error.message}`);
-            
+
             if (connectionState.isConnected) {
               connectionState.isConnected = false;
               // Initiate reconnection immediately without delay
@@ -800,7 +804,7 @@ function applyConnectionPatch(conn) {
         }
       };
     }
-    
+
     log('Applied comprehensive connection patches for improved stability', 'SUCCESS');
     return true;
   } catch (err) {
@@ -827,17 +831,17 @@ function safeInitialize(conn = null, options = {}) {
     forceReconnect: false,     // Force reconnection on first available connection
     verbose: true              // Show detailed logs
   };
-  
+
   // Merge options with defaults
   const config = { ...defaultOptions, ...options };
-  
+
   // If we have a connection, initialize directly
   if (conn) {
     // Apply patches if requested
     if (config.applyPatches) {
       applyConnectionPatch(conn);
     }
-    
+
     // Force reconnect if requested
     if (config.forceReconnect && conn.ws) {
       try {
@@ -850,7 +854,7 @@ function safeInitialize(conn = null, options = {}) {
         log(`Error during forced reconnect: ${err.message}`, 'ERROR');
       }
     }
-    
+
     // Initialize the connection keeper
     return initializeConnectionKeeper(conn);
   } else {
@@ -858,27 +862,27 @@ function safeInitialize(conn = null, options = {}) {
     if (config.verbose) {
       console.log('🕒 Connection not ready, setting up delayed initialization...');
     }
-    
+
     let attempts = 0;
-    
+
     const checkAndInit = () => {
       // Track attempts
       attempts++;
-      
+
       // Check for connection in global.conn
       if (global.conn) {
         if (config.verbose) {
           console.log(`🔄 Connection now available after ${attempts} attempts, initializing connection keeper...`);
         }
-        
+
         clearInterval(checkInterval);
-        
+
         try {
           // Apply patches if requested
           if (config.applyPatches) {
             applyConnectionPatch(global.conn);
           }
-          
+
           // Force reconnect if requested and it seems we have an established connection
           if (config.forceReconnect && global.conn.ws && 
             (global.conn.user || global.conn.ws.readyState === 1)) {
@@ -886,7 +890,7 @@ function safeInitialize(conn = null, options = {}) {
             // Use a slight delay to allow initialization to complete
             setTimeout(() => forceReconnect(global.conn), 3000);
           }
-          
+
           // Initialize the connection keeper
           return initializeConnectionKeeper(global.conn);
         } catch (err) {
@@ -894,7 +898,7 @@ function safeInitialize(conn = null, options = {}) {
           return false;
         }
       }
-      
+
       // Check if we've reached maximum attempts
       if (config.maxAttempts > 0 && attempts >= config.maxAttempts) {
         if (config.verbose) {
@@ -903,21 +907,21 @@ function safeInitialize(conn = null, options = {}) {
         clearInterval(checkInterval);
         return false;
       }
-      
+
       // Log every 12 attempts (about 1 minute with default settings)
       if (config.verbose && attempts % 12 === 0) {
         console.log(`⏳ Still waiting for WhatsApp connection (attempt ${attempts})...`);
       }
-      
+
       return false;
     };
-    
+
     // Check at specified interval
     const checkInterval = setInterval(checkAndInit, config.pollInterval);
-    
+
     // Store the interval in global space so it can be cancelled if needed
     global.connectionKeeperInterval = checkInterval;
-    
+
     // Also try immediately in case conn is available
     return checkAndInit();
   }

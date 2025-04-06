@@ -1503,6 +1503,7 @@ async function performGracefulShutdown() {
 
 // Handle shutdown signals
 // Keep the process running
+const http = require('http');
 setInterval(() => {
   http.get(`http://0.0.0.0:${process.env.PORT || 5000}/health`, () => {
     console.log('🔄 Keep-alive ping sent');
@@ -1545,3 +1546,9 @@ process.on('unhandledRejection', async (reason, promise) => {
   console.error('❌ Unhandled rejection at:', promise, 'reason:', reason);
   // Don't exit for unhandled rejections as they may not be fatal
 });
+
+// Enable memory optimization by default
+process.env.ENABLE_MEMORY_OPTIMIZATION = 'true';
+process.env.MEMORY_CLEANUP_THRESHOLD = '70';
+process.env.MEMORY_EMERGENCY_THRESHOLD = '85';
+process.env.MEMORY_CHECK_INTERVAL = '60000';
