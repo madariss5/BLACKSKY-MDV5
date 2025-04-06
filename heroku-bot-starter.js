@@ -1502,10 +1502,29 @@ async function performGracefulShutdown() {
 }
 
 // Handle shutdown signals
+// Keep the process running
+setInterval(() => {
+  http.get(`http://0.0.0.0:${process.env.PORT || 5000}/health`, () => {
+    console.log('🔄 Keep-alive ping sent');
+  }).on('error', (err) => {
+    console.error('❌ Keep-alive ping failed:', err.message);
+  });
+}, 5 * 60 * 1000); // Every 5 minutes
+
 process.on('SIGTERM', async () => {
   console.log('🛑 Received SIGTERM signal. Heroku is cycling dynos.');
-  await performGracefulShutdown();
-  process.exit(0);
+  try {
+    await performGracefulShutdown();
+    // Attempt to restart the bot
+    if (global.conn) {
+      console.log('🔄 Attempting to restart bot...');
+      await global.conn.connect();
+    }
+  } catch (err) {
+    console.error('❌ Error during shutdown/restart:', err);
+  }
+  // Don't exit immediately to allow restart
+  setTimeout(() => process.exit(0), 5000);
 });
 
 process.on('SIGINT', async () => {
