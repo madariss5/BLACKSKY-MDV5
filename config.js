@@ -1,70 +1,61 @@
+
+/* 
+   * Bot created by BETABOTZ
+   * Contact: wa.me/62895628117900
+*/
+
+// List of owner numbers
 global.owner = [
-  // Format [number, name, isCreator] - each as separate entries
-  ['4915563151347', 'Martin', true],
-  ['436769645892', 'Owner', true]
-]  
-global.mods = ['4915563151347', '436769645892'] 
-global.prems = ['4915563151347', '436769645892']
-global.nameowner = 'Martin'
-global.numberowner = '4915563151347'
-global.mail = 'support@tioprm.eu.org' 
-global.gc = 'https://chat.whatsapp.com/G4f1fTpz9zL4EH3FyIcaPR'
-global.instagram = 'https://instagram.com/erlanrahmat_14'
-global.wm = '© 𝔹𝕃𝔸ℂ𝕂𝕊𝕂𝕐-𝕄𝔻'
-global.packname = 'Made With'
-global.author = '𝔹𝕃𝔸ℂ𝕂𝕊𝕂𝕐-𝕄𝔻'
-global.maxwarn = 3 // Maximum warnings (as a number)
-global.antiporn = true // Auto delete porn messages (bot must be admin)
-global.prefix = '.'; // Default command prefix
+  ['4915563151347', 'Owner', true],
+  // Add more numbers if needed
+]
 
-// XP and leveling system
-global.multiplier = 5 // Increase XP requirements (higher = slower leveling, increased from 3)
+// Bot info
+global.nameowner = 'Owner' // Owner name
+global.numberowner = '4915563151347' // Owner's WhatsApp number 
+global.language = 'de' // Default language for bot responses
+global.dana = '-' // Payment info
+global.gopay = '-'
+global.pulsa = '-'
 
-// Language settings
-global.language = 'de' // Default language (en = English, de = German)
-global.languages = ['de', 'en'] // Available languages
+// Social media
+global.sig = 'https://instagram.com/'
+global.syt = 'https://youtube.com/'
+global.sgc = 'https://whatsapp.com/channel/0029Va8ZH8fFXUuc69TGVw1q'
 
-// Timezone settings
-global.timezone = 'Europe/Berlin' // Default timezone for date/time functions
+// Bot branding
+global.namebot = 'BLACKSKY-MD'
+global.wm = '© BLACKSKY-MD'
+global.botname = 'BLACKSKY-MD'
 
-// Settings
+// Message settings
+global.useMulti = true // Enable multi-prefix
+global.autoread = true // Auto read messages
+global.autobio = true // Auto update bot bio
+global.autoblok = true // Auto block spam
+global.available = true // Set bot status to available
 
+// Sticker branding
+global.packname = 'BLACKSKY'
+global.author = 'by BETABOTZ'
 
-// API Configuration
-global.APIs = {
-  xteam: 'https://api.xteam.xyz',
-  lol: 'https://api.lolhuman.xyz',
-  openai: 'https://api.openai.com/v1',
-  openweather: 'https://api.openweathermap.org/data/2.5',
-  deepai: 'https://api.deepai.org/api'
+// Other settings
+global.sessionName = 'session'
+global.prefa = ['', '!', '.', '🐦', '🐤', '🗿']
+global.mess = {
+    success: 'Done ✓',
+    admin: 'This feature is for group admins only!',
+    botAdmin: 'The bot needs to be an admin first!',
+    owner: 'This feature is for the bot owner only!',
+    group: 'This feature is for groups only!',
+    private: 'This feature is for private chats only!',
+    error: 'Error! Please try again later.',
+    wait: 'Please wait...',
+    limit: 'Your daily limit has expired!'
 }
 
-// API Keys
-global.APIKeys = {
-  'https://api.xteam.xyz': process.env.XTEAM_API_KEY || '',
-  'https://api.lolhuman.xyz': process.env.LOLHUMAN_API_KEY || '',
-  'https://api.openai.com/v1': process.env.OPENAI_API_KEY || '',
-  'https://api.openweathermap.org/data/2.5': process.env.OPENWEATHERMAP_API_KEY || '',
-  'https://api.deepai.org/api': process.env.DEEPAI_API_KEY || ''
-}
-
-// For easier access in plugins
-global.deepaiApiKey = process.env.DEEPAI_API_KEY || ''
-
-let fs = require('fs')
-let chalk = require('chalk')
-let file = require.resolve(__filename)
-fs.watchFile(file, () => {
-  fs.unwatchFile(file)
-  console.log(chalk.redBright("Update 'config.js'"))
-  delete require.cache[file]
-  require(file)
-})
-
-// Load custom connection patch
-try {
-  require('./connection-patch')
-  console.log(chalk.greenBright('✅ Connection patch loaded successfully'))
-} catch (e) {
-  console.log(chalk.redBright('❌ Failed to load connection patch: ' + e.message))
+// Don't modify these system settings
+global.limitawal = {
+    premium: "Infinity",
+    free: 100
 }
