@@ -57,7 +57,8 @@ const STATE = {
     heartbeat: null,
     connectionCheck: null,
     backup: null,
-    antiIdle: null
+    antiIdle: null,
+    internalAntiIdle: null
   }
 };
 
@@ -587,100 +588,73 @@ async function checkConnection(conn) {
   }
 }
 
-/**
- * Attempt to reconnect with exponential backoff
- * @param {Object} conn - Baileys connection object
- */
+const keepAliveInterval = 50000; // 50 seconds
+const connectionCheckInterval = 30000; // 30 seconds
+const maxReconnectAttempts = 10;
+let reconnectCount = 0;
+
+// Connection keeper implementation
+function initConnectionKeeper(conn) {
+  if (!conn) return;
+
+  // Keep connection alive with periodic pings
+  STATE.intervalIds.keepAlive = setInterval(() => {
+    if (conn.user && conn.ws && conn.ws.readyState === WebSocket.OPEN) {
+      conn.ws.ping();
+      log('🔄 Connection ping sent', 'DEBUG');
+    }
+  }, keepAliveInterval);
+
+  // Monitor connection status
+  STATE.intervalIds.connectionMonitor = setInterval(() => {
+    if (!conn.user || !conn.ws || conn.ws.readyState !== WebSocket.OPEN) {
+      log('⚠️ Connection appears to be closed. Attempting reconnect...', 'WARN');
+      attemptReconnect(conn);
+    }
+  }, connectionCheckInterval);
+
+  // Handle connection close
+  conn.ws.on('close', () => {
+    log('❌ WebSocket closed', 'WARN');
+    attemptReconnect(conn);
+  });
+
+  // Handle connection errors
+  conn.ws.on('error', (err) => {
+    log('❌ WebSocket error:', 'ERROR', err);
+    attemptReconnect(conn);
+  });
+}
+
+
+// Reconnection logic with exponential backoff
 async function attemptReconnect(conn) {
-  try {
-    if (STATE.isReconnecting) return false;
-    STATE.isReconnecting = true;
-
-    if (STATE.reconnectAttempts >= CONFIG.maxReconnectAttempts) {
-      log('Maximum reconnection attempts reached, attempting recovery...', 'WARN');
-
-      // Backup current session
-      await backupSessionToPostgres();
-      await backupSessionFiles();
-
-      // Try restoring from backup
-      const restored = await restoreSessionFromPostgres() || await restoreSessionFiles();
-
-      if (restored) {
-        // Reset connection state
-        STATE.reconnectAttempts = 0;
-        STATE.backoffDelay = 1000; // Reset backoff delay
-        STATE.isReconnecting = false;
-
-        // Force reconnection
-        if (global.conn?.ws) {
-          try { global.conn.ws.close(); } catch {}
-        }
-
-        setTimeout(() => {
-          if (global.reloadHandler) {
-            global.reloadHandler(true);
-          }
-        }, 2000);
-
-        return true;
-      }
-    }
-
-    STATE.reconnectAttempts++;
-    const delay = STATE.backoffDelay;
-
-    log(`Reconnection attempt ${STATE.reconnectAttempts}/${CONFIG.maxReconnectAttempts} after ${delay}ms`, 'WARN');
-
-    // Wait for backoff delay
-    await new Promise(resolve => setTimeout(resolve, delay));
-
-    // Increase backoff delay for next attempt, with maximum
-    STATE.backoffDelay = Math.min(
-      STATE.backoffDelay * CONFIG.backoffFactor,
-      CONFIG.maxBackoffDelay
-    );
-
-    // Try multiple reconnection strategies in sequence
-
-    // 1. First try a simple heartbeat to trigger reconnection
-    await sendHeartbeat(conn);
-
-    // Wait a moment to see if that worked
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // 2. If connection still appears closed, try a more direct approach
-    if (!isConnectionActive(conn)) {
-      log('Heartbeat did not trigger reconnection, trying more direct approach', 'WARN');
-
-      // Try to force a connection reset through connection update event
-      if (typeof conn.ev?.emit === 'function') {
-        conn.ev.emit('connection.update', { 
-          connection: 'close', 
-          lastDisconnect: {
-            error: new Error('Manual reconnection triggered')
-          }
-        });
-      }
-
-      // Wait for reset to process
-      await new Promise(resolve => setTimeout(resolve, 2000));
-    }
-
-    // Every 3 attempts, try restoring sessions
-    if (STATE.reconnectAttempts % 3 === 0) {
-      log('Multiple reconnection attempts failed, trying to restore sessions', 'WARN');
-      await restoreSessionFromDatabase();
-
-      // After restoration, backup current state for safety
-      await backupSessionToDatabase();
-    }
-  } catch (err) {
-    log(`Error in attemptReconnect: ${err.message}`, 'ERROR');
-    STATE.isReconnecting = false; // Ensure isReconnecting is reset on error
-  } finally {
-    STATE.isReconnecting = false; // Ensure isReconnecting is reset
+  if (reconnectCount >= maxReconnectAttempts) {
+    log('❌ Max reconnection attempts reached. Restarting process...', 'ERROR');
+    await performGracefulShutdown();
+    process.exit(1);
+    return;
   }
+
+  const delay = Math.min(1000 * Math.pow(2, reconnectCount), 30000);
+  reconnectCount++;
+
+  log(`🔄 Attempting reconnect in ${delay/1000} seconds... (Attempt ${reconnectCount}/${maxReconnectAttempts})`, 'WARN');
+
+  setTimeout(async () => {
+    try {
+      if(conn && conn.connect){
+        await conn.connect();
+      } else {
+        log('Connection object invalid, cannot reconnect', 'ERROR')
+      }
+      reconnectCount = 0;
+      log('✅ Reconnected successfully', 'SUCCESS');
+    } catch (err) {
+      log('❌ Reconnection failed:', 'ERROR', err);
+      attemptReconnect(conn);
+    }
+  }, delay);
 }
 
 /**
@@ -861,48 +835,48 @@ function setupHealthCheck() {
 
     // Check if any global connection exists
     const connectionStatus = global.conn?.user ? 'Connected' : 'Disconnected';
-  app.get('/restart-connection', (req, res) => {
-    try {
-      log('Manual connection restart requested via health endpoint', 'INFO');
+    app.get('/restart-connection', (req, res) => {
+      try {
+        log('Manual connection restart requested via health endpoint', 'INFO');
 
-      res.json({
-        status: 'restarting',
-        timestamp: new Date().toISOString(),
-        message: 'Connection restart initiated'
-      });
+        res.json({
+          status: 'restarting',
+          timestamp: new Date().toISOString(),
+          message: 'Connection restart initiated'
+        });
 
-      // Use a small timeout to ensure response is sent before restarting the connection
-      setTimeout(() => {
-        if (global.enhancedConnectionKeeper?.forceReconnect) {
-          log('Using enhanced connection keeper to restart connection', 'INFO');
-          global.enhancedConnectionKeeper.forceReconnect(global.conn);
-        } else if (typeof global.forceRestartConnection === 'function') {
-          log('Using global forceRestartConnection function', 'INFO');
-          global.forceRestartConnection();
-        } else if (typeof attemptReconnect === 'function') {
-          log('Using standard attemptReconnect function', 'INFO');
-          attemptReconnect();
-        } else {
-          log('No reconnection method found, using basic technique', 'WARN');
-          // Basic reconnection - mark as disconnected and wait for auto-reconnect
-          if (global.conn?.ws) {
-            try {
-              global.conn.ws.close();
-              log('Closed WebSocket connection to trigger reconnect', 'INFO');
-            } catch (err) {
-              log(`Error closing WebSocket: ${err.message}`, 'ERROR');
+        // Use a small timeout to ensure response is sent before restarting the connection
+        setTimeout(() => {
+          if (global.enhancedConnectionKeeper?.forceReconnect) {
+            log('Using enhanced connection keeper to restart connection', 'INFO');
+            global.enhancedConnectionKeeper.forceReconnect(global.conn);
+          } else if (typeof global.forceRestartConnection === 'function') {
+            log('Using global forceRestartConnection function', 'INFO');
+            global.forceRestartConnection();
+          } else if (typeof attemptReconnect === 'function') {
+            log('Using standard attemptReconnect function', 'INFO');
+            attemptReconnect();
+          } else {
+            log('No reconnection method found, using basic technique', 'WARN');
+            // Basic reconnection - mark as disconnected and wait for auto-reconnect
+            if (global.conn?.ws) {
+              try {
+                global.conn.ws.close();
+                log('Closed WebSocket connection to trigger reconnect', 'INFO');
+              } catch (err) {
+                log(`Error closing WebSocket: ${err.message}`, 'ERROR');
+              }
             }
           }
-        }
-      }, 500);
-    } catch (err) {
-      log(`Error handling restart-connection request: ${err.message}`, 'ERROR');
-      res.status(500).json({
-        status: 'error',
-        message: `Failed to restart connection: ${err.message}`
-      });
-    }
-  });
+        }, 500);
+      } catch (err) {
+        log(`Error handling restart-connection request: ${err.message}`, 'ERROR');
+        res.status(500).json({
+          status: 'error',
+          message: `Failed to restart connection: ${err.message}`
+        });
+      }
+    });
 
     const response = {
       status: 'ok',
@@ -1442,3 +1416,4 @@ module.exports = {
 if (require.main === module) {
   initialize();
 }
+const WebSocket = require('ws');
