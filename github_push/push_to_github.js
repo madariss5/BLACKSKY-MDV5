@@ -9,7 +9,8 @@ const repo = 'BLACKSKY-MDV5';
 const token = process.env.GITHUB_TOKEN;
 
 if (!token) {
-  console.error('GITHUB_TOKEN not found in environment variables');
+  console.error('GITHUB_TOKEN not found in environment variables. Please set it in Replit Secrets.');
+  console.error('Go to Tools -> Secrets and add GITHUB_TOKEN with your GitHub personal access token.');
   process.exit(1);
 }
 
