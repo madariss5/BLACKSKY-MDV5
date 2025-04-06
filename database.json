@@ -33,7 +33,7 @@
       "waifu": "Belum Di Set",
       "husbu": "Belum Di Set",
       "pc": 0,
-      "exp": 24567,
+      "exp": 24632,
       "coin": 0,
       "atm": 0,
       "limit": 8,
@@ -297,7 +297,7 @@
       "lastgrab": 0,
       "lastngocok": 0,
       "lastturu": 0,
-      "lastseen": 1743951677770,
+      "lastseen": 1743951812840,
       "lastSetStatus": 0,
       "registered": true,
       "mangga": 0,
@@ -348,8 +348,8 @@
       "lastdate": 0,
       "lasttambang": 0,
       "lastngepet": 0,
-      "chat": 4794,
-      "chatTotal": 4794,
+      "chat": 4806,
+      "chatTotal": 4806,
       "glimit": 10,
       "pertambangan": 0,
       "lastbossbattle": 0,
@@ -384,9 +384,9 @@
       "bibitapel": 0,
       "bibitmangga": 0,
       "bibitjeruk": 0,
-      "command": 632,
-      "commandTotal": 632,
-      "lastCmd": 1743951676995,
+      "command": 636,
+      "commandTotal": 636,
+      "lastCmd": 1743951755920,
       "language": "de",
       "doctor": 0,
       "mining": 0,
@@ -108561,10 +108561,10 @@
   },
   "stats": {
     "menu.js": {
-      "total": 278,
-      "success": 278,
-      "last": 1743951670726,
-      "lastSuccess": 1743951670726
+      "total": 279,
+      "success": 279,
+      "last": 1743951751939,
+      "lastSuccess": 1743951751939
     },
     "tools-profile.js": {
       "total": 29,
@@ -108855,10 +108855,10 @@
       "lastSuccess": 1743675357150
     },
     "reactions.js": {
-      "total": 213,
-      "success": 213,
-      "last": 1743951677769,
-      "lastSuccess": 1743951677769
+      "total": 215,
+      "success": 215,
+      "last": 1743951756316,
+      "lastSuccess": 1743951756316
     },
     "change-language.js": {
       "total": 15,
@@ -108927,10 +108927,10 @@
       "lastSuccess": 1743689227493
     },
     "game-rps.js": {
-      "total": 19,
-      "success": 19,
-      "last": 1743853928258,
-      "lastSuccess": 1743853928258
+      "total": 20,
+      "success": 20,
+      "last": 1743951688398,
+      "lastSuccess": 1743951688398
     },
     "sticker-maker.js": {
       "total": 10,
