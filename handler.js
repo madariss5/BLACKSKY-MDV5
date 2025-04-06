@@ -1187,19 +1187,31 @@ module.exports = {
                 console.log(`[SECURITY WARNING] No owners defined in config.js or invalid format`);
             }
             
-            // CRITICAL SECURITY FIX: Only use the numbers from config.js as real owners
-            // The original config.js owners get the real owner status, nobody else
-            // Use explicit check against config.js owners, not derived ownerNumbers
+            // Enhanced owner validation with better number formatting
             const configOwners = Array.isArray(global.owner) ? global.owner.map(o => {
                 if (typeof o === 'string') {
-                    return o.replace(/[^0-9]/g, '') + '@s.whatsapp.net';
+                    // Clean and format number
+                    let num = o.replace(/[^0-9]/g, '');
+                    // Ensure proper WhatsApp format
+                    return num + '@s.whatsapp.net';
+                } else if (Array.isArray(o) && o[0]) {
+                    // Handle array format [number, name, isDev]
+                    let num = o[0].replace(/[^0-9]/g, '');
+                    return num + '@s.whatsapp.net';
                 }
                 return null;
             }).filter(Boolean) : [];
-            
-            // Strict equality check for real owner validation - CRITICAL SECURITY CHECK
-            // This is the primary security gate to protect owner-only commands
+
+            // Multiple validation checks for owner status
             let isROwner = configOwners.some(v => v === m.sender)
+            
+            // Additional check for bot number if it's an owner
+            if (this.user && this.user.jid) {
+                const botNumber = this.user.jid.replace(/[^0-9]/g, '') + '@s.whatsapp.net';
+                if (configOwners.includes(botNumber)) {
+                    isROwner = isROwner || (m.fromMe && m.sender === this.user.jid);
+                }
+            }
             
             // Defensive default - no ownership unless explicitly granted by exact match
             let isOwner = false
