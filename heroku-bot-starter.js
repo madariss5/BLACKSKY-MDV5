@@ -844,11 +844,11 @@ function initOptimizer() {
     optimizerInitialized = true;
     console.log('✅ Performance optimization system fully initialized');
   } catch (err) {
-    consoleerror('⚠️ Failed to load performance optimizations:', err.message);
+    console.error('⚠️ Failed to load performance optimizations:', err.message);
     console.error(err);
   }
 }
-const fs = require('fs');
+// fs is already required above
 const path = require('path');
 
 
