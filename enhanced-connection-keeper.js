@@ -115,8 +115,11 @@ const connectionState = {
   isConnected: false,
   lastConnected: null,
   reconnectAttempts: 0,
-  maxReconnectAttempts: 20,
-  reconnectDelay: 2000, // Start with 2 seconds
+  maxReconnectAttempts: 30, // Increased max attempts
+  reconnectDelay: 1000, // Faster initial reconnect
+  maxReconnectDelay: 15000, // Maximum delay between attempts
+  heartbeatInterval: 25000, // More frequent heartbeat
+  socketTimeout: 45000, // Reduced socket timeout // Start with 2 seconds
   maxReconnectDelay: 30000, // Max 30 seconds
   heartbeatInterval: 30000, // More frequent heartbeat
   connectionCheckInterval: 20000, // Faster connection checks

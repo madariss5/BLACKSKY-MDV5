@@ -16,7 +16,11 @@ const isTermux = os.platform() === 'android' || process.env.TERMUX === 'true';
 const isHeroku = process.env.HEROKU === 'true' || !!process.env.DYNO;
 
 // Enable memory optimization by default on Heroku
-process.env.ENABLE_MEMORY_OPTIMIZATION = process.env.ENABLE_MEMORY_OPTIMIZATION || 'true';
+// Enable optimized memory management
+process.env.ENABLE_MEMORY_OPTIMIZATION = 'true';
+process.env.MEMORY_CLEANUP_THRESHOLD = '70'; // Run cleanup at 70% heap usage
+process.env.MEMORY_EMERGENCY_THRESHOLD = '85'; // Emergency cleanup at 85% usage
+process.env.MEMORY_CHECK_INTERVAL = '60000'; // Check every minute
 
 // Set environment variables based on detected environment
 if (isTermux) {
