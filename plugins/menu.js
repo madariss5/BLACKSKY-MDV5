@@ -10,7 +10,7 @@ const moment = require('moment-timezone');
 const { svgToPng, getDefaultLogoPath } = require('../lib/svg-converter');
 
 // WhatsApp Group Link (can be replaced with your actual link)
-const groupLink = "https://whatsapp.com/channel/0029Va8ZH8fFXUuc69TGVw1q";
+const groupLink =
 
 let handler = async (m, { conn, usedPrefix: _p, args = [], command }) => {
     // Get user's preferred language
