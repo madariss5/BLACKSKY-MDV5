@@ -33,7 +33,7 @@
       "waifu": "Belum Di Set",
       "husbu": "Belum Di Set",
       "pc": 0,
-      "exp": 24396,
+      "exp": 24567,
       "coin": 0,
       "atm": 0,
       "limit": 8,
@@ -297,7 +297,7 @@
       "lastgrab": 0,
       "lastngocok": 0,
       "lastturu": 0,
-      "lastseen": 1743951456173,
+      "lastseen": 1743951677770,
       "lastSetStatus": 0,
       "registered": true,
       "mangga": 0,
@@ -348,8 +348,8 @@
       "lastdate": 0,
       "lasttambang": 0,
       "lastngepet": 0,
-      "chat": 4771,
-      "chatTotal": 4771,
+      "chat": 4794,
+      "chatTotal": 4794,
       "glimit": 10,
       "pertambangan": 0,
       "lastbossbattle": 0,
@@ -384,9 +384,9 @@
       "bibitapel": 0,
       "bibitmangga": 0,
       "bibitjeruk": 0,
-      "command": 624,
-      "commandTotal": 624,
-      "lastCmd": 1743951456135,
+      "command": 632,
+      "commandTotal": 632,
+      "lastCmd": 1743951676995,
       "language": "de",
       "doctor": 0,
       "mining": 0,
@@ -10965,7 +10965,7 @@
       "waifu": "Belum Di Set",
       "husbu": "Belum Di Set",
       "pc": 0,
-      "exp": 553,
+      "exp": 558,
       "coin": 0,
       "atm": 0,
       "limit": 10,
@@ -11229,7 +11229,7 @@
       "lastgrab": 0,
       "lastngocok": 0,
       "lastturu": 0,
-      "lastseen": 1743946207533,
+      "lastseen": 1743951658962,
       "lastSetStatus": 0,
       "registered": true,
       "mangga": 0,
@@ -11280,8 +11280,8 @@
       "lastdate": 0,
       "lasttambang": 0,
       "lastngepet": 0,
-      "chat": 95,
-      "chatTotal": 95,
+      "chat": 96,
+      "chatTotal": 96,
       "language": "en",
       "glimit": 10,
       "pertambangan": 0,
@@ -105080,11 +105080,11 @@
           "blacklist": false,
           "banned": false,
           "bannedTime": 0,
-          "chat": 96,
-          "chatTotal": 96,
+          "chat": 97,
+          "chatTotal": 97,
           "command": 0,
           "commandTotal": 0,
-          "lastseen": 1743946207533
+          "lastseen": 1743951658962
         },
         "255627676736@s.whatsapp.net": {
           "blacklist": false,
@@ -108561,10 +108561,10 @@
   },
   "stats": {
     "menu.js": {
-      "total": 275,
-      "success": 275,
-      "last": 1743951347267,
-      "lastSuccess": 1743951347267
+      "total": 278,
+      "success": 278,
+      "last": 1743951670726,
+      "lastSuccess": 1743951670726
     },
     "tools-profile.js": {
       "total": 29,
@@ -108855,10 +108855,10 @@
       "lastSuccess": 1743675357150
     },
     "reactions.js": {
-      "total": 208,
-      "success": 208,
-      "last": 1743951456172,
-      "lastSuccess": 1743951456172
+      "total": 213,
+      "success": 213,
+      "last": 1743951677769,
+      "lastSuccess": 1743951677769
     },
     "change-language.js": {
       "total": 15,
