@@ -6,24 +6,22 @@ function loadEnv() {
   // Load from .env file if it exists
   const envPath = path.join(__dirname, '.env');
   if (fs.existsSync(envPath)) {
-    require('dotenv').config()
-
-// Validate essential API keys
-if (!process.env.OPENWEATHERMAP_API_KEY) {
-  console.warn('⚠️ OpenWeatherMap API key not set - Weather commands will not work')
-}
-
-if (!process.env.OPENAI_API_KEY) {
-  console.warn('⚠️ OpenAI API key not set - AI commands will not work')
-}
-
-// Export for use in commands
-module.exports = {
-  OPENWEATHERMAP_API_KEY: process.env.OPENWEATHERMAP_API_KEY,
-  OPENAI_API_KEY: process.env.OPENAI_API_KEY
-};
+    require('dotenv').config();
   }
-  
+
+  // Set up global API configuration
+  global.APIs = {
+    xteam: 'https://api.xteam.xyz',
+    openweather: 'https://api.openweathermap.org/data/2.5',
+    openai: 'https://api.openai.com/v1'
+  };
+
+  global.APIKeys = {
+    'https://api.openweathermap.org/data/2.5': process.env.OPENWEATHERMAP_API_KEY || '',
+    'https://api.openai.com/v1': process.env.OPENAI_API_KEY || '',
+    'https://api.xteam.xyz': process.env.XTEAM_API_KEY || ''
+  };
+
   // Validate required API keys
   const requiredKeys = [
     'OPENAI_API_KEY',

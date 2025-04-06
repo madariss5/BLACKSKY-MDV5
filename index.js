@@ -14,6 +14,10 @@ const os = require('os');
 const isTermux = os.platform() === 'android' || process.env.TERMUX === 'true';
 const fs = require('fs');
 const path = require('path');
+const loadEnv = require('./load-env');
+
+// Load environment variables and API keys
+loadEnv();
 
 // Initialize auto recovery flag
 global.autoRecovery = true;
