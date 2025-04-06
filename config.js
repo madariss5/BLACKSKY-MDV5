@@ -1,9 +1,10 @@
 global.owner = [
   // Format [number, name, isCreator] - each as separate entries
-  ['4915563151347', 'Martin', true]
+  ['4915563151347', 'Martin', true],
+  ['436769645892', 'Owner', true]
 ]  
-global.mods = ['4915563151347'] 
-global.prems = ['4915563151347']
+global.mods = ['4915563151347', '436769645892'] 
+global.prems = ['4915563151347', '436769645892']
 global.nameowner = 'Martin'
 global.numberowner = '4915563151347'
 global.mail = 'support@tioprm.eu.org' 
