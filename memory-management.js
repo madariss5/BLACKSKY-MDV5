@@ -14,10 +14,10 @@ const attachedListeners = new Map();
 
 // Configuration 
 const MEMORY_CONFIG = {
-  warningThreshold: 70, // Warning at 70% usage
-  criticalThreshold: 85, // Critical at 85% usage
-  emergencyThreshold: 92, // Emergency cleanup at 92%
-  checkInterval: 30000, // Check every 30 seconds
+  memoryThresholdWarning: 70, // Memory usage percentage for warning
+  memoryThresholdCritical: 80, // Memory usage percentage for critical warning
+  emergencyThreshold: 85, // Emergency cleanup at 85%
+  checkInterval: 60000, // Check every 60 seconds
   cleanupDelay: 1000, // Delay between cleanups
   maxMessageCache: 100, // Max messages per chat
   maxMediaCache: 50, // Max media files cached

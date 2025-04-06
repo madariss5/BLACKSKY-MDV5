@@ -139,9 +139,10 @@ const connectionState = {
   } // Start with 2 seconds
 };
 
-const maxReconnectDelay = 30000; // Max 30 seconds
-const heartbeatInterval = 30000; // More frequent heartbeat
-const connectionCheckInterval = 20000; // Faster connection checks
+const maxReconnectDelay = 15000; // Max 15 seconds
+const heartbeatInterval = 25000; // More frequent heartbeat
+const connectionCheckInterval = 15000; // Faster connection checks
+const maxRetries = 10; // Maximum number of quick retries
 let lastHeartbeat = null;
 let socketErrorCount = 0;
 const maxSocketErrors = 5;
