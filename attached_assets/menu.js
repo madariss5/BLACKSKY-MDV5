@@ -41,7 +41,7 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
         ];
 
         // WhatsApp Group Link
-        const groupLink = "https://whatsapp.com/channel/0029Va8ZH8fFXUuc69TGVw1q";
+        const groupLink =
 
 
         const getCurrentTimeInNairobi = () => {
