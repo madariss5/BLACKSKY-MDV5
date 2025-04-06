@@ -24,7 +24,7 @@ if (isTermux) {
   process.env.TERMUX = 'true';
   process.env.HEROKU = 'false';
   process.env.SHARP_COMPAT = 'true';
-  
+
   // Set up Sharp compatibility for Termux
   try {
     global.sharp = require('./sharp-compat.js');
@@ -65,7 +65,7 @@ const { initialize: initKeeper } = require('./heroku-connection-keeper.js');
 try {
   global.enhancedConnectionKeeper = require('./enhanced-connection-keeper');
   console.log('✅ Enhanced connection keeper loaded successfully');
-  
+
   // Configure enhanced connection keeper with optimal settings
   global.enhancedKeeperConfig = {
     pollInterval: 3000,        // Check every 3 seconds for faster response
@@ -74,13 +74,13 @@ try {
     forceReconnect: false,     // Don't force reconnect initially
     verbose: true              // Show detailed logs
   };
-  
+
   // Add configuration override from environment
   if (process.env.CONNECTION_KEEPER_FORCE_RECONNECT === 'true') {
     global.enhancedKeeperConfig.forceReconnect = true;
     console.log('⚠️ Force reconnect enabled per environment configuration');
   }
-  
+
   // Initialize with safe mode that waits for connection, using our enhanced config
   if (global.enhancedConnectionKeeper && typeof global.enhancedConnectionKeeper.safeInitialize === 'function') {
     console.log('🔄 Starting enhanced connection keeper in safe mode with optimal settings');
@@ -101,7 +101,7 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
       cleanupInterval: 2 * 60 * 1000, // More frequent cleanup (2 minutes)
       logMemoryUsage: true // Enable memory usage logging
     });
-    
+
     // Create a wrapper with the expected method names
     const memoryManagerWrapper = {
       // Map original methods to the ones we need
@@ -110,13 +110,13 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
         if (typeof memoryManager.getMemoryUsage === 'function') {
           return memoryManager.getMemoryUsage();
         }
-        
+
         // Otherwise, create our own implementation
         const memoryUsage = process.memoryUsage();
         const totalMemory = require('os').totalmem();
         const freeMemory = require('os').freemem();
         const usedMemory = totalMemory - freeMemory;
-        
+
         // Format memory values to MB
         const formatted = {
           heapUsed: Math.round(memoryUsage.heapUsed / (1024 * 1024)),
@@ -128,13 +128,13 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
           systemFree: Math.round(freeMemory / (1024 * 1024)),
           systemUsed: Math.round(usedMemory / (1024 * 1024)),
         };
-        
+
         // Calculate percentages
         const percentages = {
           heapUsage: Math.round((memoryUsage.heapUsed / memoryUsage.heapTotal) * 100),
           systemUsage: Math.round((usedMemory / totalMemory) * 100),
         };
-        
+
         return {
           raw: memoryUsage,
           formatted,
@@ -142,7 +142,7 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
           time: Date.now(),
         };
       },
-      
+
       // Map all original methods to our wrapper
       runCleanup: function() {
         try {
@@ -161,7 +161,7 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
           this.performBasicCleanup();
         }
       },
-      
+
       // Make sure this is a real function and not just a property
       get getMemoryUsage() {
         // Return a proper function wrapped in another function to maintain 'this' context
@@ -170,13 +170,13 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
           if (typeof memoryManager.getMemoryUsage === 'function') {
             return memoryManager.getMemoryUsage();
           }
-          
+
           // Otherwise, create our own implementation
           const memoryUsage = process.memoryUsage();
           const totalMemory = require('os').totalmem();
           const freeMemory = require('os').freemem();
           const usedMemory = totalMemory - freeMemory;
-          
+
           // Format memory values to MB
           const formatted = {
             heapUsed: Math.round(memoryUsage.heapUsed / (1024 * 1024)),
@@ -188,13 +188,13 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
             systemFree: Math.round(freeMemory / (1024 * 1024)),
             systemUsed: Math.round(usedMemory / (1024 * 1024))
           };
-          
+
           // Calculate percentages
           const percentages = {
             heapUsage: Math.round((memoryUsage.heapUsed / memoryUsage.heapTotal) * 100),
             systemUsage: Math.round((usedMemory / totalMemory) * 100)
           };
-          
+
           return {
             raw: memoryUsage,
             formatted,
@@ -203,11 +203,11 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
           };
         };
       },
-      
+
       // Basic cleanup implementation for fallback
       performBasicCleanup: function() {
         console.log('[MEMORY-MANAGER] Running basic cleanup...');
-        
+
         // Clear module cache for non-essential modules
         let clearedCount = 0;
         for (const key in require.cache) {
@@ -220,7 +220,7 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
           }
         }
         console.log(`[MEMORY-MANAGER] Cleared ${clearedCount} modules from cache`);
-        
+
         // Force garbage collection if available
         if (global.gc) {
           try {
@@ -231,7 +231,7 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
           }
         }
       },
-      
+
       runEmergencyCleanup: function() {
         try {
           if (typeof memoryManager.runEmergencyCleanup === 'function') {
@@ -250,7 +250,7 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
           this.performEmergencyCleanup();
           return;
         }
-        
+
         // Also clear Node.js module cache to free up memory
         for (const key in require.cache) {
           if (key.includes('node_modules') && 
@@ -259,7 +259,7 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
             delete require.cache[key];
           }
         }
-        
+
         // Force garbage collection if available
         if (global.gc) {
           try {
@@ -270,11 +270,11 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
           }
         }
       },
-      
+
       // Comprehensive emergency cleanup implementation
       performEmergencyCleanup: function() {
         console.log('🚨 Running emergency memory cleanup...');
-        
+
         // Clear non-essential module cache
         let clearedCount = 0;
         for (const key in require.cache) {
@@ -284,7 +284,7 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
           }
         }
         console.log(`🧹 Cleared ${clearedCount} non-essential modules from require cache`);
-        
+
         // Force garbage collection
         if (global.gc) {
           try {
@@ -296,13 +296,13 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
         } else {
           console.error('⚠️ Garbage collection function not available (Node.js needs --expose-gc flag)');
         }
-        
+
         // Clean up WhatsApp-specific data if available
         try {
           if (global.conn && global.conn.chats) {
             const chatCount = Object.keys(global.conn.chats).length;
             let messageCount = 0;
-            
+
             // Clear message history in chats to free memory
             for (const chatId in global.conn.chats) {
               const chat = global.conn.chats[chatId];
@@ -323,24 +323,24 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
         } catch (err) {
           console.error('⚠️ Error cleaning WhatsApp chat history:', err.message);
         }
-        
+
         console.log('✅ Emergency cleanup completed');
       }
     };
-    
+
     // Set the wrapped memory manager globally
     global.memoryManager = memoryManagerWrapper;
-    
+
     // Start memory management timers
     console.log('[MEMORY-MANAGER] Memory management timers started');
-    
+
     // Create a test function to verify it's working properly
     setTimeout(() => {
       try {
         // Log the available methods
         console.log('[MEMORY-MANAGER] Available memory manager methods:', 
           Object.keys(memoryManager).join(', '));
-        
+
         // Test memory usage function using global.memoryManager
         try {    
           const memUsage = global.memoryManager.getMemoryUsage();
@@ -354,7 +354,7 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
           console.log('[MEMORY-MANAGER] Direct memory usage call succeeded:', 
             directMemUsage.percentages.heapUsage + '%');
         }
-          
+
         // Test cleanup function
         try {
           global.memoryManager.runCleanup();
@@ -365,7 +365,7 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
         console.error('[MEMORY-MANAGER] Error testing memory manager:', error);
       }
     }, 5000);
-    
+
     console.log('✅ Advanced memory manager initialized for Heroku optimization');
   } catch (err) {
     console.error('❌ Failed to load advanced memory manager:', err.message);
@@ -378,29 +378,29 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
 let optimizerInitialized = false;
 function initOptimizer() {
   if (optimizerInitialized) return;
-  
+
   try {
     // Pre-load RPG-specific optimizations
     console.log('🚀 Loading RPG performance optimizations...');
-    
+
     // Initialize response cache system
     global.responseCache = require('./lib/response-cache.js');
     console.log('✅ Response cache system loaded successfully');
-    
+
     // Initialize group optimization system
     global.groupOptimization = require('./lib/group-optimization.js');
     console.log('✅ Group chat optimization system loaded successfully');
-    
+
     // Load other optimizations via the main module
     require('./apply-optimizations.js');
-    
+
     // Set up periodic cache cleanup
     setInterval(() => {
       if (global.responseCache && typeof global.responseCache.cleanup === 'function') {
         global.responseCache.cleanup();
       }
     }, 5 * 60 * 1000); // Clean every 5 minutes
-    
+
     optimizerInitialized = true;
     console.log('✅ Performance optimization system fully initialized');
   } catch (err) {
@@ -420,13 +420,13 @@ const { Pool } = require('pg');
 // Add restart connection endpoint
 app.get('/restart-connection', (req, res) => {
   console.log('🔄 Manual connection restart requested via API endpoint');
-  
+
   res.json({
     status: 'restarting',
     timestamp: new Date().toISOString(),
     message: 'Connection restart initiated'
   });
-  
+
   // Use a timeout to allow response to be sent first
   setTimeout(() => {
     if (global.enhancedConnectionKeeper && typeof global.enhancedConnectionKeeper.forceReconnect === 'function') {
@@ -457,7 +457,7 @@ try {
     console.warn('⚠️ DATABASE_URL environment variable not set. Database features will be disabled.');
     console.warn('⚠️ For Heroku deployment, make sure to add the PostgreSQL addon and set DATABASE_URL.');
     global.DATABASE_ENABLED = false;
-    
+
     // Create mock pool for testing purposes
     pool = {
       query: async () => ({ rows: [{ now: new Date() }] }),
@@ -467,7 +467,7 @@ try {
   } else {
     // Set DATABASE_ENABLED to true immediately to avoid race conditions
     global.DATABASE_ENABLED = true;
-    
+
     pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: {
@@ -478,7 +478,7 @@ try {
       // Increase idle timeout
       idleTimeoutMillis: 30000
     });
-    
+
     // Test the connection
     pool.query('SELECT NOW()', (err, res) => {
       if (err) {
@@ -503,7 +503,7 @@ async function createSessionTable() {
     console.log('⚠️ Database not enabled or available, skipping session table creation');
     return false;
   }
-  
+
   try {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS whatsapp_sessions (
@@ -547,7 +547,7 @@ function createBasicMemoryManager() {
       const totalMemory = require('os').totalmem();
       const freeMemory = require('os').freemem();
       const usedMemory = totalMemory - freeMemory;
-      
+
       // Format memory values to MB
       const formatted = {
         heapUsed: Math.round(memoryUsage.heapUsed / (1024 * 1024)),
@@ -559,13 +559,13 @@ function createBasicMemoryManager() {
         systemFree: Math.round(freeMemory / (1024 * 1024)),
         systemUsed: Math.round(usedMemory / (1024 * 1024)),
       };
-      
+
       // Calculate percentages (with a ceiling of 100% to prevent NaN)
       const percentages = {
         heapUsage: Math.min(100, Math.round((memoryUsage.heapUsed / Math.max(1, memoryUsage.heapTotal)) * 100)),
         systemUsage: Math.min(100, Math.round((usedMemory / Math.max(1, totalMemory)) * 100)),
       };
-      
+
       return {
         raw: memoryUsage,
         formatted,
@@ -573,7 +573,7 @@ function createBasicMemoryManager() {
         time: Date.now(),
       };
     },
-    
+
     runCleanup: function() {
       // Basic memory cleanup (clear require cache for non-essential modules)
       for (const key in require.cache) {
@@ -585,7 +585,7 @@ function createBasicMemoryManager() {
         }
       }
       console.log('[BASIC-MEMORY-MANAGER] Performed basic cleanup');
-      
+
       // Force garbage collection if available
       if (global.gc) {
         try {
@@ -596,18 +596,18 @@ function createBasicMemoryManager() {
         }
       }
     },
-    
+
     runEmergencyCleanup: function() {
       // Clear all caches
       console.log('[BASIC-MEMORY-MANAGER] Emergency cleanup: clearing caches');
-      
+
       // Clear require cache more aggressively
       for (const key in require.cache) {
         if (!key.includes('baileys') && !key.includes('whatsapp')) {
           delete require.cache[key];
         }
       }
-      
+
       // Force garbage collection
       if (global.gc) {
         try {
@@ -655,17 +655,17 @@ app.get('/health', (req, res) => {
         }
       };
     }
-    
+
 // Add restart connection endpoint
 app.get('/restart-connection', (req, res) => {
   console.log('🔄 Manual connection restart requested via API endpoint');
-  
+
   res.json({
     status: 'restarting',
     timestamp: new Date().toISOString(),
     message: 'Connection restart initiated'
   });
-  
+
   // Use a timeout to allow response to be sent first
   setTimeout(() => {
     if (global.enhancedConnectionKeeper && typeof global.enhancedConnectionKeeper.forceReconnect === 'function') {
@@ -688,7 +688,7 @@ app.get('/restart-connection', (req, res) => {
     }
   }, 500);
 });
-    
+
     res.json({ 
       status: 'ok', 
       timestamp: new Date().toISOString(),
@@ -711,7 +711,7 @@ app.get('/restart-connection', (req, res) => {
 if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
   const MEMORY_CHECK_INTERVAL = 60 * 1000; // Check every minute
   console.log('🧠 Setting up periodic memory monitoring...');
-  
+
   // Run initial memory check to validate setup
   setTimeout(() => {
     console.log('🧠 Running initial memory manager test...');
@@ -720,24 +720,24 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
         console.error('❌ Memory manager not available globally');
         return;
       }
-      
+
       // List available methods on the memory manager
       console.log('🧠 Memory manager methods:', Object.keys(global.memoryManager).join(', '));
-      
+
       // Check if getMemoryUsage is available on the memory manager
       if (typeof global.memoryManager.getMemoryUsage !== 'function') {
         console.error('❌ getMemoryUsage is not a function on memory manager');
         console.log('🔄 Falling back to direct module import for memory usage');
-        
+
         try {
           // Use the directly imported memory manager module
           const AdvancedMemoryManager = require('./lib/advanced-memory-manager.js');
           const memoryInfo = AdvancedMemoryManager.getMemoryUsage();
-          
+
           console.log('✅ Direct memory module working! Current memory usage:');
           console.log(`   Heap: ${memoryInfo.percentages.heapUsage}% (${memoryInfo.formatted.heapUsed} MB)`);
           console.log(`   System: ${memoryInfo.percentages.systemUsage}% (${memoryInfo.formatted.systemUsed} MB)`);
-          
+
           // Update the global memory manager with working function
           global.memoryManager.getMemoryUsage = AdvancedMemoryManager.getMemoryUsage;
           console.log('✅ Updated global memory manager with working getMemoryUsage function');
@@ -746,13 +746,13 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
         }
         return;
       }
-      
+
       // Get memory usage
       const memoryInfo = global.memoryManager.getMemoryUsage();
       console.log('✅ Memory manager working! Current memory usage:');
       console.log(`   Heap: ${memoryInfo.percentages.heapUsage}% (${memoryInfo.formatted.heapUsed} MB)`);
       console.log(`   System: ${memoryInfo.percentages.systemUsage}% (${memoryInfo.formatted.systemUsed} MB)`);
-      
+
       // Test cleanup function
       if (typeof global.memoryManager.runCleanup === 'function') {
         global.memoryManager.runCleanup();
@@ -762,16 +762,16 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
       console.error('❌ Error testing memory manager:', err);
     }
   }, 3000);
-  
+
   const memoryMonitorInterval = setInterval(() => {
     try {
       if (!global.memoryManager) {
         console.error('❌ Memory manager not available globally');
         return;
       }
-      
+
       let memoryInfo;
-      
+
       try {
         // First try using the global memory manager
         if (typeof global.memoryManager.getMemoryUsage === 'function') {
@@ -779,42 +779,42 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
         } else {
           // Fall back to direct import if needed
           console.log('⚠️ Global memory manager missing getMemoryUsage, using direct import');
-          
+
           const AdvancedMemoryManager = require('./lib/advanced-memory-manager.js');
           memoryInfo = AdvancedMemoryManager.getMemoryUsage();
-          
+
           // Update the global memory manager for future calls
           global.memoryManager.getMemoryUsage = AdvancedMemoryManager.getMemoryUsage;
         }
       } catch (memErr) {
         console.error('❌ Error accessing memory usage:', memErr.message);
-        
+
         // Last resort fallback to basic memory calculation
         const basicManager = createBasicMemoryManager();
         memoryInfo = basicManager.getMemoryUsage();
-        
+
         // Replace the broken function with a working one
         global.memoryManager.getMemoryUsage = basicManager.getMemoryUsage;
       }
-      
+
       // Extract correct properties from memory info
       const heapUsagePercent = memoryInfo.percentages.heapUsage;
       const heapUsedMB = memoryInfo.formatted.heapUsed;
-      
+
       // Log memory status periodically
       if (heapUsagePercent > 70) {
         console.log(`⚠️ Memory usage high: ${heapUsagePercent.toFixed(1)}% (${heapUsedMB} MB)`);
       }
-      
+
       // Make sure required functions are available in memory manager
       const memManager = global.memoryManager;
-      
+
       // Ensure runCleanup is available
       if (typeof memManager.runCleanup !== 'function') {
         console.log('⚠️ Adding missing runCleanup function to memory manager');
         memManager.runCleanup = function() {
           console.log('[MEMORY-MANAGER] Running basic cleanup...');
-          
+
           // Clear require cache for non-essential modules
           let clearedModules = 0;
           for (const key in require.cache) {
@@ -830,13 +830,13 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
           return true;
         };
       }
-      
+
       // Ensure runEmergencyCleanup is available
       if (typeof memManager.runEmergencyCleanup !== 'function') {
         console.log('⚠️ Adding missing runEmergencyCleanup function to memory manager');
         memManager.runEmergencyCleanup = function() {
           console.log('[MEMORY-MANAGER] Running emergency cleanup...');
-          
+
           // Clear more aggressively
           let clearedModules = 0;
           for (const key in require.cache) {
@@ -846,13 +846,13 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
             }
           }
           console.log(`[MEMORY-MANAGER] Emergency cleared ${clearedModules} modules from cache`);
-          
+
           // Clear WhatsApp message cache if possible
           if (global.conn && global.conn.chats) {
             let messageCount = 0;
             const chatCount = Object.keys(global.conn.chats).length;
             console.log(`[MEMORY-MANAGER] Clearing message history from ${chatCount} chats...`);
-            
+
             for (const chatId in global.conn.chats) {
               const chat = global.conn.chats[chatId];
               if (chat && chat.messages) {
@@ -869,23 +869,23 @@ if (process.env.ENABLE_MEMORY_OPTIMIZATION === 'true') {
             }
             console.log(`[MEMORY-MANAGER] Removed ${messageCount} cached messages`);
           }
-          
+
           return true;
         };
       }
-      
+
       try {
         // Run cleanup at warning threshold (default 70%)
         if (heapUsagePercent > 70) {
           console.log('🧹 Running standard memory cleanup...');
           global.memoryManager.runCleanup();
         }
-        
+
         // Run emergency cleanup at critical threshold (default 85%)
         if (heapUsagePercent > 85) {
           console.log('🚨 Memory usage critical! Running emergency cleanup...');
           global.memoryManager.runEmergencyCleanup();
-          
+
           // Don't attempt to use global.gc directly here anymore
           // It's handled in runEmergencyCleanup with proper checks
         }
@@ -904,7 +904,7 @@ app.get('/', (req, res) => {
   const hours = Math.floor(uptime / 3600);
   const minutes = Math.floor((uptime % 3600) / 60);
   const seconds = Math.floor(uptime % 60);
-  
+
   res.send(`
     <!DOCTYPE html>
     <html>
@@ -976,31 +976,31 @@ app.get('/', (req, res) => {
 function startServerWithAvailablePort(initialPort, maxRetries = 10) {
   let currentPort = initialPort;
   let retryCount = 0;
-  
+
   // Try to start the server with current port
   function attemptToStartServer() {
     console.log(`Attempting to start server on port ${currentPort}...`);
-    
+
     const server = app.listen(currentPort, '0.0.0.0', () => {
       console.log(`⚡ Server running on port ${currentPort}`);
-      
+
       // Initialize performance optimization system
       console.log('🚀 Initializing performance optimization system...');
       initOptimizer();
-      
+
       // Start bot after server is confirmed running
       setTimeout(() => {
         try {
           // Start the bot
           require('./index.js');
           console.log('✅ Bot started successfully');
-          
+
           // Apply enhanced connection keeper once the bot has started and connection is established
           const applyEnhancedConnectionKeeper = () => {
             try {
               if (global.enhancedConnectionKeeper) {
                 console.log('🛡️ Applying enhanced connection keeper to fix "connection appears to be closed" errors...');
-                
+
                 if (typeof global.enhancedConnectionKeeper.safeInitialize === 'function') {
                   // Use the safe initialize function with our enhanced config
                   global.enhancedConnectionKeeper.safeInitialize(
@@ -1015,14 +1015,14 @@ function startServerWithAvailablePort(initialPort, maxRetries = 10) {
                   // Fall back to direct initialization if safeInitialize isn't available
                   // Initialize the enhanced connection keeper
                   global.enhancedConnectionKeeper.initializeConnectionKeeper(global.conn);
-                  
+
                   // Apply the connection patch for improved error handling
                   global.enhancedConnectionKeeper.applyConnectionPatch(global.conn);
                 } else {
                   console.log('⚠️ Connection not established yet, will retry later');
                   return false;
                 }
-                
+
                 // Set up a connection watcher for persistent connectivity protection
                 const connectionWatcher = setInterval(() => {
                   try {
@@ -1030,21 +1030,21 @@ function startServerWithAvailablePort(initialPort, maxRetries = 10) {
                       console.log('📡 Connection watcher detected offline state, triggering reconnection...');
                       global.enhancedConnectionKeeper.forceReconnect(global.conn);
                     }
-                    
+
                     // Monitor connection memory usage
                     if (global.conn && global.memoryManager) {
                       const memoryInfo = global.memoryManager.getMemoryUsage();
-                      
+
                       // If memory is critical, clean up WhatsApp-specific memory hogs
                       if (memoryInfo.percentages.heapUsage > 85) {
                         console.log('🚨 Critical memory usage detected in connection watcher!');
-                        
+
                         try {
                           // Clear message history in chats
                           if (global.conn.chats) {
                             const chatCount = Object.keys(global.conn.chats).length;
                             console.log(`🧹 Clearing excessive message history from ${chatCount} chats...`);
-                            
+
                             for (const chatId in global.conn.chats) {
                               const chat = global.conn.chats[chatId];
                               if (chat && chat.messages) {
@@ -1059,7 +1059,7 @@ function startServerWithAvailablePort(initialPort, maxRetries = 10) {
                               }
                             }
                           }
-                          
+
                           // Force garbage collection
                           if (global.gc) {
                             global.gc();
@@ -1073,7 +1073,7 @@ function startServerWithAvailablePort(initialPort, maxRetries = 10) {
                     console.error('⚠️ Error in connection watcher:', watcherErr.message);
                   }
                 }, 60000); // Check every minute
-                
+
                 console.log('✅ Enhanced connection keeper and persistent watcher applied successfully');
                 return true;
               } else {
@@ -1085,10 +1085,10 @@ function startServerWithAvailablePort(initialPort, maxRetries = 10) {
               return false;
             }
           };
-          
+
           // Try immediately
           const initialSuccess = applyEnhancedConnectionKeeper();
-          
+
           // If not successful, retry after a delay
           if (!initialSuccess) {
             setTimeout(() => {
@@ -1112,14 +1112,14 @@ function startServerWithAvailablePort(initialPort, maxRetries = 10) {
             try {
               require('./index.js');
               console.log('✅ Bot restarted successfully');
-              
+
               // Also apply enhanced connection keeper after restart
               console.log('🛡️ Applying enhanced connection keeper after restart...');
               const applyEnhancedConnectionKeeper = () => {
                 try {
                   if (global.enhancedConnectionKeeper) {
                     console.log('🛡️ Applying enhanced connection keeper to fix "connection appears to be closed" errors...');
-                    
+
                     if (typeof global.enhancedConnectionKeeper.safeInitialize === 'function') {
                       // Use the safe initialize function with our enhanced config
                       global.enhancedConnectionKeeper.safeInitialize(
@@ -1134,14 +1134,14 @@ function startServerWithAvailablePort(initialPort, maxRetries = 10) {
                       // Fall back to direct initialization if safeInitialize isn't available
                       // Initialize the enhanced connection keeper
                       global.enhancedConnectionKeeper.initializeConnectionKeeper(global.conn);
-                      
+
                       // Apply the connection patch for improved error handling
                       global.enhancedConnectionKeeper.applyConnectionPatch(global.conn);
                     } else {
                       console.log('⚠️ Connection not established yet after restart, will retry later');
                       return false;
                     }
-                    
+
                     // Set up a connection watcher for persistent connectivity protection
                     const connectionWatcher = setInterval(() => {
                       try {
@@ -1149,21 +1149,21 @@ function startServerWithAvailablePort(initialPort, maxRetries = 10) {
                           console.log('📡 Connection watcher detected offline state, triggering reconnection...');
                           global.enhancedConnectionKeeper.forceReconnect(global.conn);
                         }
-                        
+
                         // Monitor connection memory usage
                         if (global.conn && global.memoryManager) {
                           const memoryInfo = global.memoryManager.getMemoryUsage();
-                          
+
                           // If memory is critical, clean up WhatsApp-specific memory hogs
                           if (memoryInfo.percentages.heapUsage > 85) {
                             console.log('🚨 Critical memory usage detected in connection watcher!');
-                            
+
                             try {
                               // Clear message history in chats
                               if (global.conn.chats) {
                                 const chatCount = Object.keys(global.conn.chats).length;
                                 console.log(`🧹 Clearing excessive message history from ${chatCount} chats...`);
-                                
+
                                 for (const chatId in global.conn.chats) {
                                   const chat = global.conn.chats[chatId];
                                   if (chat && chat.messages) {
@@ -1178,7 +1178,7 @@ function startServerWithAvailablePort(initialPort, maxRetries = 10) {
                                   }
                                 }
                               }
-                              
+
                               // Force garbage collection
                               if (global.gc) {
                                 global.gc();
@@ -1192,7 +1192,7 @@ function startServerWithAvailablePort(initialPort, maxRetries = 10) {
                         console.error('⚠️ Error in connection watcher:', watcherErr.message);
                       }
                     }, 60000); // Check every minute
-                    
+
                     console.log('✅ Enhanced connection keeper and persistent watcher applied successfully after restart');
                     return true;
                   } else {
@@ -1204,10 +1204,10 @@ function startServerWithAvailablePort(initialPort, maxRetries = 10) {
                   return false;
                 }
               };
-              
+
               // Try immediately
               applyEnhancedConnectionKeeper();
-              
+
               // Also try after a delay in case connection isn't fully established yet
               setTimeout(applyEnhancedConnectionKeeper, 5000);
             } catch (restartErr) {
@@ -1218,13 +1218,13 @@ function startServerWithAvailablePort(initialPort, maxRetries = 10) {
         }
       }, 1000);
     });
-    
+
     // Handle errors when starting the server
     server.on('error', (err) => {
       if (err.code === 'EADDRINUSE') {
         console.log(`Port ${currentPort} is already in use.`);
         server.close();
-        
+
         // Try another port if we haven't exceeded max retries
         if (retryCount < maxRetries) {
           retryCount++;
@@ -1245,7 +1245,7 @@ function startServerWithAvailablePort(initialPort, maxRetries = 10) {
       }
     });
   }
-  
+
   // Start the first attempt
   attemptToStartServer();
 }
@@ -1258,7 +1258,7 @@ async function restoreSessionFromDatabase() {
   // Check if database is enabled and available
   if (!global.DATABASE_ENABLED || !pool) {
     console.log('⚠️ Database features disabled, creating mock pool for testing');
-    
+
     // Create a mock pool for testing environments
     try {
       global.pool = {
@@ -1279,38 +1279,38 @@ async function restoreSessionFromDatabase() {
 
   try {
     const sessionDir = path.join(process.cwd(), 'sessions');
-    
+
     // Create sessions directory if it doesn't exist
     if (!fs.existsSync(sessionDir)) {
       console.log('📁 Creating sessions directory...');
       fs.mkdirSync(sessionDir, { recursive: true });
     }
-    
+
     // Query latest sessions from database
     try {
       const result = await pool.query('SELECT session_id, session_data FROM whatsapp_sessions ORDER BY updated_at DESC');
-      
+
       if (result.rows.length === 0) {
         console.log('⚠️ No sessions found in database');
         return false;
       }
-      
+
       console.log(`🔄 Found ${result.rows.length} sessions in database to restore`);
-      
+
       // Save each session to file
       let successCount = 0;
       for (const row of result.rows) {
         try {
           const { session_id, session_data } = row;
           const filePath = path.join(sessionDir, `${session_id}.json`);
-          
+
           fs.writeFileSync(filePath, JSON.stringify(session_data, null, 2));
           successCount++;
         } catch (err) {
           console.error(`❌ Error restoring session ${row.session_id}:`, err);
         }
       }
-      
+
       console.log(`✅ Successfully restored ${successCount}/${result.rows.length} sessions from database`);
       return successCount > 0;
     } catch (dbErr) {
@@ -1387,14 +1387,14 @@ async function backupSessionToDatabase() {
 
     // Get list of session files
     const files = fs.readdirSync(sessionDir).filter(f => f.endsWith('.json'));
-    
+
     if (files.length === 0) {
       console.log('⚠️ No session files found to backup');
       return false;
     }
 
     console.log(`🔄 Found ${files.length} session files to backup`);
-    
+
     // Loop through each file and upload to database
     let successCount = 0;
     for (const file of files) {
@@ -1403,7 +1403,7 @@ async function backupSessionToDatabase() {
         const filePath = path.join(sessionDir, file);
         const fileContent = fs.readFileSync(filePath, 'utf8');
         const sessionData = JSON.parse(fileContent);
-        
+
         // Insert or update in database
         try {
           await pool.query(
@@ -1416,7 +1416,7 @@ async function backupSessionToDatabase() {
           successCount++;
         } catch (dbErr) {
           console.error(`❌ Database error backing up session ${sessionId}:`, dbErr.message);
-          
+
           // If we're getting persistent database errors, disable database features
           if (successCount === 0 && files.indexOf(file) > 3) {
             console.log('⚠️ Multiple database errors detected, disabling database features');
@@ -1428,7 +1428,7 @@ async function backupSessionToDatabase() {
         console.error(`❌ Error reading session file ${file}:`, err.message);
       }
     }
-    
+
     console.log(`✅ Successfully backed up ${successCount}/${files.length} session files to database`);
     return successCount > 0;
   } catch (err) {
@@ -1452,18 +1452,18 @@ async function performGracefulShutdown() {
         console.error('❌ Error during memory cleanup:', memErr.message);
       }
     }
-    
+
     // Save sessions to database if database features are enabled
     if (global.DATABASE_ENABLED && pool) {
       console.log('💾 Backing up sessions to PostgreSQL...');
       await backupSessionToDatabase();
-      
+
       // Close database pool
       console.log('🔌 Closing database connection...');
       await pool.end();
     } else {
       console.log('⚠️ Database features disabled, skipping database backup');
-      
+
       // Backup to local files instead
       try {
         // Make sure sessions directory exists
@@ -1471,7 +1471,7 @@ async function performGracefulShutdown() {
         if (!fs.existsSync(sessionDir)) {
           fs.mkdirSync(sessionDir, { recursive: true });
         }
-        
+
         // Save current auth state if available
         if (global.conn && global.conn.authState) {
           console.log('💾 Saving auth state to local files...');
@@ -1484,7 +1484,7 @@ async function performGracefulShutdown() {
         console.error('❌ Error backing up session files:', backupErr.message);
       }
     }
-    
+
     // Clear any connection intervals
     if (global.connectionCheckInterval) {
       clearInterval(global.connectionCheckInterval);
@@ -1494,7 +1494,7 @@ async function performGracefulShutdown() {
       clearInterval(global.connectionKeeperInterval);
       console.log('🔄 Cleared connection keeper interval');
     }
-    
+
     console.log('👋 Shutdown complete. Goodbye!');
   } catch (err) {
     console.error('❌ Error during graceful shutdown:', err);
