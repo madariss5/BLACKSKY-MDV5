@@ -137,22 +137,21 @@ const connectionState = {
     messagesReceived: 0,
     currentRetryCount: 0
   } // Start with 2 seconds
-  
 };
 
-const maxReconnectDelay = 60000; // Max 30 seconds
+const maxReconnectDelay = 30000; // Max 30 seconds
 const heartbeatInterval = 30000; // More frequent heartbeat
 const connectionCheckInterval = 20000; // Faster connection checks
-const lastHeartbeat = null;
-const socketErrorCount = 0;
+let lastHeartbeat = null;
+let socketErrorCount = 0;
 const maxSocketErrors = 5;
 const socketErrorResetTime = 60000; // 1 minute
-const lastSocketErrorTime = null;
-const isReconnecting = false; // Flag to prevent concurrent reconnection attempts
+let lastSocketErrorTime = null;
+let isReconnecting = false; // Flag to prevent concurrent reconnection attempts
 const initialBackoffDelay = 2000; // Start with shorter delay
 const backoffFactor = 1.3; // Gentler backoff
 const socketTimeout = 60000; // Socket timeout
-const keepAliveInterval = 25000 // Keep-alive interval
+const keepAliveInterval = 25000; // Keep-alive interval
 
 
 /**
