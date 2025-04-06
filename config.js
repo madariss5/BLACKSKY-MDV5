@@ -6,8 +6,8 @@
 
 // List of owner numbers
 global.owner = [
-  ['4915563151347', 'Martin', true],
-  ['436769645892', 'Owner', true]
+  ['4915563151347', 'Owner', true],
+  ['4915563151347, 'Owner', true]
 ]  
 global.mods = ['4915563151347', '436769645892'] 
 global.prems = ['4915563151347', '436769645892']
