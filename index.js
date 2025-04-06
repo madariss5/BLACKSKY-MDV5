@@ -30,6 +30,21 @@ try {
   console.error('⚠️ Connection fixer initialization failed:', err);
 }
 
+// Initialize memory manager
+const { memoryManager } = require('./lib/memory-manager');
+
+// Memory usage monitoring
+memoryManager.on('memory:stats', (stats) => {
+  if (stats.percentageUsed > 80) {
+    console.log('🚨 High memory usage:', stats.percentageUsed + '%');
+  }
+});
+
+memoryManager.on('cleanup:emergency', () => {
+  console.log('🚨 Emergency cleanup performed');
+});
+
+
 // Initialize memory management - added for optimized performance
 try {
   const { initializeMemoryManager } = require('./memory-management');
@@ -48,11 +63,11 @@ const needsSessionFix = () => {
   try {
     const sessionsDir = path.join(__dirname, 'sessions');
     if (!fs.existsSync(sessionsDir)) return false;
-    
+
     // Check for creds.json, which should exist in a proper session
     const credsPath = path.join(sessionsDir, 'creds.json');
     if (!fs.existsSync(credsPath)) return true;
-    
+
     // Check if creds.json is valid
     try {
       const credsData = JSON.parse(fs.readFileSync(credsPath, 'utf8'));
@@ -60,7 +75,7 @@ const needsSessionFix = () => {
     } catch (e) {
       return true; // JSON parse error means corrupted file
     }
-    
+
     return false;
   } catch (e) {
     console.error('Error checking sessions:', e);
@@ -118,7 +133,7 @@ try {
 // Add enhanced failure recovery for connection issues
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  
+
   // Auto recovery for connection closed errors
   if (reason && reason.message && (
     reason.message.includes('Connection Closed') ||
@@ -128,7 +143,7 @@ process.on('unhandledRejection', (reason, promise) => {
     reason.message.includes('WebSocket')
   )) {
     console.log('🔄 Connection closed, attempting auto-recovery...');
-    
+
     // Use enhanced connection keeper if available
     if (global.connectionKeeper && global.conn) {
       console.log('🔄 Using enhanced connection keeper for recovery...');
@@ -173,17 +188,17 @@ async function startServer() {
     // Simple startup message
     console.log('\x1b[35m%s\x1b[0m', '🌌 BLACKSKY-MD PREMIUM Started 🌌'); // Purple color for premium branding
     console.log('\x1b[33m%s\x1b[0m', `🌐 Port ${port} is open`);
-    
+
     // Helper function to format uptime
     function formatUptime(seconds) {
       const days = Math.floor(seconds / (3600 * 24));
       const hours = Math.floor((seconds % (3600 * 24)) / 3600);
       const minutes = Math.floor((seconds % 3600) / 60);
       const secs = Math.floor(seconds % 60);
-      
+
       return `${days}d ${hours}h ${minutes}m ${secs}s`;
     }
-    
+
     // Premium cyberpunk-styled home page
     app.get('/', (req, res) => {
       res.send(`
@@ -195,7 +210,7 @@ async function startServer() {
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <style>
               @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;700&display=swap');
-              
+
               :root {
                   --primary: #0df;
                   --primary-glow: rgba(0,221,255,0.5);
@@ -209,13 +224,13 @@ async function startServer() {
                   --text: #eee;
                   --text-muted: #888;
               }
-              
+
               * {
                   box-sizing: border-box;
                   margin: 0;
                   padding: 0;
               }
-              
+
               body {
                   font-family: 'Roboto', sans-serif;
                   background: var(--bg-dark);
@@ -229,7 +244,7 @@ async function startServer() {
                   min-height: 100vh;
                   overflow-x: hidden;
               }
-              
+
               .container {
                   max-width: 900px;
                   margin: 40px auto;
@@ -244,7 +259,7 @@ async function startServer() {
                   position: relative;
                   overflow: hidden;
               }
-              
+
               .container::before {
                   content: '';
                   position: absolute;
@@ -264,29 +279,29 @@ async function startServer() {
                   animation: shimmer 7s linear infinite;
                   pointer-events: none;
               }
-              
+
               @keyframes shimmer {
                   0% { transform: translateY(-50%) rotate(20deg); }
                   100% { transform: translateY(50%) rotate(20deg); }
               }
-              
+
               @keyframes pulse {
                   0% { box-shadow: 0 0 5px var(--primary-glow); }
                   50% { box-shadow: 0 0 15px var(--primary-glow), 0 0 20px var(--secondary-glow); }
                   100% { box-shadow: 0 0 5px var(--primary-glow); }
               }
-              
+
               @keyframes blink {
                   0%, 100% { opacity: 1; }
                   50% { opacity: 0.7; }
               }
-              
+
               .header {
                   text-align: center;
                   margin-bottom: 30px;
                   position: relative;
               }
-              
+
               .logo {
                   font-family: 'Orbitron', sans-serif;
                   font-size: 2.6rem;
@@ -299,7 +314,7 @@ async function startServer() {
                   letter-spacing: 2px;
                   margin-bottom: 5px;
               }
-              
+
               .tagline {
                   font-size: 1.1rem;
                   font-weight: 300;
@@ -308,7 +323,7 @@ async function startServer() {
                   letter-spacing: 1px;
                   margin-bottom: 15px;
               }
-              
+
               .status-pill {
                   background: var(--bg-card-alt);
                   border-radius: 30px;
@@ -321,7 +336,7 @@ async function startServer() {
                   border: 1px solid rgba(0,221,255,0.2);
                   animation: pulse 3s infinite;
               }
-              
+
               .status-dot {
                   width: 12px;
                   height: 12px;
@@ -331,14 +346,14 @@ async function startServer() {
                   box-shadow: 0 0 5px var(--success-glow);
                   animation: blink 2s infinite;
               }
-              
+
               .grid {
                   display: grid;
                   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
                   gap: 20px;
                   margin: 30px 0;
               }
-              
+
               .card {
                   background: var(--bg-card-alt);
                   border-radius: 10px;
@@ -346,12 +361,12 @@ async function startServer() {
                   border-left: 3px solid var(--primary);
                   transition: all 0.3s ease;
               }
-              
+
               .card:hover {
                   transform: translateY(-5px);
                   box-shadow: 0 5px 15px rgba(0,0,0,0.3);
               }
-              
+
               .card-title {
                   font-family: 'Orbitron', sans-serif;
                   font-size: 1.2rem;
@@ -361,17 +376,17 @@ async function startServer() {
                   align-items: center;
                   gap: 10px;
               }
-              
+
               .card-content p {
                   margin-bottom: 8px;
                   font-size: 0.95rem;
               }
-              
+
               .card-content .highlight {
                   color: var(--primary);
                   font-weight: bold;
               }
-              
+
               .footer {
                   margin-top: 40px;
                   text-align: center;
@@ -380,13 +395,13 @@ async function startServer() {
                   padding-top: 20px;
                   border-top: 1px solid rgba(0,221,255,0.1);
               }
-              
+
               .wave {
                   display: inline-block;
                   animation: wave 1.5s infinite;
                   transform-origin: 70% 70%;
               }
-              
+
               @keyframes wave {
                   0% { transform: rotate(0deg); }
                   10% { transform: rotate(14deg); }
@@ -397,7 +412,7 @@ async function startServer() {
                   60% { transform: rotate(0deg); }
                   100% { transform: rotate(0deg); }
               }
-              
+
               .badge {
                   background: var(--bg-dark);
                   border-radius: 5px;
@@ -409,7 +424,7 @@ async function startServer() {
                   display: inline-block;
                   margin-bottom: 5px;
               }
-              
+
               .whatsapp-btn {
                   display: inline-block;
                   background: linear-gradient(45deg, #0df, #0af);
@@ -426,22 +441,22 @@ async function startServer() {
                   text-shadow: none;
                   box-shadow: 0 5px 15px rgba(0,221,255,0.3);
               }
-              
+
               .whatsapp-btn:hover {
                   transform: translateY(-3px);
                   box-shadow: 0 7px 20px rgba(0,221,255,0.5);
               }
-              
+
               @media (max-width: 768px) {
                   .container {
                       margin: 20px;
                       padding: 20px;
                   }
-                  
+
                   .logo {
                       font-size: 2rem;
                   }
-                  
+
                   .grid {
                       grid-template-columns: 1fr;
                   }
@@ -453,13 +468,13 @@ async function startServer() {
               <div class="header">
                   <div class="logo">BLACKSKY-MD</div>
                   <div class="tagline">PREMIUM CYBERPUNK WHATSAPP BOT</div>
-                  
+
                   <div class="status-pill">
                       <span class="status-dot"></span>
                       <span>SYSTEM ${global.conn?.user ? "CONNECTED" : "INITIALIZING"}</span>
                   </div>
               </div>
-              
+
               <div class="grid">
                   <div class="card">
                       <div class="card-title">
@@ -475,7 +490,7 @@ async function startServer() {
                           <p>Uptime: <span class="highlight">${formatUptime(process.uptime())}</span></p>
                       </div>
                   </div>
-                  
+
                   <div class="card">
                       <div class="card-title">
                           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -497,14 +512,14 @@ async function startServer() {
                       </div>
                   </div>
               </div>
-              
+
               <div style="text-align: center; margin-top: 20px;">
                   <p style="margin-bottom: 15px;">Invite BLACKSKY-MD to your WhatsApp group for premium cyberpunk experience!</p>
                   <a href="https://whatsapp.com/channel/0029Va8ZH8fFXUuc69TGVw1q" class="whatsapp-btn">
                       JOIN OFFICIAL CHANNEL
                   </a>
               </div>
-              
+
               <div class="footer">
                   <p>BLACKSKY-MD CYBERPUNK EDITION <span class="wave">🤖</span></p>
                   <p style="margin-top: 5px;">© 2025 | Serving Premium WhatsApp Experience</p>
@@ -514,14 +529,14 @@ async function startServer() {
       </html>
       `);
     });
-    
+
     // Serve the premium logo - now with PNG conversion for better compatibility
     app.get('/logo', async (req, res) => {
       try {
         // First try to serve the SVG-converted-to-PNG version
         const { svgToPng } = require('./lib/svg-converter');
         const logoPath = path.join(__dirname, 'blacksky-premium-logo.svg');
-        
+
         if (fs.existsSync(logoPath)) {
           try {
             // Convert SVG to PNG for better compatibility
@@ -530,7 +545,7 @@ async function startServer() {
               height: 500,
               background: { r: 18, g: 18, b: 18, alpha: 1 } // Dark background matching the website
             });
-            
+
             res.setHeader('Content-Type', 'image/png');
             res.send(pngBuffer);
             console.log('Successfully served PNG-converted logo');
@@ -547,7 +562,7 @@ async function startServer() {
             'blacksky-logo.svg',
             'blacksky-md-updated.jpg'
           ];
-          
+
           let found = false;
           for (const logo of alternateLogos) {
             const altPath = path.join(__dirname, logo);
@@ -560,7 +575,7 @@ async function startServer() {
                     height: 500,
                     background: { r: 18, g: 18, b: 18, alpha: 1 }
                   });
-                  
+
                   res.setHeader('Content-Type', 'image/png');
                   res.send(pngBuffer);
                 } catch (err) {
@@ -577,7 +592,7 @@ async function startServer() {
               break;
             }
           }
-          
+
           if (!found) {
             console.error('No logo files found');
             res.status(404).send('Logo not found');
@@ -588,7 +603,7 @@ async function startServer() {
         res.status(500).send('Error serving logo');
       }
     });
-    
+
     // Health check endpoint for monitoring
     app.get('/health', (req, res) => {
       res.setHeader('Content-Type', 'application/json');
@@ -607,16 +622,16 @@ async function startServer() {
         }
       });
     });
-    
+
     // Start the server
     const server = app.listen(port, () => {
       console.log('\x1b[32m%s\x1b[0m', `🚀 Server running on port ${port}`);
     });
-    
+
     server.on('error', (err) => {
       console.error('\x1b[31m%s\x1b[0m', `❌ Server error: ${err.message}`);
     });
-    
+
   } else {
     console.log(`Port ${port} is already in use. Trying another port...`);
     availablePortIndex++;
@@ -724,7 +739,7 @@ process.on('unhandledRejection', (reason) => {
 process.on('SIGTERM', () => {
   console.log('🛑 Received SIGTERM signal. Heroku is cycling dynos.');
   console.log('💾 Attempting to save sessions before shutdown...');
-  
+
   // Perform memory cleanup
   if (global.memoryManager) {
     try {
@@ -735,13 +750,13 @@ process.on('SIGTERM', () => {
       console.error('❌ Error during memory cleanup:', err);
     }
   }
-  
+
   // Try to force garbage collection
   if (global.safeGC) {
     console.log('🧹 Performing final garbage collection...');
     global.safeGC();
   }
-  
+
   // Give Heroku some time to finish cleanup before actual shutdown
   setTimeout(() => {
     console.log('👍 Graceful shutdown completed');
@@ -751,7 +766,7 @@ process.on('SIGTERM', () => {
 
 process.on('exit', (code) => {
   console.error(`Exited with code: ${code}`);
-  
+
   // Perform memory cleanup before exit
   if (global.memoryManager) {
     try {
@@ -762,7 +777,7 @@ process.on('exit', (code) => {
       console.error('❌ Error during memory cleanup:', err);
     }
   }
-  
+
   // Try to force garbage collection before exit
   if (global.safeGC) {
     console.log('🧹 Performing final garbage collection...');
@@ -772,7 +787,7 @@ process.on('exit', (code) => {
       console.error('Error during garbage collection:', e);
     }
   }
-  
+
   console.error('Script will restart...');
   start('main.js');
 });
