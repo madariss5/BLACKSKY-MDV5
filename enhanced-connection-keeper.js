@@ -137,20 +137,23 @@ const connectionState = {
     messagesReceived: 0,
     currentRetryCount: 0
   } // Start with 2 seconds
-  maxReconnectDelay: 30000, // Max 30 seconds
-  heartbeatInterval: 30000, // More frequent heartbeat
-  connectionCheckInterval: 20000, // Faster connection checks
-  lastHeartbeat: null,
-  socketErrorCount: 0,
-  maxSocketErrors: 5,
-  socketErrorResetTime: 60000, // 1 minute
-  lastSocketErrorTime: null,
-  isReconnecting: false, // Flag to prevent concurrent reconnection attempts
-  initialBackoffDelay: 2000, // Start with shorter delay
-  backoffFactor: 1.3, // Gentler backoff
-  socketTimeout: 60000, // Socket timeout
-  keepAliveInterval: 25000 // Keep-alive interval
+  
 };
+
+const maxReconnectDelay = 60000; // Max 30 seconds
+const heartbeatInterval = 30000; // More frequent heartbeat
+const connectionCheckInterval = 20000; // Faster connection checks
+const lastHeartbeat = null;
+const socketErrorCount = 0;
+const maxSocketErrors = 5;
+const socketErrorResetTime = 60000; // 1 minute
+const lastSocketErrorTime = null;
+const isReconnecting = false; // Flag to prevent concurrent reconnection attempts
+const initialBackoffDelay = 2000; // Start with shorter delay
+const backoffFactor = 1.3; // Gentler backoff
+const socketTimeout = 60000; // Socket timeout
+const keepAliveInterval = 25000 // Keep-alive interval
+
 
 /**
  * Initialize the connection keeper
@@ -424,7 +427,7 @@ async function handleReconnection(conn) {
     // Use an extremely aggressive reconnection strategy with very short initial delay
     const baseDelay = Math.min(
       connectionState.initialBackoffDelay + (connectionState.reconnectAttempts * connectionState.initialBackoffDelay * connectionState.backoffFactor),
-      connectionState.maxReconnectDelay
+      maxReconnectDelay
     );
     const jitter = Math.random() * 300; // Add up to 0.3 second of random jitter
     const delay = Math.min(baseDelay + jitter, 10000); // Cap max delay at 10 seconds
@@ -550,7 +553,7 @@ function startHeartbeat(conn) {
     if (connectionState.isConnected) {
       sendHeartbeat(conn);
     }
-  }, connectionState.heartbeatInterval); // Every 30 seconds
+  }, heartbeatInterval); // Every 30 seconds
 
   log('Connection heartbeat started', 'INFO');
 }
