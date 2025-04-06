@@ -33,7 +33,7 @@
       "waifu": "Belum Di Set",
       "husbu": "Belum Di Set",
       "pc": 0,
-      "exp": 23218,
+      "exp": 23425,
       "coin": 0,
       "atm": 0,
       "limit": 8,
@@ -297,7 +297,7 @@
       "lastgrab": 0,
       "lastngocok": 0,
       "lastturu": 0,
-      "lastseen": 1743876236669,
+      "lastseen": 1743938742320,
       "lastSetStatus": 0,
       "registered": true,
       "mangga": 0,
@@ -348,8 +348,8 @@
       "lastdate": 0,
       "lasttambang": 0,
       "lastngepet": 0,
-      "chat": 4535,
-      "chatTotal": 4535,
+      "chat": 4560,
+      "chatTotal": 4560,
       "glimit": 10,
       "pertambangan": 0,
       "lastbossbattle": 0,
@@ -384,10 +384,10 @@
       "bibitapel": 0,
       "bibitmangga": 0,
       "bibitjeruk": 0,
-      "command": 587,
-      "commandTotal": 587,
-      "lastCmd": 1743873082391,
-      "language": "de",
+      "command": 595,
+      "commandTotal": 595,
+      "lastCmd": 1743938704168,
+      "language": "en",
       "doctor": 0,
       "mining": 0,
       "intimate": 0,
@@ -11424,7 +11424,7 @@
       "waifu": "Belum Di Set",
       "husbu": "Belum Di Set",
       "pc": 0,
-      "exp": 10647,
+      "exp": 10657,
       "coin": 0,
       "atm": 0,
       "limit": 6,
@@ -11688,7 +11688,7 @@
       "lastgrab": 0,
       "lastngocok": 0,
       "lastturu": 0,
-      "lastseen": 1743872981166,
+      "lastseen": 1743938741825,
       "lastSetStatus": 0,
       "registered": true,
       "mangga": 0,
@@ -11739,8 +11739,8 @@
       "lastdate": 0,
       "lasttambang": 0,
       "lastngepet": 0,
-      "chat": 782,
-      "chatTotal": 782,
+      "chat": 783,
+      "chatTotal": 783,
       "glimit": 10,
       "pertambangan": 0,
       "lastbossbattle": 0,
@@ -11775,9 +11775,9 @@
       "bibitapel": 0,
       "bibitmangga": 0,
       "bibitjeruk": 0,
-      "command": 423,
-      "commandTotal": 423,
-      "lastCmd": 1743872263088,
+      "command": 424,
+      "commandTotal": 424,
+      "lastCmd": 1743938741813,
       "language": "de",
       "doctor": 0,
       "mining": 0,
@@ -35407,7 +35407,7 @@
       "waifu": "Not Set Yet",
       "husbu": "Not Set Yet",
       "pc": 0,
-      "exp": 3344,
+      "exp": 3353,
       "coin": 0,
       "atm": 0,
       "limit": 10,
@@ -35668,7 +35668,7 @@
       "lastgrab": 0,
       "lastngocok": 0,
       "lastturu": 0,
-      "lastseen": 1743866332363,
+      "lastseen": 1743938741851,
       "lastSetstatus": 0,
       "registered": false,
       "mango": 0,
@@ -35718,8 +35718,8 @@
       "lastdate": 0,
       "lastshamanrite": 0,
       "lastXpTime": 1743522870217,
-      "chat": 612,
-      "chatTotal": 612,
+      "chat": 613,
+      "chatTotal": 613,
       "language": "de",
       "expenses": 0,
       "hunger": 100,
@@ -104159,11 +104159,11 @@
           "blacklist": false,
           "banned": false,
           "bannedTime": 0,
-          "chat": 618,
-          "chatTotal": 618,
+          "chat": 619,
+          "chatTotal": 619,
           "command": 3,
           "commandTotal": 3,
-          "lastseen": 1743866332363,
+          "lastseen": 1743938741851,
           "lastCmd": 1743770927991
         },
         "4915562378343@s.whatsapp.net": {
@@ -104985,22 +104985,22 @@
           "blacklist": false,
           "banned": false,
           "bannedTime": 0,
-          "chat": 11,
-          "chatTotal": 11,
-          "command": 10,
-          "commandTotal": 10,
-          "lastseen": 1743807302534,
-          "lastCmd": 1743807291880
+          "chat": 12,
+          "chatTotal": 12,
+          "command": 11,
+          "commandTotal": 11,
+          "lastseen": 1743938741825,
+          "lastCmd": 1743938741813
         },
         "4915562378343@s.whatsapp.net": {
           "blacklist": false,
           "banned": false,
           "bannedTime": 0,
-          "chat": 52,
-          "chatTotal": 52,
+          "chat": 53,
+          "chatTotal": 53,
           "command": 15,
           "commandTotal": 15,
-          "lastseen": 1743809111217,
+          "lastseen": 1743938742320,
           "lastCmd": 1743809111144
         }
       },
@@ -105435,10 +105435,10 @@
   },
   "stats": {
     "menu.js": {
-      "total": 256,
-      "success": 256,
-      "last": 1743873083652,
-      "lastSuccess": 1743873083652
+      "total": 260,
+      "success": 260,
+      "last": 1743938688267,
+      "lastSuccess": 1743938688267
     },
     "tools-profile.js": {
       "total": 29,
@@ -105453,10 +105453,10 @@
       "lastSuccess": 1743430629371
     },
     "owner-banuser.js": {
-      "total": 16,
-      "success": 14,
-      "last": 1743616102409,
-      "lastSuccess": 1743616102409
+      "total": 17,
+      "success": 15,
+      "last": 1743938741825,
+      "lastSuccess": 1743938741825
     },
     "fun-reactions.js": {
       "total": 7,
@@ -105525,10 +105525,10 @@
       "lastSuccess": 1743761896873
     },
     "fun-darkjoke.js": {
-      "total": 15,
-      "success": 15,
-      "last": 1743854332020,
-      "lastSuccess": 1743854332020
+      "total": 16,
+      "success": 16,
+      "last": 1743938704552,
+      "lastSuccess": 1743938704552
     },
     "xp-regist.js": {
       "total": 5,
@@ -105615,10 +105615,10 @@
       "lastSuccess": 1743608183154
     },
     "fun-joke.js": {
-      "total": 12,
-      "success": 12,
-      "last": 1743854623560,
-      "lastSuccess": 1743854623560
+      "total": 13,
+      "success": 13,
+      "last": 1743938697604,
+      "lastSuccess": 1743938697604
     },
     "group-setwelcome.js": {
       "total": 2,
@@ -105729,16 +105729,16 @@
       "lastSuccess": 1743675357150
     },
     "reactions.js": {
-      "total": 183,
-      "success": 183,
-      "last": 1743872264001,
-      "lastSuccess": 1743872264001
+      "total": 184,
+      "success": 184,
+      "last": 1743938686787,
+      "lastSuccess": 1743938686787
     },
     "change-language.js": {
-      "total": 12,
-      "success": 12,
-      "last": 1743674416498,
-      "lastSuccess": 1743674416498
+      "total": 13,
+      "success": 13,
+      "last": 1743938694016,
+      "lastSuccess": 1743938694016
     },
     "tools-ping.js": {
       "total": 10,
