@@ -181,38 +181,32 @@ class MemoryManager extends EventEmitter {
   async handleEmergencyCleanup() {
     if (this.state.isPerformingCleanup) return;
 
-    this.state.isPerformingCleanup = true;
-    this.state.emergencyCount++;
+    console.log('🚨 Performing emergency memory cleanup...');
 
-    try {
-      // Most aggressive cleanup
-      if (global.conn?.chats) {
-        // Clear all but last 20 messages
-        for (let chat of Object.values(global.conn.chats)) {
-          if (chat.messages?.length > 20) {
-            chat.messages = chat.messages.slice(-20);
-          }
+    // Clear message caches
+    if (global.conn?.chats) {
+      for (let chat of Object.values(global.conn.chats)) {
+        if (chat.messages?.length > 20) {
+          chat.messages = chat.messages.slice(-20);
         }
       }
+    }
 
-      // Clear all caches
-      if (global.conn?.msgqueue) global.conn.msgqueue = [];
-      if (global.conn?.updates) global.conn.updates = [];
-      if (global.Games) global.Games = {};
-      if (global.media) global.media = {};
+    // Clear module cache
+    for (const key in require.cache) {
+      if (!key.includes('baileys') && !key.includes('whatsapp')) {
+        delete require.cache[key];
+      }
+    }
 
-      // Force multiple GC passes
-      if (global.gc) {
+    // Force garbage collection
+    if (global.gc) {
+      try {
         global.gc();
         setTimeout(global.gc, 500);
-        setTimeout(global.gc, 1000);
+      } catch (err) {
+        console.error('GC error:', err);
       }
-
-      this.emit('memory:cleanup', 'emergency');
-    } catch (err) {
-      console.error('Emergency cleanup error:', err);
-    } finally {
-      this.state.isPerformingCleanup = false;
     }
   }
 }

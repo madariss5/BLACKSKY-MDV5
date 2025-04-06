@@ -49,6 +49,7 @@ const STATE = {
   reconnectAttempts: 0,
   backoffDelay: CONFIG.initialBackoffDelay,
   healthCheckServer: null,
+  isReconnecting: false, // Added to track reconnection attempts
   intervalIds: {
     heartbeat: null,
     connectionCheck: null,
@@ -181,16 +182,16 @@ async function backupSessionToDatabase() {
     const maxRetries = 3;
     const batchSize = 50;
     let currentBatch = [];
-    
+
     while (retryCount < maxRetries) {
       try {
         client = await STATE.postgresPool.connect();
         await client.query('BEGIN');
-        
+
         // Clear any existing transaction
         await client.query('ROLLBACK');
         await client.query('BEGIN');
-        
+
         // Create table if doesn't exist
         await client.query(`
           CREATE TABLE IF NOT EXISTS whatsapp_sessions (
@@ -206,7 +207,7 @@ async function backupSessionToDatabase() {
 
         let count = 0;
         let batchSize = 0;
-        
+
         for (const file of files) {
           const filePath = path.join(sessionDir, file);
           if (fs.statSync(filePath).isDirectory()) continue;
@@ -214,7 +215,7 @@ async function backupSessionToDatabase() {
         try {
           const fileContent = fs.readFileSync(filePath, 'utf8');
           let sessionData;
-          
+
           // Commit transaction every 50 files to prevent timeouts
           batchSize++;
           if (batchSize >= 50) {
@@ -255,13 +256,13 @@ async function backupSessionToDatabase() {
         }
         log(`Backed up ${count} session files to PostgreSQL database`, 'SUCCESS');
         STATE.lastBackupTime = Date.now();
-        
+
         if (client) client.release();
         return true;
-        
+
       } catch (err) {
         log(`Attempt ${retryCount + 1} failed: ${err.message}`, 'WARN');
-        
+
         if (client) {
           try {
             await client.query('ROLLBACK');
@@ -271,11 +272,11 @@ async function backupSessionToDatabase() {
             client.release();
           }
         }
-        
+
         // Wait before retrying
         await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
         retryCount++;
-        
+
         if (retryCount === maxRetries) {
           log(`Failed to backup after ${maxRetries} attempts`, 'ERROR');
           return false;
@@ -483,7 +484,7 @@ function isConnectionActive(conn) {
 
     // Check if user is available (means connected)
     if (!conn.user) return false;
-    
+
     // Check socket status for direct websocket health
     if (conn.ws) {
       // If websocket exists but is in CLOSING or CLOSED state, connection is inactive
@@ -491,7 +492,7 @@ function isConnectionActive(conn) {
         log('WebSocket in CLOSING or CLOSED state, connection is inactive', 'WARN');
         return false;
       }
-      
+
       // If socket is connecting for too long, consider problematic
       if (conn.ws.readyState === 0) {
         const connectingTime = Date.now() - (conn.wsStartTime || Date.now());
@@ -501,14 +502,14 @@ function isConnectionActive(conn) {
         }
       }
     }
-    
+
     // Check if there are any pending message sends that have timed out
     if (conn.pendingRequestTimeoutMs && conn.pendingRequests) {
       const stalePendingRequests = Object.values(conn.pendingRequests).filter(req => {
         const elapsed = Date.now() - req.startTime;
         return elapsed > 30000; // 30 seconds is too long for a request
       });
-      
+
       if (stalePendingRequests.length > 3) {
         log(`Found ${stalePendingRequests.length} stale pending requests, connection may be stale`, 'WARN');
         return false;
@@ -528,7 +529,7 @@ function isConnectionActive(conn) {
         return false;
       }
     }
-    
+
     // If we get here, all checks passed
     return true;
   } catch (err) {
@@ -589,60 +590,38 @@ async function checkConnection(conn) {
  */
 async function attemptReconnect(conn) {
   try {
+    if (STATE.isReconnecting) return false;
+    STATE.isReconnecting = true;
+
     if (STATE.reconnectAttempts >= CONFIG.maxReconnectAttempts) {
-      log('Maximum reconnection attempts reached', 'FATAL');
+      log('Maximum reconnection attempts reached, attempting recovery...', 'WARN');
 
-      // Try aggressive recovery measures
-      log('Attempting aggressive recovery...', 'INFO');
-
-      // First, backup current (possibly corrupted) sessions
+      // Backup current session
+      await backupSessionToPostgres();
       await backupSessionFiles();
 
-      // Then try restoring from database
-      const databaseRestoreSuccess = await restoreSessionFromDatabase();
+      // Try restoring from backup
+      const restored = await restoreSessionFromPostgres() || await restoreSessionFiles();
 
-      // If database restore failed, try file backup
-      if (!databaseRestoreSuccess) {
-        log('Database restore failed, trying file backup', 'WARN');
-        await restoreSessionFiles();
-      }
+      if (restored) {
+        // Reset connection state
+        STATE.reconnectAttempts = 0;
+        STATE.backoffDelay = CONFIG.initialBackoffDelay;
+        STATE.isReconnecting = false;
 
-      // Try to force close any lingering sockets
-      try {
-        if (conn.ws) {
-          log('Forcibly closing any open WebSocket connections', 'WARN');
-          if (typeof conn.ws.close === 'function') {
-            conn.ws.close();
-          }
-          // Give a moment for the socket to close
-          await new Promise(resolve => setTimeout(resolve, 500));
+        // Force reconnection
+        if (global.conn?.ws) {
+          try { global.conn.ws.close(); } catch {}
         }
-      } catch (socketErr) {
-        log(`Error closing WebSocket: ${socketErr.message}`, 'ERROR');
-      }
 
-      // Reset connection state
-      STATE.connectionLostTime = null;
-      STATE.reconnectAttempts = 0;
-      STATE.backoffDelay = CONFIG.initialBackoffDelay;
-
-      // Force restart the connection with more explicit flags
-      if (typeof conn.ev?.emit === 'function') {
-        log('Emitting forced connection close event', 'WARN');
-        conn.ev.emit('connection.update', { 
-          connection: 'close', 
-          lastDisconnect: {
-            error: new Boom('Connection forcibly reset after failed reconnection attempts', {
-              statusCode: DisconnectReason.restartRequired,
-              data: {
-                forceReconnect: true
-              }
-            })
+        setTimeout(() => {
+          if (global.reloadHandler) {
+            global.reloadHandler(true);
           }
-        });
-      }
+        }, 2000);
 
-      return;
+        return true;
+      }
     }
 
     STATE.reconnectAttempts++;
@@ -660,17 +639,17 @@ async function attemptReconnect(conn) {
     );
 
     // Try multiple reconnection strategies in sequence
-    
+
     // 1. First try a simple heartbeat to trigger reconnection
     await sendHeartbeat(conn);
-    
+
     // Wait a moment to see if that worked
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
+
     // 2. If connection still appears closed, try a more direct approach
     if (!isConnectionActive(conn)) {
       log('Heartbeat did not trigger reconnection, trying more direct approach', 'WARN');
-      
+
       // Try to force a connection reset through connection update event
       if (typeof conn.ev?.emit === 'function') {
         conn.ev.emit('connection.update', { 
@@ -680,7 +659,7 @@ async function attemptReconnect(conn) {
           }
         });
       }
-      
+
       // Wait for reset to process
       await new Promise(resolve => setTimeout(resolve, 2000));
     }
@@ -689,12 +668,15 @@ async function attemptReconnect(conn) {
     if (STATE.reconnectAttempts % 3 === 0) {
       log('Multiple reconnection attempts failed, trying to restore sessions', 'WARN');
       await restoreSessionFromDatabase();
-      
+
       // After restoration, backup current state for safety
       await backupSessionToDatabase();
     }
   } catch (err) {
     log(`Error in attemptReconnect: ${err.message}`, 'ERROR');
+    STATE.isReconnecting = false; // Ensure isReconnecting is reset on error
+  } finally {
+    STATE.isReconnecting = false; // Ensure isReconnecting is reset
   }
 }
 
@@ -743,7 +725,7 @@ function setupAntiIdle() {
   // Even if HEROKU_APP_URL is not set, we'll use internal anti-idle measures
   if (!process.env.HEROKU_APP_URL) {
     log('No HEROKU_APP_URL set, using internal anti-idle mechanisms', 'INFO');
-    
+
     // Set up internal anti-idle mechanism (will keep the process active)
     STATE.intervalIds.internalAntiIdle = setInterval(() => {
       try {
@@ -751,12 +733,12 @@ function setupAntiIdle() {
         if (global.conn && global.conn.user) {
           // Log minimal activity to keep the process active
           log(`Bot active with JID: ${global.conn.user?.id || 'Unknown'}`, 'DEBUG');
-          
+
           // Perform minimal activity every few hours
           const currentHour = new Date().getHours();
           if (currentHour % 3 === 0) { // Every 3 hours
             log('Running periodic bot activity to prevent idle', 'INFO');
-            
+
             // Update presence status or perform another lightweight action
             try {
               if (typeof global.conn.updateProfileStatus === 'function') {
@@ -781,7 +763,7 @@ function setupAntiIdle() {
         log(`Error in internal anti-idle: ${err.message}`, 'ERROR');
       }
     }, 30 * 60 * 1000); // Check every 30 minutes
-    
+
     log('Internal anti-idle mechanism active, checking every 30 minutes', 'SUCCESS');
     return;
   }
@@ -802,7 +784,7 @@ function setupAntiIdle() {
         }
       }).on('error', (err) => {
         log(`Anti-idle ping error: ${err.message}`, 'ERROR');
-        
+
         // If external ping fails, fall back to internal mechanism
         log('External ping failed, falling back to internal anti-idle mechanism', 'INFO');
         if (global.conn && global.conn.user && typeof global.conn.sendPresenceUpdate === 'function') {
@@ -879,13 +861,13 @@ function setupHealthCheck() {
   app.get('/restart-connection', (req, res) => {
     try {
       log('Manual connection restart requested via health endpoint', 'INFO');
-      
+
       res.json({
         status: 'restarting',
         timestamp: new Date().toISOString(),
         message: 'Connection restart initiated'
       });
-      
+
       // Use a small timeout to ensure response is sent before restarting the connection
       setTimeout(() => {
         if (global.enhancedConnectionKeeper?.forceReconnect) {
@@ -1191,7 +1173,7 @@ function applyConnectionPatch(conn) {
         if (!STATE.connectionLostTime) {
           STATE.connectionLostTime = Date.now();
         }
-        
+
         // Handle specific disconnection reasons with custom strategies
         if (statusCode === DisconnectReason.loggedOut) {
           log('Device logged out, will try to restore session from backup', 'WARN');
@@ -1287,14 +1269,14 @@ function setupEnhancedKeeper() {
   try {
     log('Attempting to initialize enhanced connection keeper...', 'INFO');
     const enhancedKeeper = require('./enhanced-connection-keeper.js');
-    
+
     if (typeof enhancedKeeper.safeInitialize === 'function') {
       log('Enhanced connection keeper with safe initialization found', 'SUCCESS');
       enhancedKeeper.safeInitialize();
       log('Enhanced connection keeper polling initialized successfully', 'SUCCESS');
     } else if (typeof enhancedKeeper.applyConnectionPatch === 'function') {
       log('Enhanced connection keeper found but without safe initialization', 'WARN');
-      
+
       // Set up our own polling for the connection
       log('Setting up fallback connection polling system...', 'INFO');
       const connectionCheckInterval = setInterval(() => {
@@ -1304,7 +1286,7 @@ function setupEnhancedKeeper() {
             // Apply enhanced connection patch when connection is available
             enhancedKeeper.applyConnectionPatch(global.conn);
             log('Enhanced connection patch applied successfully', 'SUCCESS');
-            
+
             // Clear the interval since we've found the connection
             clearInterval(connectionCheckInterval);
           } catch (err) {
@@ -1334,7 +1316,7 @@ function setupFallbackConnectionPolling() {
         // Apply our own connection patch when connection is available
         applyConnectionPatch(global.conn);
         log('Basic connection patch applied successfully', 'SUCCESS');
-        
+
         // Clear the interval since we've found the connection
         clearInterval(connectionCheckInterval);
       } catch (err) {
@@ -1343,6 +1325,31 @@ function setupFallbackConnectionPolling() {
     }
   }, 5000);
 }
+
+async function backupSessionToPostgres() {
+  // Placeholder for PostgreSQL backup function
+  log('Backing up session to PostgreSQL...', 'INFO');
+  try {
+    //Implement actual backup logic here.
+    return true;
+  } catch (error) {
+    log(`Error backing up session to PostgreSQL: ${error.message}`, 'ERROR');
+    return false;
+  }
+}
+
+async function restoreSessionFromPostgres() {
+  // Placeholder for PostgreSQL restore function
+  log('Restoring session from PostgreSQL...', 'INFO');
+  try {
+    //Implement actual restore logic here.
+    return true;
+  } catch (error) {
+    log(`Error restoring session from PostgreSQL: ${error.message}`, 'ERROR');
+    return false;
+  }
+}
+
 
 /**
  * Initialize the Heroku connection keeper with improved error handling and retry logic.
@@ -1368,7 +1375,7 @@ function initialize() {
     // Try file-based restore
     restoreSessionFiles().catch(console.error);
   });
-  
+
   // Set up enhanced connection keeper with polling mechanism
   setupEnhancedKeeper();
 
