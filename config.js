@@ -1,19 +1,17 @@
-
 /* 
    * Bot created by BETABOTZ
    * Contact: wa.me/62895628117900
 */
 
-// List of owner numbers - with proper formatting
+// List of owner numbers
 global.owner = [
-  ['49155631513470@s.whatsapp.net', 'Owner', true],
-  ['4915563151347@s.whatsapp.net', 'Owner', true]
-]
-global.mods = ['4915563151347@s.whatsapp.net', '436769645892@s.whatsapp.net']
-global.prems = ['4915563151347@s.whatsapp.net', '436769645892@s.whatsapp.net']
+  ['4915563151347', 'Owner', true]
+]  
+global.mods = ['4915563151347'] 
+global.prems = ['4915563151347']
 global.nameowner = 'Martin'
-global.numberowner = '4915563151347'
-global.mail = 'support@tioprm.eu.org' 
+global.numberowner = '4915563151347' 
+global.mail = 'support@tioprm.eu.org'
 global.gc = 'https://chat.whatsapp.com/G4f1fTpz9zL4EH3FyIcaPR'
 global.instagram = 'https://instagram.com/erlanrahmat_14'
 global.wm = '© 𝔹𝕃𝔸ℂ𝕂𝕊𝕂𝕐-𝕄𝔻'
@@ -32,8 +30,6 @@ global.languages = ['de', 'en'] // Available languages
 
 // Timezone settings
 global.timezone = 'Europe/Berlin' // Default timezone for date/time functions
-
-// Settings
 
 
 // API Configuration
