@@ -33,7 +33,7 @@
       "waifu": "Belum Di Set",
       "husbu": "Belum Di Set",
       "pc": 0,
-      "exp": 24079,
+      "exp": 24245,
       "coin": 0,
       "atm": 0,
       "limit": 8,
@@ -297,7 +297,7 @@
       "lastgrab": 0,
       "lastngocok": 0,
       "lastturu": 0,
-      "lastseen": 1743951307778,
+      "lastseen": 1743951352729,
       "lastSetStatus": 0,
       "registered": true,
       "mangga": 0,
@@ -348,8 +348,8 @@
       "lastdate": 0,
       "lasttambang": 0,
       "lastngepet": 0,
-      "chat": 4736,
-      "chatTotal": 4736,
+      "chat": 4752,
+      "chatTotal": 4752,
       "glimit": 10,
       "pertambangan": 0,
       "lastbossbattle": 0,
@@ -384,9 +384,9 @@
       "bibitapel": 0,
       "bibitmangga": 0,
       "bibitjeruk": 0,
-      "command": 611,
-      "commandTotal": 611,
-      "lastCmd": 1743951061976,
+      "command": 618,
+      "commandTotal": 618,
+      "lastCmd": 1743951352436,
       "language": "en",
       "doctor": 0,
       "mining": 0,
@@ -104892,6 +104892,17 @@
           "command": 0,
           "commandTotal": 0,
           "lastseen": 1743772472504
+        },
+        "4915562378343@s.whatsapp.net": {
+          "blacklist": false,
+          "banned": false,
+          "bannedTime": 0,
+          "chat": 4,
+          "chatTotal": 4,
+          "command": 2,
+          "commandTotal": 2,
+          "lastseen": 1743951352729,
+          "lastCmd": 1743951352436
         }
       },
       "language": "de",
@@ -108550,10 +108561,10 @@
   },
   "stats": {
     "menu.js": {
-      "total": 271,
-      "success": 271,
-      "last": 1743951120324,
-      "lastSuccess": 1743951120324
+      "total": 275,
+      "success": 275,
+      "last": 1743951347267,
+      "lastSuccess": 1743951347267
     },
     "tools-profile.js": {
       "total": 29,
@@ -108844,10 +108855,10 @@
       "lastSuccess": 1743675357150
     },
     "reactions.js": {
-      "total": 201,
-      "success": 201,
-      "last": 1743951087256,
-      "lastSuccess": 1743951087256
+      "total": 203,
+      "success": 203,
+      "last": 1743951339612,
+      "lastSuccess": 1743951339612
     },
     "change-language.js": {
       "total": 14,
@@ -108974,6 +108985,12 @@
       "success": 2,
       "last": 1743945096767,
       "lastSuccess": 1743945096767
+    },
+    "slapall.js": {
+      "total": 2,
+      "success": 2,
+      "last": 1743951352726,
+      "lastSuccess": 1743951352726
     }
   },
   "msgs": {},
