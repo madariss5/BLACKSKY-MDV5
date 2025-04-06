@@ -28,7 +28,7 @@ const CONFIG = {
 
   // Exponential backoff settings
   initialBackoffDelay: 3000, // 3 seconds
-  maxBackoffDelay: 60 * 1000, // 60 seconds
+  maxBackoffDelay: 5000, // 5 seconds
   backoffFactor: 1.5,
   maxReconnectAttempts: 15,
 
@@ -47,7 +47,10 @@ const STATE = {
   lastBackupTime: null,
   connectionLostTime: null,
   reconnectAttempts: 0,
-  backoffDelay: CONFIG.initialBackoffDelay,
+  backoffDelay: 1000, // Start with 1 second
+  maxBackoffDelay: 5000, // Cap at 5 seconds for faster recovery
+  retryCount: 0,
+  maxRetries: 10,
   healthCheckServer: null,
   isReconnecting: false, // Added to track reconnection attempts
   intervalIds: {
@@ -571,7 +574,7 @@ async function checkConnection(conn) {
 
         STATE.connectionLostTime = null;
         STATE.reconnectAttempts = 0;
-        STATE.backoffDelay = CONFIG.initialBackoffDelay;
+        STATE.backoffDelay = 1000; // Reset backoff delay
 
         // Schedule a backup after reconnection
         backupSessionToDatabase().catch(err => 
@@ -606,7 +609,7 @@ async function attemptReconnect(conn) {
       if (restored) {
         // Reset connection state
         STATE.reconnectAttempts = 0;
-        STATE.backoffDelay = CONFIG.initialBackoffDelay;
+        STATE.backoffDelay = 1000; // Reset backoff delay
         STATE.isReconnecting = false;
 
         // Force reconnection
@@ -926,7 +929,7 @@ function setupHealthCheck() {
     res.json(response);
   });
 
-  // Pretty homepage
+  //  // Pretty homepage
   app.get('/', (req, res) => {
     const uptimeSeconds = process.uptime();
     const formatted = formatUptime(uptimeSeconds);
@@ -1156,7 +1159,7 @@ function applyConnectionPatch(conn) {
         // Reset connection state
         STATE.connectionLostTime = null;
         STATE.reconnectAttempts = 0;
-        STATE.backoffDelay = CONFIG.initialBackoffDelay;
+        STATE.backoffDelay = 1000; // Reset backoff delay
 
         // Backup sessions after successful connection
         backupSessionToDatabase().catch(err => 
@@ -1187,10 +1190,6 @@ function applyConnectionPatch(conn) {
           }).catch(err => {
             log(`Error in session restoration: ${err.message}`, 'ERROR');
           });
-        } else if (statusCode === DisconnectReason.connectionLost) {
-          log('Connection lost, attempting immediate reconnection', 'WARN');
-          // Trigger immediate reconnection attempt without waiting for the regular interval
-          setTimeout(() => attemptReconnect(conn), 1000);
         } else if (statusCode === DisconnectReason.connectionReplaced) {
           log('Connection replaced on another device, will try to reclaim', 'WARN');
           // Wait a moment then try to reclaim the session
@@ -1204,6 +1203,12 @@ function applyConnectionPatch(conn) {
           log('Connection timed out, scheduling faster reconnection', 'WARN');
           // Use a shorter delay for timeouts
           setTimeout(() => attemptReconnect(conn), 1500);
+        } else if (statusCode === DisconnectReason.connectionLost || statusCode === 428) {
+          log('Connection lost, attempting aggressive reconnection', 'WARN');
+          // Implement more aggressive reconnection strategy
+          for (let i = 0; i < 3; i++) {
+            setTimeout(() => attemptReconnect(conn), i * 2000);
+          }
         } else {
           // For other disconnect reasons, use the regular check interval
           log(`Standard reconnection will be attempted at next connection check`, 'INFO');
