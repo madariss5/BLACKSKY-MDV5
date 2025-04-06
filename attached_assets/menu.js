@@ -40,9 +40,6 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
             { name: 'NSFW', emoji: '🔞' }
         ];
 
-        // WhatsApp Group Link
-        const groupLink =
-
 
         const getCurrentTimeInNairobi = () => {
             return moment().tz('Africa/Nairobi').format('HH:mm');
