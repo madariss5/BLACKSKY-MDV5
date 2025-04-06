@@ -790,4 +790,5 @@ process.on('exit', (code) => {
 
   console.error('Script will restart...');
   start('main.js');
+  start('main.js');
 });
