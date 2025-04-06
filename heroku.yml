@@ -1,7 +1,8 @@
+
 build:
   docker:
-    web: Dockerfile
+    worker: Dockerfile
   config:
     NODE_ENV: production
 run:
-  web: node heroku-combined-runner.js --autocleartmp --autoread --keepalive
+  worker: NODE_OPTIONS="--expose-gc --max-old-space-size=512" node heroku-bot-starter.js --autocleartmp --autoread --keepalive
