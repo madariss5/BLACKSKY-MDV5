@@ -115,11 +115,28 @@ const connectionState = {
   isConnected: false,
   lastConnected: null,
   reconnectAttempts: 0,
-  maxReconnectAttempts: 30, // Increased max attempts
-  reconnectDelay: 1000, // Faster initial reconnect
-  maxReconnectDelay: 15000, // Maximum delay between attempts
-  heartbeatInterval: 25000, // More frequent heartbeat
-  socketTimeout: 45000, // Reduced socket timeout // Start with 2 seconds
+  maxReconnectAttempts: 50, // More attempts before giving up
+  reconnectDelay: 1000,
+  maxReconnectDelay: 15000,
+  heartbeatInterval: 20000, // More frequent heartbeat
+  socketTimeout: 45000,
+  connectionStrategies: ['websocket', 'longpoll', 'http'],
+  currentStrategy: 0,
+  failedAttempts: {},
+  // Track different connection methods
+  connectionMethods: {
+    websocket: { maxAttempts: 20, delay: 1000 },
+    longpoll: { maxAttempts: 15, delay: 2000 },
+    http: { maxAttempts: 15, delay: 3000 }
+  },
+  // Enhanced state tracking
+  state: {
+    lastPing: null,
+    lastPong: null,
+    messagesSent: 0,
+    messagesReceived: 0,
+    currentRetryCount: 0
+  } // Start with 2 seconds
   maxReconnectDelay: 30000, // Max 30 seconds
   heartbeatInterval: 30000, // More frequent heartbeat
   connectionCheckInterval: 20000, // Faster connection checks

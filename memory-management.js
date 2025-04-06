@@ -3,6 +3,8 @@
  */
 
 const { EventEmitter } = require('events');
+const fs = require('fs');
+const path = require('path');
 
 // Increase max listeners
 EventEmitter.defaultMaxListeners = 500;
@@ -10,8 +12,210 @@ EventEmitter.defaultMaxListeners = 500;
 // Track attached event listeners
 const attachedListeners = new Map();
 
-// Cleanup interval references
-let cleanupInterval = null;
+// Configuration 
+const MEMORY_CONFIG = {
+  warningThreshold: 70, // Warning at 70% usage
+  criticalThreshold: 85, // Critical at 85% usage
+  emergencyThreshold: 92, // Emergency cleanup at 92%
+  checkInterval: 30000, // Check every 30 seconds
+  cleanupDelay: 1000, // Delay between cleanups
+  maxMessageCache: 100, // Max messages per chat
+  maxMediaCache: 50, // Max media files cached
+  gcInterval: 120000 // Force GC every 2 minutes if enabled
+};
+
+class MemoryManager extends EventEmitter {
+  constructor() {
+    super();
+    this.state = {
+      lastCleanup: null,
+      warningCount: 0,
+      emergencyCount: 0,
+      isPerformingCleanup: false
+    };
+
+    // Initialize monitoring
+    this.startMonitoring();
+  }
+
+  // Get current memory usage
+  getMemoryUsage() {
+    const used = process.memoryUsage();
+    return {
+      heapUsed: Math.round(used.heapUsed / 1024 / 1024),
+      heapTotal: Math.round(used.heapTotal / 1024 / 1024),
+      rss: Math.round(used.rss / 1024 / 1024),
+      external: Math.round(used.external / 1024 / 1024),
+      percentageUsed: Math.round((used.heapUsed / used.heapTotal) * 100)
+    };
+  }
+
+  // Start memory monitoring
+  startMonitoring() {
+    setInterval(() => {
+      try {
+        const usage = this.getMemoryUsage();
+
+        // Emit memory stats
+        this.emit('memory:stats', usage);
+
+        // Check thresholds
+        if (usage.percentageUsed > MEMORY_CONFIG.emergencyThreshold) {
+          this.handleEmergencyCleanup();
+        } else if (usage.percentageUsed > MEMORY_CONFIG.criticalThreshold) {
+          this.handleCriticalCleanup();
+        } else if (usage.percentageUsed > MEMORY_CONFIG.warningThreshold) {
+          this.handleWarningCleanup();
+        }
+      } catch (err) {
+        console.error('Memory monitoring error:', err);
+      }
+    }, MEMORY_CONFIG.checkInterval);
+
+    // Set up GC interval if available
+    if (global.gc) {
+      setInterval(() => {
+        try {
+          global.gc();
+          this.emit('memory:gc');
+        } catch (err) {
+          console.error('GC error:', err);
+        }
+      }, MEMORY_CONFIG.gcInterval);
+    }
+  }
+
+  // Handle warning level cleanup
+  async handleWarningCleanup() {
+    if (this.state.isPerformingCleanup) return;
+
+    this.state.isPerformingCleanup = true;
+    this.state.warningCount++;
+
+    try {
+      // Clear message caches
+      if (global.conn?.chats) {
+        for (let chat of Object.values(global.conn.chats)) {
+          if (chat.messages?.length > MEMORY_CONFIG.maxMessageCache) {
+            chat.messages = chat.messages.slice(-MEMORY_CONFIG.maxMessageCache);
+          }
+        }
+      }
+
+      // Clear media cache
+      const tempDir = path.join(process.cwd(), 'temp');
+      if (fs.existsSync(tempDir)) {
+        const files = fs.readdirSync(tempDir);
+        if (files.length > MEMORY_CONFIG.maxMediaCache) {
+          files
+            .map(f => ({file: f, time: fs.statSync(path.join(tempDir, f)).mtime}))
+            .sort((a, b) => a.time - b.time)
+            .slice(0, files.length - MEMORY_CONFIG.maxMediaCache)
+            .forEach(f => {
+              try {
+                fs.unlinkSync(path.join(tempDir, f.file));
+              } catch (err) {
+                console.error('Error deleting file:', err);
+              }
+            });
+        }
+      }
+
+      this.emit('memory:cleanup', 'warning');
+    } catch (err) {
+      console.error('Warning cleanup error:', err);
+    } finally {
+      this.state.isPerformingCleanup = false;
+    }
+  }
+
+  // Handle critical level cleanup
+  async handleCriticalCleanup() {
+    if (this.state.isPerformingCleanup) return;
+
+    this.state.isPerformingCleanup = true;
+
+    try {
+      // More aggressive cleanup
+      if (global.conn?.chats) {
+        // Clear all but last 50 messages
+        for (let chat of Object.values(global.conn.chats)) {
+          if (chat.messages?.length > 50) {
+            chat.messages = chat.messages.slice(-50);
+          }
+        }
+      }
+
+      // Clear all temp files
+      const tempDir = path.join(process.cwd(), 'temp');
+      if (fs.existsSync(tempDir)) {
+        fs.readdirSync(tempDir).forEach(file => {
+          try {
+            fs.unlinkSync(path.join(tempDir, file));
+          } catch (err) {
+            console.error('Error deleting temp file:', err);
+          }
+        });
+      }
+
+      // Clear module cache
+      Object.keys(require.cache).forEach(key => {
+        if (key.includes('node_modules') && 
+            !key.includes('baileys') && 
+            !key.includes('ws')) {
+          delete require.cache[key];
+        }
+      });
+
+      if (global.gc) global.gc();
+
+      this.emit('memory:cleanup', 'critical');
+    } catch (err) {
+      console.error('Critical cleanup error:', err);
+    } finally {
+      this.state.isPerformingCleanup = false;
+    }
+  }
+
+  // Handle emergency level cleanup
+  async handleEmergencyCleanup() {
+    if (this.state.isPerformingCleanup) return;
+
+    this.state.isPerformingCleanup = true;
+    this.state.emergencyCount++;
+
+    try {
+      // Most aggressive cleanup
+      if (global.conn?.chats) {
+        // Clear all but last 20 messages
+        for (let chat of Object.values(global.conn.chats)) {
+          if (chat.messages?.length > 20) {
+            chat.messages = chat.messages.slice(-20);
+          }
+        }
+      }
+
+      // Clear all caches
+      if (global.conn?.msgqueue) global.conn.msgqueue = [];
+      if (global.conn?.updates) global.conn.updates = [];
+      if (global.Games) global.Games = {};
+      if (global.media) global.media = {};
+
+      // Force multiple GC passes
+      if (global.gc) {
+        global.gc();
+        setTimeout(global.gc, 500);
+        setTimeout(global.gc, 1000);
+      }
+
+      this.emit('memory:cleanup', 'emergency');
+    } catch (err) {
+      console.error('Emergency cleanup error:', err);
+    } finally {
+      this.state.isPerformingCleanup = false;
+    }
+  }
+}
 
 function safeOn(emitter, event, listener, options = {}) {
   if (!emitter || typeof emitter.on !== 'function') {
@@ -44,213 +248,22 @@ function safeOn(emitter, event, listener, options = {}) {
   };
 }
 
-/**
- * Perform memory cleanup with garbage collection
- */
-function performMemoryCleanup() {
-  if (global.gc) {
-    try {
-      global.gc();
-      console.log('✅ Forced garbage collection completed');
-    } catch (err) {
-      console.error('❌ Error during garbage collection:', err);
-    }
-  }
-}
 
-/**
- * Run emergency cleanup for critical situations
- */
-function runEmergencyCleanup() {
-  console.log('🚨 Running emergency memory cleanup...');
-  
-  // Force garbage collection multiple times if available
-  if (typeof global.gc === 'function') {
-    try {
-      global.gc();
-      setTimeout(() => {
-        if (typeof global.gc === 'function') global.gc();
-      }, 1000);
-      setTimeout(() => {
-        if (typeof global.gc === 'function') global.gc();
-      }, 2000);
-      console.log('✅ Emergency garbage collection completed');
-    } catch (err) {
-      console.error('❌ Error during emergency garbage collection:', err);
-    }
-  } else {
-    console.log('⚠️ Garbage collection function not available (Node.js needs --expose-gc flag)');
-  }
-  
-  // Clear module cache to free up memory
-  let clearedModules = 0;
-  for (const key in require.cache) {
-    if (key.includes('node_modules') && 
-        !key.includes('baileys') && 
-        !key.includes('whatsapp') &&
-        !key.includes('express')) {
-      delete require.cache[key];
-      clearedModules++;
-    }
-  }
-  console.log(`🧹 Cleared ${clearedModules} non-essential modules from require cache`);
-  
-  // Clear event listeners that might be leaking
-  try {
-    for (const [emitterKey, eventMap] of attachedListeners.entries()) {
-      console.log(`🧹 Cleaning up listeners for ${emitterKey}...`);
-      for (const [eventName, listeners] of eventMap.entries()) {
-        console.log(`- Event: ${eventName}, Listeners: ${listeners.size}`);
-      }
-    }
-  } catch (err) {
-    console.error('❌ Error cleaning up event listeners:', err);
-  }
-  
-  // Clear WhatsApp message cache if available
-  if (global.conn && global.conn.chats) {
-    let messageCount = 0;
-    let chatsCleaned = 0;
-    const chatCount = Object.keys(global.conn.chats).length;
-    
-    try {
-      for (const chatId in global.conn.chats) {
-        const chat = global.conn.chats[chatId];
-        if (chat && chat.messages) {
-          // Keep only the latest 10 messages per chat in emergency mode
-          const keys = [...chat.messages.keys()];
-          if (keys.length > 10) {
-            const keysToRemove = keys.slice(0, keys.length - 10);
-            for (const key of keysToRemove) {
-              chat.messages.delete(key);
-              messageCount++;
-            }
-            chatsCleaned++;
-          }
-        }
-      }
-      console.log(`🧹 Cleared ${messageCount} messages from ${chatsCleaned}/${chatCount} chats`);
-    } catch (chatErr) {
-      console.error('❌ Error clearing chat history:', chatErr);
-    }
-  }
-  
-  console.log('✅ Emergency cleanup completed');
-  return true;
-}
+// Export singleton instance
+const memoryManager = new MemoryManager();
 
-/**
- * Schedule regular memory cleanup
- */
-function scheduleMemoryCleanup(intervalMinutes = 30) {
-  // Clear any existing interval
-  if (cleanupInterval) {
-    clearInterval(cleanupInterval);
-  }
-  
-  // Set up new interval
-  cleanupInterval = setInterval(() => {
-    console.log('🧹 Running scheduled memory cleanup...');
-    performMemoryCleanup();
-  }, intervalMinutes * 60 * 1000);
-  
-  return cleanupInterval;
-}
-
-/**
- * Shutdown memory management and clean up resources
- */
-function shutdown() {
-  console.log('📴 Shutting down memory manager...');
-  
-  // Clear scheduled cleanup
-  if (cleanupInterval) {
-    clearInterval(cleanupInterval);
-    cleanupInterval = null;
-  }
-  
-  // Final cleanup
-  performMemoryCleanup();
-  
-  console.log('✅ Memory manager shut down successfully');
-}
-
-/**
- * Initialize the memory management system
- */
-function initializeMemoryManager() {
-  console.log('🧠 Initializing memory management...');
-
-  // Schedule periodic cleanup
-  const interval = scheduleMemoryCleanup();
-
-  // Handle process exit
-  process.on('exit', () => {
-    console.log('Process exiting, cleaning up resources');
-    performMemoryCleanup();
-  });
-
-  console.log('✅ Memory management initialized');
-
-  // Set up the global memory manager object
-  global.memoryManager = {
-    scheduleMemoryCleanup,
-    performMemoryCleanup,
-    runEmergencyCleanup,
-    shutdown,
-    safeOn,
-    // Get memory usage data
-    getMemoryUsage: function() {
-      try {
-        // Try to get from advanced memory manager
-        const advancedMemoryManager = require('./lib/advanced-memory-manager');
-        if (advancedMemoryManager && typeof advancedMemoryManager.getMemoryUsage === 'function') {
-          return advancedMemoryManager.getMemoryUsage();
-        }
-      } catch (err) {
-        console.error('Error using advanced memory manager:', err.message);
-      }
-      
-      // Fallback to simple memory usage info
-      const memoryUsage = process.memoryUsage();
-      const totalMemory = require('os').totalmem();
-      const freeMemory = require('os').freemem();
-      
-      return {
-        formatted: {
-          heapUsed: Math.round(memoryUsage.heapUsed / (1024 * 1024)),
-          rss: Math.round(memoryUsage.rss / (1024 * 1024)),
-        },
-        percentages: {
-          heapUsage: Math.round((memoryUsage.heapUsed / memoryUsage.heapTotal) * 100),
-          systemUsage: Math.round(((totalMemory - freeMemory) / totalMemory) * 100)
-        }
-      };
-    },
-    // Run cleanup directly from lib
-    runCleanup: function() {
-      try {
-        const advancedMemoryManager = require('./lib/advanced-memory-manager');
-        if (advancedMemoryManager && typeof advancedMemoryManager.runCleanup === 'function') {
-          return advancedMemoryManager.runCleanup();
-        }
-      } catch (err) {
-        console.error('Error using advanced memory manager for cleanup:', err.message);
-      }
-      // Fallback to own cleanup
-      return performMemoryCleanup();
-    }
-  };
-
-  return global.memoryManager;
-}
-
-// Export functions
+// Export functions (retaining original safeOn)
 module.exports = {
   safeOn,
-  performMemoryCleanup,
-  scheduleMemoryCleanup,
-  runEmergencyCleanup,
-  shutdown,
-  initializeMemoryManager
+  performMemoryCleanup: memoryManager.handleWarningCleanup,
+  scheduleMemoryCleanup: () => {}, //Removed as handled internally by MemoryManager
+  runEmergencyCleanup: memoryManager.handleEmergencyCleanup,
+  shutdown: memoryManager.removeAllListeners,
+  initializeMemoryManager: () => {
+    console.log('🧠 Initializing memory management...');
+    //Removed process exit listener as handled internally
+    console.log('✅ Memory management initialized');
+    return memoryManager;
+  },
+  getMemoryUsage: memoryManager.getMemoryUsage
 };
