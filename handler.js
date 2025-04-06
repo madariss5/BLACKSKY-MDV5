@@ -1306,6 +1306,23 @@ module.exports = {
             
             // Log admin status for debugging and enforce security checks
             if (m.isGroup) {
+                // Refresh group metadata for accurate admin status
+                try {
+                    groupMetadata = await this.groupMetadata(m.chat)
+                    participants = groupMetadata.participants || []
+                } catch (e) {
+                    console.error(`[ADMIN CHECK] Failed to fetch metadata: ${e.message}`)
+                }
+                
+                // Get latest bot and user data
+                const botId = this.decodeJid(this.user.jid)
+                const botParticipant = participants.find(p => this.decodeJid(p.id) === botId)
+                const userParticipant = participants.find(p => this.decodeJid(p.id) === m.sender)
+                
+                // Update admin status based on latest data
+                isBotAdmin = botParticipant?.admin === 'admin' || botParticipant?.admin === 'superadmin' || false
+                isAdmin = userParticipant?.admin === 'admin' || userParticipant?.admin === 'superadmin' || false
+                
                 console.log(`[ADMIN CHECK] Chat: ${m.chat}, User ${m.sender} is admin: ${isAdmin}, Bot is admin: ${isBotAdmin}`)
                 
                 // Enhanced: Double-verify admin status from groupMetadata for BOTH user and bot
