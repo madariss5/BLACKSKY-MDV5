@@ -10,7 +10,7 @@
         "plugins": "plugins"
     },
     "scripts": {
-        "start": "node --expose-gc index.js",
+        "start": "node index.js --autocleartmp --autoread",
         "test": "node test.js",
         "test2": "nodemon index.js --server --autocleartmp --autoread"
     },
