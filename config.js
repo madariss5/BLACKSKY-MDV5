@@ -1,6 +1,6 @@
 /* 
-   * Bot created by BETABOTZ
-   * Contact: wa.me/62895628117900
+   * Bot created by BLACKSKY-MD
+   * Contact: wa.me/4915563151347
 */
 
 // List of owner numbers
@@ -47,7 +47,7 @@ global.APIKeys = {
   'https://api.xteam.xyz': process.env.XTEAM_API_KEY || '',
   'https://api.lolhuman.xyz': process.env.LOLHUMAN_API_KEY || '',
   'https://api.openai.com/v1': process.env.OPENAI_API_KEY || '',
-  'https://api.openweathermap.org/data/2.5': process.env.OPENWEATHERMAP_API_KEY || '',
+  'https://api.openweathermap.org/data/2.5': process.env.OPENWEATHERMAP_API_KEY || '0176411203b847c32979f7f06f8fe762',
   'https://api.deepai.org/api': process.env.DEEPAI_API_KEY || ''
 }
 
